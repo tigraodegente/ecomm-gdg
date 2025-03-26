@@ -227,10 +227,133 @@ const {
       <slot />
     </main>
     
-    <!-- Footer Simplificado -->
-    <footer class="bg-gray-100 py-8 mt-8">
-      <div class="container mx-auto px-4 text-center">
-        <p>&copy; {new Date().getFullYear()} Grão de Gente</p>
+    <!-- Footer -->
+    <footer class="mt-12">
+      <!-- Seção de informações com fundo verde -->
+      <div class="bg-[#4DC0B5] py-12 text-white">
+        <div class="container mx-auto px-4 max-w-[1360px]">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <!-- Coluna Institucional -->
+            <div>
+              <h3 class="text-xl font-medium mb-6">Institucional</h3>
+              <ul class="space-y-4">
+                <li><a href="#" class="hover:underline">A Empresa</a></li>
+                <li><a href="#" class="hover:underline">Processo de Produção</a></li>
+                <li><a href="#" class="hover:underline">Controle de Qualidade</a></li>
+                <li><a href="#" class="hover:underline">Nosso Algodão</a></li>
+                <li><a href="#" class="hover:underline">Política de Privacidade</a></li>
+                <li><a href="#" class="hover:underline">Seja Nosso Fornecedor</a></li>
+                <li><a href="#" class="hover:underline">Comunicado ao Mercado</a></li>
+              </ul>
+            </div>
+            
+            <!-- Coluna Atendimento ao Cliente -->
+            <div>
+              <h3 class="text-xl font-medium mb-6">Atendimento ao Cliente</h3>
+              <ul class="space-y-4">
+                <li><a href="#" class="hover:underline">Como Comprar</a></li>
+                <li><a href="#" class="hover:underline">Pagamentos</a></li>
+                <li><a href="#" class="hover:underline">Prazos e Entregas</a></li>
+                <li><a href="#" class="hover:underline">Trocas e Devoluções</a></li>
+              </ul>
+            </div>
+            
+            <!-- Coluna Ajuda -->
+            <div>
+              <h3 class="text-xl font-medium mb-6">Ajuda</h3>
+              <ul class="space-y-4">
+                <li><a href="#" class="hover:underline">Central de Atendimento</a></li>
+                <li><a href="#" class="hover:underline">Meu Cadastro</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Logo e redes sociais -->
+          <div class="flex flex-col md:flex-row justify-between items-center mt-16">
+            <!-- Logo -->
+            <div class="mb-6 md:mb-0">
+              <a href="/" class="inline-block">
+                <img 
+                  src="https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp"
+                  alt="Logo da Grão de Gente"
+                  class="w-[140px]"
+                >
+              </a>
+            </div>
+            
+            <!-- Redes sociais -->
+            <div class="flex gap-6">
+              <a href="#" aria-label="Facebook" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" />
+                </svg>
+              </a>
+              <a href="#" aria-label="Instagram" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" />
+                </svg>
+              </a>
+              <a href="#" aria-label="YouTube" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clip-rule="evenodd" />
+                </svg>
+              </a>
+              <a href="#" aria-label="TikTok" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V14a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z" />
+                </svg>
+              </a>
+              <a href="#" aria-label="Pinterest" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z" fill-rule="evenodd" clip-rule="evenodd"/>
+                </svg>
+              </a>
+              <a href="#" aria-label="Thread" class="text-white hover:text-gray-200">
+                <svg class="h-7 w-7" fill="currentColor" viewBox="0 0 448 512" aria-hidden="true">
+                  <path d="M331.5 235.7c2.5 3.2 4.9 6.5 7.2 9.8c10.7 15.3 18.9 32.8 23.2 51.2c4.1 17.5 4.1 35.4 .1 52.9c-4.1 17.5-12.4 33.5-24.1 47c-10.5 12.2-23.4 22.2-38.1 29.2c-15.1 7.3-31.5 11.1-48.2 11.1c-33.2 0-64.6-13.2-87.9-36.5c-23.2-23.2-36.5-54.6-36.5-87.9c0-33.2 13.2-64.6 36.5-87.9c23.2-23.2 54.6-36.5 87.9-36.5c16.7 0 33.1 3.8 48.2 11.1c14.6 7 27.5 17 38.1 29.2c3.2 3.7 6.3 7.6 9.2 11.7l64.8-50.6c-16.9-27.1-40.3-49.8-68.2-65.6c-29.1-16.5-62.3-25.1-95.9-25.1c-52.6 0-103 20.9-140.2 58.1C60.9 125 40 175.5 40 228.1c0 52.6 20.9 103 58.1 140.2c37.1 37.1 87.6 58.1 140.2 58.1c52.6 0 103-20.9 140.2-58.1c37.2-37.2 58.1-87.6 58.1-140.2c0-38-11.2-73.6-30.5-103.5c-19.1-29.4-46.1-53.5-78.5-69.9L248.3 140.7c15.5 4.9 30 12.5 42.7 22.5c15.2 12 27.5 27.1 36.1 44.4l45.7-35.6c-15.8-28.7-39.2-52.5-67.4-69c-8.3-4.9-17-9-25.8-12.4L206.9 170.9c12.9 3.5 25 9.2 35.9 17.2c1.6 1.2 3.2 2.4 4.8 3.7l51.2-39.9c0 0 0 0-.2-.1c-20.2-13-43.9-20.6-68.8-21.5c-4.9-.2-9.9-.2-14.8 .1l-25.8 36.9c.8 0 1.5-.1 2.3-.1c12.3-.2 24.5 2.4 35.9 7.3c2.5 1.1 5 2.3 7.5 3.7L193.7 207c-7-3.1-14.5-5.1-22.2-5.8c-5.1-.5-10.3-.3-15.4 .4l-22.4 31.9c16.3-.8 32.5 2.6 46.9 9.9c2.6 1.4 5.2 2.8 7.7 4.4L157.3 288c-4.1-3.9-8.7-7.1-13.8-9.5c-9.7-4.7-20.4-7-31.2-6.8l-16.9 24.2c3.7 0 7.5 .3 11.2 1c16.3 2.8 31 11.3 41.3 23.9L112.2 355s-20.4-34.3-20.4-34.3C90 322.7 90 325 88.1 327.3c-13.8 16.6-32.6 28.9-53.7 34.9C50 369.9 65.6 384.2 82.2 396c-1.2 4.9-2.2 10-2.7 15.1L82 351.3c12.9-6.1 23.9-16.1 31.6-28.6l20.8 35c-26.9 22.1-40.3 55.2-40.3 55.2h.3c-10.1 24.8-8.2 53 5.3 76.3c11.9 <--- TRUNCATED: SVG path too long -->
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Seção rodapé com fundo branco -->
+      <div class="bg-white py-8">
+        <div class="container mx-auto px-4 max-w-[1360px]">
+          <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <!-- Formas de pagamento -->
+            <div class="flex flex-col">
+              <p class="text-sm text-gray-600 mb-2">Formas de Pagamento:</p>
+              <div class="flex gap-2 items-center">
+                <img src="https://www.graodegente.com.br/arquivos/mastercard.svg" alt="Mastercard" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/visa.svg" alt="Visa" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/amex.svg" alt="American Express" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/diners.svg" alt="Diners" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/elo.svg" alt="Elo" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/hipercard.svg" alt="Hipercard" class="h-8">
+                <img src="https://www.graodegente.com.br/arquivos/pix.svg" alt="Pix" class="h-8">
+              </div>
+            </div>
+            
+            <!-- Segurança -->
+            <div class="flex flex-col items-center">
+              <p class="text-sm text-gray-600 mb-2">Segurança:</p>
+              <img src="https://www.graodegente.com.br/arquivos/safe.svg" alt="Site Seguro" class="h-10">
+            </div>
+            
+            <!-- Plataforma -->
+            <div class="flex flex-col items-center">
+              <p class="text-sm text-gray-600 mb-2">Plataforma:</p>
+              <img src="https://www.graodegente.com.br/arquivos/konduza.svg" alt="Konduza" class="h-10">
+            </div>
+          </div>
+          
+          <!-- Informações legais -->
+          <div class="text-center mt-8">
+            <p class="text-xs text-gray-500">Grão de Gente - LGF Comércio Eletrônico LTDA - CNPJ: 26.384.531/0001-19 Rod mg 290, Km 73, s/n - Vargem da Forquilha - Jacutinga/MG - CEP: 37.590-000</p>
+          </div>
+        </div>
       </div>
     </footer>
 
