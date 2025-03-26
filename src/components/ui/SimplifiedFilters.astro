@@ -1,0 +1,199 @@
+---
+/**
+ * Componente de Filtros para produtos
+ * 
+ * Exibe categorias, faixas de preço e outros filtros disponíveis
+ * para refinar a listagem de produtos.
+ */
+
+// Receber propriedades
+const { 
+  categories = [],
+  priceRanges = [
+    { min: 0, max: 50, label: 'Até R$ 50' },
+    { min: 50, max: 100, label: 'R$ 50 - R$ 100' },
+    { min: 100, max: 200, label: 'R$ 100 - R$ 200' },
+    { min: 200, max: 500, label: 'R$ 200 - R$ 500' },
+    { min: 500, max: null, label: 'Acima de R$ 500' }
+  ],
+  minPrice,
+  maxPrice,
+  search,
+  selectedCategory
+} = Astro.props;
+
+// Formatar preço
+function formatCurrency(value) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  }).format(value);
+}
+
+// Função para construir a URL de filtro
+function getFilterUrl(params = {}) {
+  const url = new URL(Astro.url);
+  
+  // Manter parâmetros existentes
+  if (selectedCategory && !('category' in params)) {
+    params.category = selectedCategory;
+  }
+  
+  if (search && !('search' in params)) {
+    params.search = search;
+  }
+  
+  if (minPrice && !('minPrice' in params)) {
+    params.minPrice = minPrice;
+  }
+  
+  if (maxPrice && !('maxPrice' in params)) {
+    params.maxPrice = maxPrice;
+  }
+  
+  // Limpar parâmetros atuais
+  Array.from(url.searchParams.keys()).forEach(key => {
+    url.searchParams.delete(key);
+  });
+  
+  // Adicionar parâmetros filtrados (remover undefined e null)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, value);
+    }
+  });
+  
+  return url.toString();
+}
+
+// Verificar qual faixa de preço está selecionada
+function isPriceRangeSelected(min, max) {
+  const currentMin = minPrice ? Number(minPrice) : null;
+  const currentMax = maxPrice ? Number(maxPrice) : null;
+  
+  return currentMin === min && currentMax === max;
+}
+---
+
+<div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  <h2 class="text-lg font-medium text-gray-900 mb-4">Filtros</h2>
+  
+  <!-- Busca rápida -->
+  <div class="mb-6">
+    <label for="filter-search" class="block text-sm font-medium text-gray-700 mb-1">Busca</label>
+    <form action="/produtos" method="get" class="relative">
+      <!-- Manter parâmetros existentes em campos ocultos -->
+      {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+      {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
+      {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
+      
+      <div class="relative rounded-md shadow-sm">
+        <input
+          type="text"
+          name="search"
+          id="filter-search"
+          class="block w-full rounded-md border-gray-300 pr-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          placeholder="Buscar produtos..."
+          value={search || ''}
+        />
+        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+          <button type="submit" class="text-gray-400 hover:text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <!-- Categorias -->
+  {categories.length > 0 && (
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-900 mb-2">Categorias</h3>
+      <div class="space-y-1 max-h-48 overflow-y-auto pr-2">
+        {categories.map(category => (
+          <a 
+            href={getFilterUrl({ category: category.cid, page: 1 })}
+            class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedCategory === category.cid ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+          >
+            {category.name} 
+            {category.count && <span class="text-xs text-gray-500 ml-1">({category.count})</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
+  
+  <!-- Faixa de preço -->
+  <div class="mb-6">
+    <h3 class="text-sm font-medium text-gray-900 mb-2">Faixa de Preço</h3>
+    <div class="space-y-1">
+      {priceRanges.map(range => (
+        <a 
+          href={getFilterUrl({ minPrice: range.min, maxPrice: range.max, page: 1 })}
+          class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${isPriceRangeSelected(range.min, range.max) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+        >
+          {range.label}
+        </a>
+      ))}
+    </div>
+  </div>
+  
+  <!-- Filtro de preço personalizado -->
+  <div class="mb-6">
+    <h3 class="text-sm font-medium text-gray-900 mb-2">Preço Personalizado</h3>
+    <form action="/produtos" method="get" class="space-y-3">
+      <!-- Manter parâmetros existentes em campos ocultos -->
+      {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+      {search && <input type="hidden" name="search" value={search} />}
+      
+      <div>
+        <label for="filter-price-from" class="block text-xs text-gray-500 mb-1">De</label>
+        <input
+          type="number"
+          name="minPrice"
+          id="filter-price-from"
+          min="0"
+          step="1"
+          class="block w-full rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          placeholder="Min"
+          value={minPrice || ''}
+        />
+      </div>
+      <div>
+        <label for="filter-price-to" class="block text-xs text-gray-500 mb-1">Até</label>
+        <input
+          type="number"
+          name="maxPrice"
+          id="filter-price-to"
+          min="0"
+          step="1"
+          class="block w-full rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          placeholder="Max"
+          value={maxPrice || ''}
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+      >
+        Aplicar
+      </button>
+    </form>
+  </div>
+  
+  <!-- Limpar filtros -->
+  <div class="pt-2 border-t border-gray-200">
+    <a
+      href="/produtos"
+      class="text-sm text-primary-600 hover:text-primary-800 font-medium flex items-center"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      Limpar todos os filtros
+    </a>
+  </div>
+</div>

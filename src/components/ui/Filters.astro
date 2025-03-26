@@ -2,13 +2,16 @@
 /**
  * Componente de Filtros
  * 
- * Implementação idêntica ao design fornecido da imagem.
+ * Design original da Grão de Gente com dados dinâmicos.
  */
+import productService from '../../services/productService';
+import categoryService from '../../services/categoryService';
 
 interface FilterCount {
   name: string;
   count: number;
   selected?: boolean;
+  cid?: string;
 }
 
 interface ColorInfo {
@@ -16,6 +19,7 @@ interface ColorInfo {
   hex: string;
   count: number;
   selected?: boolean;
+  value?: string;
 }
 
 interface Props {
@@ -26,18 +30,276 @@ interface Props {
   hasImmediateDelivery?: boolean;
   deliveryCount?: number;
   showClearFilters?: boolean;
+  search?: string;
+  minPrice?: string | number;
+  maxPrice?: string | number;
+  selectedCategory?: string;
+  selectedSort?: string;
+  attributeFilters?: Record<string, string[]>;
 }
 
 const { 
-  categories = [{ name: 'Roupas', count: 3, selected: true }], 
-  colors = [{ name: 'Preto', hex: '#000000', count: 3, selected: true }],
-  sizes = [{ name: 'P', count: 3, selected: true }],
-  materials = [{ name: 'Algodão', count: 3, selected: true }],
+  categories = [],
+  colors = [],
+  sizes = [],
+  materials = [],
   hasImmediateDelivery = false,
-  deliveryCount = 1,
-  showClearFilters = true
+  deliveryCount = 0,
+  showClearFilters = true,
+  search = '',
+  minPrice = '',
+  maxPrice = '',
+  selectedCategory = '',
+  selectedSort = 'newest',
+  attributeFilters = {}
 } = Astro.props;
 
+// Tentar obter dados dinâmicos para os filtros se não forem fornecidos nos props
+let dynamicCategories = categories;
+let dynamicColors = colors;
+let dynamicSizes = sizes;
+let dynamicMaterials = materials;
+
+// Opções de filtro para buscar categorias, cores, tamanhos, etc.
+const filterOptions = {
+  search: search || undefined,
+  minPrice: minPrice ? Number(minPrice) : undefined,
+  maxPrice: maxPrice ? Number(maxPrice) : undefined,
+  categoryId: selectedCategory ? categoryService.getCategoryByCid(selectedCategory)?.id : undefined,
+  attributeFilters
+};
+
+try {
+  // Se não foram fornecidas categorias nos props, buscar do banco
+  if (categories.length === 0) {
+    const categoriesWithCount = productService.getCategoriesWithProductCount(filterOptions);
+    dynamicCategories = categoriesWithCount.map(cat => ({
+      name: cat.name,
+      count: cat.product_count,
+      cid: cat.cid,
+      selected: cat.cid === selectedCategory
+    }));
+  }
+  
+  // Se não foram fornecidas cores nos props, buscar do banco
+  if (colors.length === 0) {
+    const colorsFromDb = productService.getColorsForFilter(filterOptions);
+    
+    // Função para converter nomes de cores em hexadecimal
+    const getColorHex = (colorName: string) => {
+      const colorMap: Record<string, string> = {
+        'preto': '#000000',
+        'branco': '#FFFFFF',
+        'vermelho': '#FF0000',
+        'azul': '#0000FF',
+        'verde': '#008000',
+        'amarelo': '#FFFF00',
+        'rosa': '#FFC0CB',
+        'roxo': '#800080',
+        'laranja': '#FFA500',
+        'marrom': '#A52A2A',
+        'cinza': '#808080',
+        'bege': '#F5F5DC'
+      };
+      
+      const normalizedName = colorName.toLowerCase().trim();
+      
+      // Verificar se o nome já é um valor hexadecimal
+      if (normalizedName.startsWith('#') && (normalizedName.length === 4 || normalizedName.length === 7)) {
+        return normalizedName;
+      }
+      
+      // Retornar do mapa de cores ou um valor padrão
+      return colorMap[normalizedName] || '#CCCCCC';
+    };
+    
+    // Extrair o ID do atributo de cor
+    const colorId = colorsFromDb.length > 0 ? productService.getAttributeTypesForFilters().find(
+      t => t.name.toLowerCase().includes('cor') || t.name.toLowerCase().includes('color')
+    )?.id : undefined;
+    
+    dynamicColors = colorsFromDb.map(color => ({
+      name: color.display_value || color.value,
+      value: color.value,
+      hex: getColorHex(color.display_value || color.value),
+      count: color.product_count,
+      selected: colorId ? attributeFilters[colorId]?.includes(color.value) : false
+    }));
+  }
+  
+  // Se não foram fornecidos tamanhos nos props, buscar do banco
+  if (sizes.length === 0) {
+    const sizesFromDb = productService.getSizesForFilter(filterOptions);
+    
+    // Extrair o ID do atributo de tamanho
+    const sizeId = sizesFromDb.length > 0 ? productService.getAttributeTypesForFilters().find(
+      t => t.name.toLowerCase().includes('tamanho') || t.name.toLowerCase().includes('size')
+    )?.id : undefined;
+    
+    dynamicSizes = sizesFromDb.map(size => ({
+      name: size.display_value || size.value,
+      value: size.value,
+      count: size.product_count,
+      selected: sizeId ? attributeFilters[sizeId]?.includes(size.value) : false
+    }));
+  }
+  
+  // Se não foram fornecidos materiais nos props, buscar do banco
+  if (materials.length === 0) {
+    const materialsFromDb = productService.getMaterialsForFilter(filterOptions);
+    
+    // Extrair o ID do atributo de material
+    const materialId = materialsFromDb.length > 0 ? productService.getAttributeTypesForFilters().find(
+      t => t.name.toLowerCase().includes('material')
+    )?.id : undefined;
+    
+    dynamicMaterials = materialsFromDb.map(material => ({
+      name: material.display_value || material.value,
+      value: material.value,
+      count: material.product_count,
+      selected: materialId ? attributeFilters[materialId]?.includes(material.value) : false
+    }));
+  }
+} catch (error) {
+  console.error('Erro ao obter dados dinâmicos para filtros:', error);
+  // Fallback para dados de exemplo se ocorrer um erro
+  if (dynamicCategories.length === 0) {
+    dynamicCategories = [
+      { name: 'Kits Berço', count: 239, selected: true },
+      { name: 'Enxoval', count: 226 },
+      { name: 'Móveis', count: 259 },
+      { name: 'Bolsas', count: 276 }
+    ];
+  }
+  
+  if (dynamicColors.length === 0) {
+    dynamicColors = [
+      { name: 'Amarelo', count: 45, selected: true, hex: '#FFEB3B' },
+      { name: 'Verde', count: 32, hex: '#4CAF50' },
+      { name: 'Rosa', count: 67, hex: '#E91E63' },
+      { name: 'Marrom', count: 29, hex: '#795548' },
+      { name: 'Azul', count: 58, hex: '#2196F3' },
+      { name: 'Vermelho', count: 41, hex: '#F44336' }
+    ];
+  }
+  
+  if (dynamicSizes.length === 0) {
+    dynamicSizes = [
+      { name: 'P', count: 120, selected: true },
+      { name: 'M', count: 145 },
+      { name: 'G', count: 98 }
+    ];
+  }
+  
+  if (dynamicMaterials.length === 0) {
+    dynamicMaterials = [
+      { name: 'Algodão', count: 216, selected: true },
+      { name: 'Poliéster', count: 184 },
+      { name: 'Madeira', count: 78 }
+    ];
+  }
+}
+
+// Função para construir a URL de filtro
+function getFilterUrl(params = {}) {
+  const url = new URL(Astro.url);
+  
+  // Manter parâmetros existentes
+  if (selectedCategory && !('category' in params)) {
+    params.category = selectedCategory;
+  }
+  
+  if (search && !('search' in params)) {
+    params.search = search;
+  }
+  
+  if (minPrice && !('minPrice' in params)) {
+    params.minPrice = minPrice;
+  }
+  
+  if (maxPrice && !('maxPrice' in params)) {
+    params.maxPrice = maxPrice;
+  }
+  
+  if (selectedSort && !('sort' in params)) {
+    params.sort = selectedSort;
+  }
+  
+  // Para atributos existentes
+  if (attributeFilters && Object.keys(attributeFilters).length > 0) {
+    Object.entries(attributeFilters).forEach(([typeId, values]) => {
+      if (!(`attr_${typeId}` in params)) {
+        params[`attr_${typeId}`] = values;
+      }
+    });
+  }
+  
+  // Limpar parâmetros atuais
+  Array.from(url.searchParams.keys()).forEach(key => {
+    url.searchParams.delete(key);
+  });
+  
+  // Adicionar parâmetros filtrados (remover undefined e null)
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        // Se for um array, adicionar como valores separados por vírgulas
+        if (value.length > 0) {
+          url.searchParams.set(key, value.join(','));
+        }
+      } else {
+        url.searchParams.set(key, value);
+      }
+    }
+  });
+  
+  return url.toString();
+}
+
+// Adicionar ou remover um valor de atributo dos filtros
+function getAttributeFilterUrl(typeId, value) {
+  // Copiar os filtros atuais
+  const newFilters = { ...attributeFilters };
+  
+  // Se o tipo de atributo já existir
+  if (newFilters[typeId]) {
+    // Se o valor já estiver selecionado, removê-lo
+    if (newFilters[typeId].includes(value)) {
+      newFilters[typeId] = newFilters[typeId].filter(v => v !== value);
+      if (newFilters[typeId].length === 0) {
+        delete newFilters[typeId];
+      }
+    } else {
+      // Senão, adicioná-lo
+      newFilters[typeId] = [...newFilters[typeId], value];
+    }
+  } else {
+    // Se o tipo não existir, criar novo com o valor
+    newFilters[typeId] = [value];
+  }
+  
+  // Converter para formato esperado pela URL
+  const urlParams = {};
+  Object.entries(newFilters).forEach(([id, vals]) => {
+    urlParams[`attr_${id}`] = vals;
+  });
+  
+  // Resetar a página para 1 quando filtrar
+  return getFilterUrl({ ...urlParams, page: 1 });
+}
+
+// Obter IDs dos atributos para uso posterior
+const colorTypeId = productService.getAttributeTypesForFilters().find(
+  t => t.name.toLowerCase().includes('cor') || t.name.toLowerCase().includes('color')
+)?.id;
+
+const sizeTypeId = productService.getAttributeTypesForFilters().find(
+  t => t.name.toLowerCase().includes('tamanho') || t.name.toLowerCase().includes('size')
+)?.id;
+
+const materialTypeId = productService.getAttributeTypesForFilters().find(
+  t => t.name.toLowerCase().includes('material')
+)?.id;
 ---
 
 <div class="shadow-none bg-[#F5F5F5] w-[100%] h-full">
@@ -45,135 +307,224 @@ const {
     <!-- Cabeçalho com título e botão limpar -->
     <div class="flex items-center justify-between w-full pb-4">
       <h2 class="text-lg font-semibold text-[#333333] m-0 p-0">Filtros</h2>
-      <button class="text-sm text-[#40C1AC] font-medium border-0 bg-transparent">
-        Limpar filtros
-      </button>
+      {showClearFilters && (
+        <a href="/produtos" class="text-sm text-[#40C1AC] font-medium border-0 bg-transparent">
+          Limpar filtros
+        </a>
+      )}
     </div>
 
     <!-- Filtro de entrega imediata em destaque -->
-    <div class="mb-6">
-      <div class="w-full flex items-center px-4 py-3 rounded-md bg-[#EEEEEE] mb-4">
-        <div class="flex items-center flex-1 min-w-0">
-          <span class="text-sm font-medium text-[#333333] truncate">Entrega imediata</span>
-          <span class="ml-1 text-xs text-[#777777] whitespace-nowrap">({deliveryCount})</span>
-        </div>
-        
-        <!-- Switch toggle -->
-        <div class="relative flex items-center ml-3">
-          <div class="w-12 h-6 rounded-full bg-[#CCCCCC] flex items-center p-0.5">
-            <div class="w-5 h-5 bg-white rounded-full shadow absolute left-0.5"></div>
+    {deliveryCount > 0 && (
+      <div class="mb-6">
+        <div class="w-full flex items-center px-4 py-3 rounded-md bg-[#EEEEEE] mb-4">
+          <div class="flex items-center flex-1 min-w-0">
+            <span class="text-sm font-medium text-[#333333] truncate">Entrega imediata</span>
+            <span class="ml-1 text-xs text-[#777777] whitespace-nowrap">({deliveryCount})</span>
+          </div>
+          
+          <!-- Switch toggle -->
+          <div class="relative flex items-center ml-3">
+            <a 
+              href={getFilterUrl({ hasImmediateDelivery: !hasImmediateDelivery })}
+              class="block"
+            >
+              <div class:list={[
+                "w-12 h-6 rounded-full flex items-center p-0.5 transition-colors", 
+                hasImmediateDelivery ? "bg-[#40C1AC]" : "bg-[#CCCCCC]"
+              ]}>
+                <div class:list={[
+                  "w-5 h-5 bg-white rounded-full shadow absolute transition-transform",
+                  hasImmediateDelivery ? "translate-x-6" : "translate-x-0.5"
+                ]}></div>
+              </div>
+            </a>
           </div>
         </div>
       </div>
+    )}
 
-      <!-- Ordenação -->
-      <div class="mb-6">
-        <h3 class="text-sm font-medium text-[#333333] mb-3">Ordenar por</h3>
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            class="text-center py-2 text-sm rounded-md border border-[#40C1AC] transition-colors bg-[#E0F7F4] text-[#40C1AC]"
-          >
-            Nome ↑
-          </button>
-          <button
-            class="text-center py-2 text-sm rounded-md border border-[#DDDDDD] transition-colors text-[#777777] hover:bg-[#F9F9F9]"
-          >
-            Preço
-          </button>
-        </div>
+    <!-- Ordenação -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-[#333333] mb-3">Ordenar por</h3>
+      <div class="grid grid-cols-2 gap-2">
+        <a
+          href={getFilterUrl({ sort: 'name_asc' })}
+          class:list={[
+            "text-center py-2 text-sm rounded-md border transition-colors",
+            selectedSort === 'name_asc' 
+              ? "border-[#40C1AC] bg-[#E0F7F4] text-[#40C1AC]" 
+              : "border-[#DDDDDD] text-[#777777] hover:bg-[#F9F9F9]"
+          ]}
+        >
+          Nome ↑
+        </a>
+        <a
+          href={getFilterUrl({ sort: 'price_asc' })}
+          class:list={[
+            "text-center py-2 text-sm rounded-md border transition-colors",
+            selectedSort === 'price_asc' 
+              ? "border-[#40C1AC] bg-[#E0F7F4] text-[#40C1AC]" 
+              : "border-[#DDDDDD] text-[#777777] hover:bg-[#F9F9F9]"
+          ]}
+        >
+          Preço ↑
+        </a>
       </div>
+    </div>
 
-      <!-- Categorias -->
+    <!-- Categorias -->
+    {dynamicCategories.length > 0 && (
       <div class="mb-6">
         <h3 class="text-sm font-medium text-[#333333] mb-3">Categorias</h3>
         <div class="flex flex-wrap gap-2">
-          {categories.map(category => (
-            <div 
-              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+          {dynamicCategories.map(category => (
+            <a
+              href={getFilterUrl({ category: category.cid, page: 1 })}
+              class:list={[
+                "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                selectedCategory === category.cid 
+                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
+                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+              ]}
             >
-              <span class="mr-1">✓</span>
+              {selectedCategory === category.cid && <span class="mr-1">✓</span>}
               <span>{category.name}</span>
               <span class="ml-1.5 text-xs text-[#777777]">({category.count})</span>
-            </div>
+            </a>
           ))}
         </div>
       </div>
-      
-      <!-- Preço -->
-      <div class="mb-6">
-        <h3 class="text-sm font-medium text-[#333333] mb-3">Preço</h3>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs text-[#777777] mb-1">Mínimo</label>
+    )}
+    
+    <!-- Preço -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-[#333333] mb-3">Preço</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs text-[#777777] mb-1">Mínimo</label>
+          <form action="" method="get" id="minPriceForm" class="flex">
+            {/* Manter parâmetros existentes em campos ocultos */}
+            {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+            {search && <input type="hidden" name="search" value={search} />}
+            {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
+            {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
+            {Object.entries(attributeFilters).map(([typeId, values]) => (
+              values.map(value => (
+                <input type="hidden" name={`attr_${typeId}`} value={value} />
+              ))
+            ))}
             <input
               type="text"
+              name="minPrice"
               class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
               placeholder="R$ Min"
+              value={minPrice || ''}
+              onchange="document.getElementById('minPriceForm').submit()"
             />
-          </div>
-          <div>
-            <label class="block text-xs text-[#777777] mb-1">Máximo</label>
+          </form>
+        </div>
+        <div>
+          <label class="block text-xs text-[#777777] mb-1">Máximo</label>
+          <form action="" method="get" id="maxPriceForm" class="flex">
+            {/* Manter parâmetros existentes em campos ocultos */}
+            {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+            {search && <input type="hidden" name="search" value={search} />}
+            {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
+            {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
+            {Object.entries(attributeFilters).map(([typeId, values]) => (
+              values.map(value => (
+                <input type="hidden" name={`attr_${typeId}`} value={value} />
+              ))
+            ))}
             <input
               type="text"
+              name="maxPrice"
               class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
-              value="200"
+              placeholder="R$ Max"
+              value={maxPrice || ''}
+              onchange="document.getElementById('maxPriceForm').submit()"
             />
-          </div>
+          </form>
         </div>
       </div>
+    </div>
 
-      <!-- Cores -->
+    <!-- Cores -->
+    {dynamicColors.length > 0 && (
       <div class="mb-6">
         <h3 class="text-sm font-medium text-[#333333] mb-3">Cores</h3>
         <div class="flex flex-wrap gap-2">
-          {colors.map(color => (
-            <div
-              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+          {dynamicColors.map(color => (
+            <a
+              href={getAttributeFilterUrl(colorTypeId, color.value)}
+              class:list={[
+                "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                color.selected 
+                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
+                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+              ]}
             >
-              <span class="mr-1">✓</span>
+              {color.selected && <span class="mr-1">✓</span>}
               <span 
                 class="w-4 h-4 rounded-full mr-2 border border-gray-200" 
                 style={`background-color: ${color.hex}`}
               ></span>
               <span>{color.name}</span>
               <span class="ml-1.5 text-xs text-[#777777]">({color.count})</span>
-            </div>
+            </a>
           ))}
         </div>
       </div>
-      
-      <!-- Tamanhos -->
+    )}
+    
+    <!-- Tamanhos -->
+    {dynamicSizes.length > 0 && (
       <div class="mb-6">
         <h3 class="text-sm font-medium text-[#333333] mb-3">Tamanho</h3>
         <div class="flex flex-wrap gap-2">
-          {sizes.map(size => (
-            <div
-              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+          {dynamicSizes.map(size => (
+            <a
+              href={getAttributeFilterUrl(sizeTypeId, size.value)}
+              class:list={[
+                "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                size.selected 
+                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
+                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+              ]}
             >
-              <span class="mr-1">✓</span>
+              {size.selected && <span class="mr-1">✓</span>}
               <span>{size.name}</span>
               <span class="ml-1.5 text-xs text-[#777777]">({size.count})</span>
-            </div>
+            </a>
           ))}
         </div>
       </div>
-      
-      <!-- Materiais -->
+    )}
+    
+    <!-- Materiais -->
+    {dynamicMaterials.length > 0 && (
       <div class="mb-6">
         <h3 class="text-sm font-medium text-[#333333] mb-3">Material</h3>
         <div class="flex flex-wrap gap-2">
-          {materials.map(material => (
-            <div
-              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+          {dynamicMaterials.map(material => (
+            <a
+              href={getAttributeFilterUrl(materialTypeId, material.value)}
+              class:list={[
+                "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                material.selected 
+                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
+                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+              ]}
             >
-              <span class="mr-1">✓</span>
+              {material.selected && <span class="mr-1">✓</span>}
               <span>{material.name}</span>
               <span class="ml-1.5 text-xs text-[#777777]">({material.count})</span>
-            </div>
+            </a>
           ))}
         </div>
       </div>
-    </div>
+    )}
   </div>
 </div>
 

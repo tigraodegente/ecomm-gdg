@@ -7,106 +7,62 @@
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.astro';
 import ProductCard from '@/components/ui/ProductCard.astro';
 import Filters from '@/components/ui/Filters.astro';
+import productService from '@/services/productService';
+import categoryService from '@/services/categoryService';
 
-// Dados de exemplo - Produtos
-const products = [
-  {
-    id: 'prod-27',
-    name: 'Kit Berço Clássico Premium',
-    price: 47.45,
-    pricePromotional: 41.75,
-    discountPercent: 12,
-    photos: [{ url: 'https://picsum.photos/400?random=1001' }],
-    attributes: {
-      material: 'ALGODÃO',
-      pieces: 9
-    }
-  },
-  {
-    id: 'prod-46',
-    name: 'Almofada Decorativa Baby',
-    price: 47.86,
-    pricePromotional: 46.90,
-    discountPercent: 2,
-    photos: [{ url: 'https://picsum.photos/400?random=1002' }],
-    attributes: {
-      material: 'ALGODÃO',
-      pieces: 3
-    }
-  },
-  {
-    id: 'prod-134',
-    name: 'Protetor Berço Dupla Face',
-    price: 110.33,
-    pricePromotional: 85.57,
-    discountPercent: 22,
-    photos: [{ url: 'https://picsum.photos/400?random=1003' }],
-    attributes: {
-      material: 'ALGODÃO',
-      pieces: 4
-    }
-  },
-  {
-    id: 'prod-85',
-    name: 'Kit Berço Trança Off White',
-    price: 559.80,
-    pricePromotional: 329.90,
-    discountPercent: 41,
-    photos: [{ url: 'https://picsum.photos/400?random=1004' }],
-    attributes: {
-      material: 'POLIÉSTER',
-      pieces: 8
-    }
-  },
-  {
-    id: 'prod-92',
-    name: 'Conjunto Berço Luxo',
-    price: 432.80,
-    pricePromotional: 229.90,
-    discountPercent: 47,
-    photos: [{ url: 'https://picsum.photos/400?random=1005' }],
-    attributes: {
-      material: 'POLIÉSTER',
-      pieces: 12
-    }
-  },
-  {
-    id: 'prod-114',
-    name: 'Lençol Premium para Berço',
-    price: 132.55,
-    pricePromotional: 129.90,
-    discountPercent: 2,
-    photos: [{ url: 'https://picsum.photos/400?random=1006' }],
-    attributes: {
-      material: 'POLIÉSTER',
-      pieces: 2
-    }
-  },
-  {
-    id: 'prod-118',
-    name: 'Cobertor Macio Infantil',
-    price: 89.90,
-    pricePromotional: 74.90,
-    discountPercent: 17,
-    photos: [{ url: 'https://picsum.photos/400?random=1007' }],
-    attributes: {
-      material: 'ALGODÃO',
-      pieces: 1
-    }
-  },
-  {
-    id: 'prod-122',
-    name: 'Travesseiro Anatômico Baby',
-    price: 59.90,
-    pricePromotional: 45.90,
-    discountPercent: 23,
-    photos: [{ url: 'https://picsum.photos/400?random=1008' }],
-    attributes: {
-      material: 'ESPUMA',
-      pieces: 1
-    }
+// Obter parâmetros da URL para filtros
+const { url } = Astro;
+const params = url.searchParams;
+
+// Obter parâmetros específicos
+const search = params.get('search') || '';
+const minPrice = params.get('minPrice') || '';
+const maxPrice = params.get('maxPrice') || '';
+const categorySlug = params.get('categoria') || params.get('category') || '';
+const sort = params.get('sort') || 'newest';
+const page = parseInt(params.get('page') || '1', 10);
+const limit = parseInt(params.get('limit') || '8', 10);
+
+// Construir filtros de atributos a partir dos parâmetros attr_*
+const attributeFilters = {};
+for (const [key, value] of params.entries()) {
+  if (key.startsWith('attr_')) {
+    const typeId = key.replace('attr_', '');
+    attributeFilters[typeId] = value.split(',');
   }
-];
+}
+
+// Preparar opções para a busca
+const options = {
+  search,
+  minPrice: minPrice ? parseFloat(minPrice) : undefined,
+  maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+  sort,
+  page,
+  limit,
+  attributeFilters
+};
+
+// Se tiver categoria, adicionar ao filtro
+if (categorySlug) {
+  // Buscar a categoria pelo slug (CID)
+  const category = categoryService.getCategoryByCid(categorySlug);
+  if (category) {
+    options.categoryId = category.id;
+  }
+}
+
+// Buscar produtos com os filtros aplicados
+const { products, pagination } = productService.listProducts(options);
+
+// Título da página com base na categoria selecionada
+let pageTitle = "Produtos";
+if (categorySlug) {
+  const category = categoryService.getCategoryByCid(categorySlug);
+  if (category) {
+    pageTitle = category.name;
+  }
+}
 
 // Formatar preço
 function formatCurrency(value) {
@@ -117,10 +73,8 @@ function formatCurrency(value) {
   }).format(value);
 }
 
-// Título da página
-const pageTitle = "Kit Berço";
-// Definindo um número mais realista para o número total de itens em relação aos produtos de exemplo
-const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
+// Número total de itens para exibir no contador
+const totalItems = pagination.total;
 ---
 
 <MarketplaceLayout title={pageTitle}>
@@ -193,27 +147,69 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
     <div class="bg-white p-3 mb-5 flex flex-wrap justify-between items-center">
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-sm text-gray-800 font-medium">Filtros:</span>
-        <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-          <span>Algodão</span>
-          <button class="ml-1.5 focus:outline-none text-[#39c7bb]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-          <span>P</span>
-          <button class="ml-1.5 focus:outline-none text-[#39c7bb]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <a href="#" class="text-xs text-[#39c7bb] hover:underline">
-          Limpar todos
-        </a>
+        
+        {/* Filtros de atributos ativos */}
+        {Object.entries(attributeFilters).map(([typeId, values]) => {
+          const attributeType = productService.getAttributeTypesForFilters().find(t => t.id.toString() === typeId);
+          if (!attributeType) return null;
+          
+          return values.map(value => {
+            // Buscar o valor de exibição para este atributo
+            let displayValue = value;
+            let attrValues = [];
+            
+            if (attributeType.name.toLowerCase().includes('material')) {
+              attrValues = productService.getMaterialsForFilter(options);
+            } else if (attributeType.name.toLowerCase().includes('cor') || attributeType.name.toLowerCase().includes('color')) {
+              attrValues = productService.getColorsForFilter(options);
+            } else if (attributeType.name.toLowerCase().includes('tamanho') || attributeType.name.toLowerCase().includes('size')) {
+              attrValues = productService.getSizesForFilter(options);
+            }
+            
+            const foundValue = attrValues.find(v => v.value === value);
+            if (foundValue) {
+              displayValue = foundValue.display_value || foundValue.value;
+            }
+            
+            // Construir URL para remover este filtro
+            const newFilters = { ...attributeFilters };
+            newFilters[typeId] = newFilters[typeId].filter(v => v !== value);
+            if (newFilters[typeId].length === 0) {
+              delete newFilters[typeId];
+            }
+            
+            // Construir a URL completa
+            const url = new URL(Astro.url);
+            url.searchParams.delete(`attr_${typeId}`);
+            if (newFilters[typeId] && newFilters[typeId].length > 0) {
+              url.searchParams.set(`attr_${typeId}`, newFilters[typeId].join(','));
+            }
+            
+            return (
+              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+                <span>{displayValue}</span>
+                <a href={url.toString()} class="ml-1.5 focus:outline-none text-[#39c7bb]">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </a>
+              </div>
+            );
+          });
+        })}
+        
+        {/* Link para limpar todos os filtros se houver algum ativo */}
+        {(Object.keys(attributeFilters).length > 0 || search || minPrice || maxPrice || categorySlug) && (
+          <a href="/produtos" class="text-xs text-[#39c7bb] hover:underline">
+            Limpar todos
+          </a>
+        )}
+        
+        {/* Mensagem quando não há filtros ativos */}
+        {Object.keys(attributeFilters).length === 0 && !search && !minPrice && !maxPrice && !categorySlug && (
+          <span class="text-xs text-gray-500">Nenhum filtro aplicado</span>
+        )}
       </div>
       
       <!-- Ordenação e visualização -->
@@ -221,11 +217,18 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
         <div class="flex items-center">
           <span class="text-sm text-gray-600 mr-2 hidden sm:inline">Ordenar por:</span>
           <div class="relative">
-            <select class="text-sm appearance-none bg-transparent focus:outline-none cursor-pointer pr-6">
-              <option>Relevância</option>
-              <option>Menor preço</option>
-              <option>Maior preço</option>
-              <option>Novidades</option>
+            <select 
+              class="text-sm appearance-none bg-transparent focus:outline-none cursor-pointer pr-6"
+              onchange="window.location.href = this.value"
+            >
+              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'newest' })}`, Astro.url)}
+                      selected={sort === 'newest'}>Relevância</option>
+              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'price_asc' })}`, Astro.url)}
+                      selected={sort === 'price_asc'}>Menor preço</option>
+              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'price_desc' })}`, Astro.url)}
+                      selected={sort === 'price_desc'}>Maior preço</option>
+              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'name_asc' })}`, Astro.url)}
+                      selected={sort === 'name_asc'}>Nome (A-Z)</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center text-gray-400">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -278,32 +281,12 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
           </button>
           
           <Filters 
-            categories={[
-              { name: 'Kits Berço', count: 239, selected: true },
-              { name: 'Enxoval', count: 226 },
-              { name: 'Móveis', count: 259 },
-              { name: 'Bolsas', count: 276 }
-            ]}
-            colors={[
-              { name: 'Amarelo', count: 45, selected: true, hex: '#FFEB3B' },
-              { name: 'Verde', count: 32, hex: '#4CAF50' },
-              { name: 'Rosa', count: 67, hex: '#E91E63' },
-              { name: 'Marrom', count: 29, hex: '#795548' },
-              { name: 'Azul', count: 58, hex: '#2196F3' },
-              { name: 'Vermelho', count: 41, hex: '#F44336' }
-            ]}
-            sizes={[
-              { name: 'P', count: 120, selected: true },
-              { name: 'M', count: 145 },
-              { name: 'G', count: 98 }
-            ]}
-            materials={[
-              { name: 'Algodão', count: 216, selected: true },
-              { name: 'Poliéster', count: 184 },
-              { name: 'Madeira', count: 78 }
-            ]}
-            hasImmediateDelivery={false}
-            deliveryCount={710}
+            search={search}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            selectedCategory={categorySlug}
+            selectedSort={sort}
+            attributeFilters={attributeFilters}
           />
         </div>
       </div>
@@ -315,40 +298,52 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
       <div class="w-full md:flex-1">
         <!-- Produtos Grid - 3 por linha no desktop, 1 no mobile com espaçamento vertical aumentado -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-10 bg-white p-4">
-          {products.map((product) => (
-            <a href={`/produto/${product.id}`} class="block pt-7">
+          {products.length > 0 ? products.map((product) => (
+            <a href={`/produto/${product.slug || product.id}`} class="block pt-7">
               <ProductCard 
                 product={{
                   id: product.id,
                   name: product.name,
                   price: product.price,
-                  pricePromotional: product.pricePromotional,
-                  discountPercent: product.discountPercent,
-                  pieces: product.attributes.pieces,
-                  material: product.attributes.material,
-                  image: product.photos && product.photos[0] ? product.photos[0].url : null,
-                  ref: product.id
+                  pricePromotional: product.compare_at_price,
+                  discountPercent: product.compare_at_price ? 
+                    Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : 0,
+                  pieces: product.pieces || 0,
+                  material: product.material || '',
+                  image: product.mainImage || null,
+                  ref: product.sku || product.id.toString()
                 }}
                 showBadges={true}
               />
             </a>
-          ))}
+          )) : (
+            <div class="col-span-3 py-8 text-center">
+              <p class="text-gray-500">Nenhum produto encontrado com os filtros selecionados.</p>
+              <a href="/produtos" class="mt-4 inline-block text-[#39c7bb] hover:underline">Limpar filtros</a>
+            </div>
+          )}
         </div>
         
         <!-- Botão e indicador de carregamento para scroll infinito -->
         <div class="py-4 text-center">
           <!-- Contador de produtos -->
           <span class="text-sm text-gray-500 block mb-4">
-            Mostrando <span class="font-medium" id="products-shown">8</span> de <span class="font-medium">{totalItems}</span> produtos
+            Mostrando <span class="font-medium" id="products-shown">{Math.min(products.length, pagination.page * pagination.limit)}</span> de <span class="font-medium">{pagination.total}</span> produtos
           </span>
           
           <!-- Botão carregar mais para caso o scroll não seja detectado -->
-          <button id="load-more-btn" class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2">
-            <span>Carregar mais produtos</span>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-            </svg>
-          </button>
+          {pagination.hasNextPage && (
+            <a 
+              href={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), page: (page + 1).toString() })}`, Astro.url)} 
+              id="load-more-btn" 
+              class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2"
+            >
+              <span>Carregar mais produtos</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </a>
+          )}
           
           <!-- Loading indicator -->
           <div id="loading-indicator" class="py-4 flex-col items-center hidden">
@@ -357,23 +352,31 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
           </div>
           
           <!-- Fim da lista quando todos os produtos forem carregados -->
-          <div id="end-of-results" class="py-4 hidden">
-            <p class="text-gray-500 text-sm">Todos os produtos foram carregados</p>
-          </div>
+          {!pagination.hasNextPage && products.length > 0 && (
+            <div id="end-of-results" class="py-4">
+              <p class="text-gray-500 text-sm">Todos os produtos foram carregados</p>
+            </div>
+          )}
         </div>
         
         <!-- Script para scroll infinito (com fallback para botão) -->
-        <script>
+        <script define:vars={{ 
+          initialPage: page,
+          totalPages: pagination.totalPages,
+          itemsPerPage: pagination.limit,
+          totalItems: pagination.total,
+          productsShown: Math.min(products.length, pagination.page * pagination.limit)
+        }}>
           // Código que será executado quando a página estiver completamente carregada
           window.onload = function() {
             console.log('Script de scroll infinito iniciado');
             
             // Variáveis para controlar o estado da paginação
-            let page = 1;
+            let page = initialPage;
             const itemsPerPage = 8;
-            const totalItems = 64; // Mesmo valor definido no servidor
+            const totalItems = totalItems; // Valor definido no servidor
             let loading = false;
-            let allItemsLoaded = false;
+            let allItemsLoaded = page >= totalPages;
             
             // Elementos do DOM
             const loadingIndicator = document.getElementById('loading-indicator');
@@ -384,9 +387,10 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
             
             const productsShown = document.getElementById('products-shown');
             if (!productsShown) console.error('Elemento products-shown não encontrado');
+            if (productsShown) productsShown.textContent = productsShown;
             
             const loadMoreBtn = document.getElementById('load-more-btn');
-            if (!loadMoreBtn) console.error('Elemento load-more-btn não encontrado');
+            if (!loadMoreBtn && !allItemsLoaded) console.error('Elemento load-more-btn não encontrado');
             
             const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
             if (!productsGrid) {
@@ -394,90 +398,9 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
               return;
             }
             
-            // Função para carregar mais produtos
-            function loadMoreProducts() {
-              if (loading || allItemsLoaded) {
-                console.log('Carregamento bloqueado: loading='+loading+', allItemsLoaded='+allItemsLoaded);
-                return;
-              }
-              
-              console.log('Carregando mais produtos...');
-              
-              // Ativa o estado de carregamento
-              loading = true;
-              if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-              if (loadingIndicator) {
-                loadingIndicator.classList.remove('hidden');
-                loadingIndicator.classList.add('flex');
-              }
-              
-              // Simulação de carregamento assíncrono
-              setTimeout(function() {
-                try {
-                  // Obtém os produtos existentes
-                  const currentProducts = productsGrid.querySelectorAll('a.block');
-                  const currentlyShown = currentProducts.length;
-                  
-                  console.log(`Produtos atuais: ${currentlyShown}`);
-                  
-                  if (currentlyShown < totalItems) {
-                    // Clona produtos para simular carregamento
-                    const productsToAdd = Math.min(itemsPerPage, Math.min(8, totalItems - currentlyShown));
-                    console.log(`Adicionando ${productsToAdd} produtos`);
-                    
-                    for (let i = 0; i < productsToAdd; i++) {
-                      // Usar módulo para repetir os produtos existentes
-                      const cloneIndex = i % (Math.min(8, currentProducts.length));
-                      const clone = currentProducts[cloneIndex].cloneNode(true);
-                      
-                      // Mudar a imagem para parecer produto diferente
-                      const img = clone.querySelector('img');
-                      if (img && img.src) {
-                        const randomNum = Math.floor(Math.random() * 1000) + 2000;
-                        img.src = `https://picsum.photos/400?random=${randomNum}`;
-                      }
-                      
-                      // Adicionar o clone à grade de produtos
-                      productsGrid.appendChild(clone);
-                    }
-                    
-                    // Atualiza contadores
-                    const newTotal = Math.min(currentlyShown + productsToAdd, totalItems);
-                    if (productsShown) productsShown.textContent = newTotal;
-                    
-                    console.log(`Novos produtos mostrados: ${newTotal}`);
-                    
-                    // Verifica se todos os produtos foram carregados
-                    if (newTotal >= totalItems) {
-                      allItemsLoaded = true;
-                      if (endOfResults) endOfResults.classList.remove('hidden');
-                      console.log('Todos os produtos foram carregados');
-                    }
-                  } else {
-                    allItemsLoaded = true;
-                    if (endOfResults) endOfResults.classList.remove('hidden');
-                    console.log('Já está mostrando todos os produtos');
-                  }
-                } catch (error) {
-                  console.error('Erro ao carregar mais produtos:', error);
-                } finally {
-                  // Desativa o estado de carregamento
-                  loading = false;
-                  if (!allItemsLoaded && loadMoreBtn) {
-                    loadMoreBtn.style.display = 'inline-flex';
-                  }
-                  if (loadingIndicator) {
-                    loadingIndicator.classList.add('hidden');
-                    loadingIndicator.classList.remove('flex');
-                  }
-                  console.log('Carregamento finalizado');
-                }
-              }, 800);
-            }
-            
             // Função para verificar se o usuário chegou perto do final da página
             function handleScroll() {
-              if (loading || allItemsLoaded) return;
+              if (loading || allItemsLoaded || !loadMoreBtn) return;
               
               // Detecta scroll
               const windowHeight = window.innerHeight;
@@ -487,22 +410,12 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
               // Se estiver próximo do fim (200px antes do final)
               if (windowHeight + scrollPosition >= documentHeight - 200) {
                 console.log('Próximo do final da página - carregando mais produtos');
-                loadMoreProducts();
+                loadMoreBtn.click();
               }
             }
             
             // Adiciona os event listeners
-            if (loadMoreBtn) {
-              console.log('Adicionando event listener ao botão');
-              loadMoreBtn.onclick = loadMoreProducts;
-            }
-            
             window.addEventListener('scroll', handleScroll);
-            
-            // Inicializa o contador
-            if (productsShown) {
-              productsShown.textContent = Math.min(productsGrid.querySelectorAll('a.block').length, totalItems);
-            }
             
             // Verifica imediatamente após o carregamento completo
             console.log('Verificação inicial');
