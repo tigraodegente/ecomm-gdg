@@ -210,73 +210,71 @@ try {
 // Função para construir a URL de filtro
 function getFilterUrl(params = {}) {
   const url = new URL(Astro.url);
+  const currentParams = {};
   
-  // Manter parâmetros existentes
-  if (selectedCategory && !('categories' in params)) {
-    // Converter categoria única para array de categorias
-    if ('category' in params) {
-      // Se estamos alterando a categoria, verificar se é a mesma que já está selecionada
-      if (params.category === selectedCategory) {
-        // Se for a mesma, remove a seleção
-        delete params.category;
+  // Primeiro, pegar todos os parâmetros da URL atual para manter entre filtros
+  for (const [key, value] of url.searchParams.entries()) {
+    if (key === 'categories') {
+      currentParams[key] = value.split(',');
+    } else if (key.startsWith('attr_')) {
+      currentParams[key] = value.split(',');
+    } else {
+      currentParams[key] = value;
+    }
+  }
+  
+  // Processar a categoria fornecida nos parâmetros (se houver)
+  if ('category' in params) {
+    const categoryToToggle = params.category;
+    
+    // Verificar se já temos categorias
+    if ('categories' in currentParams) {
+      // Se a categoria já está selecionada, remover
+      if (currentParams.categories.includes(categoryToToggle)) {
+        currentParams.categories = currentParams.categories.filter(c => c !== categoryToToggle);
       } else {
-        // Se for diferente, converte para formato de múltiplas categorias
-        params.categories = [params.category];
-        delete params.category;
+        // Senão, adicionar à lista
+        currentParams.categories.push(categoryToToggle);
       }
+    } else if (selectedCategory === categoryToToggle) {
+      // Se é a mesma categoria que já está selecionada, remover
+      currentParams.categories = [];
     } else {
-      // Se não estamos alterando, manter a categoria atual
-      params.categories = [selectedCategory];
-    }
-  } else if ('category' in params) {
-    // Se temos uma nova categoria para adicionar
-    const existingCategoriesStr = url.searchParams.get('categories');
-    const existingCategories = existingCategoriesStr ? existingCategoriesStr.split(',') : [];
-    
-    // Verificar se a categoria já está selecionada
-    if (existingCategories.includes(params.category)) {
-      // Se já estiver selecionada, remover
-      params.categories = existingCategories.filter(c => c !== params.category);
-    } else {
-      // Se não estiver, adicionar
-      params.categories = [...existingCategories, params.category];
+      // Senão, começar uma nova lista com a categoria atual (se houver) e a nova
+      currentParams.categories = selectedCategory ? 
+        [selectedCategory, categoryToToggle] : [categoryToToggle];
     }
     
+    // Se não sobrou nenhuma categoria, remover o parâmetro
+    if (currentParams.categories && currentParams.categories.length === 0) {
+      delete currentParams.categories;
+    }
+    
+    // Remover o parâmetro 'category' pois já processamos
     delete params.category;
+  } else if ('categories' in params) {
+    // Se já temos um array de categorias, usar diretamente
+    currentParams.categories = params.categories;
+    delete params.categories;
+  } else if (selectedCategory && !('categories' in currentParams)) {
+    // Se não temos categorias mas existe uma selecionada, adicionar
+    currentParams.categories = [selectedCategory];
   }
   
-  if (search && !('search' in params)) {
-    params.search = search;
-  }
+  // Mesclar todos os parâmetros restantes
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      currentParams[key] = value;
+    }
+  });
   
-  if (minPrice && !('minPrice' in params)) {
-    params.minPrice = minPrice;
-  }
-  
-  if (maxPrice && !('maxPrice' in params)) {
-    params.maxPrice = maxPrice;
-  }
-  
-  if (selectedSort && !('sort' in params)) {
-    params.sort = selectedSort;
-  }
-  
-  // Para atributos existentes
-  if (attributeFilters && Object.keys(attributeFilters).length > 0) {
-    Object.entries(attributeFilters).forEach(([typeId, values]) => {
-      if (!(`attr_${typeId}` in params)) {
-        params[`attr_${typeId}`] = values;
-      }
-    });
-  }
-  
-  // Limpar parâmetros atuais
+  // Limpar parâmetros atuais da URL
   Array.from(url.searchParams.keys()).forEach(key => {
     url.searchParams.delete(key);
   });
   
-  // Adicionar parâmetros filtrados (remover undefined e null)
-  Object.entries(params).forEach(([key, value]) => {
+  // Adicionar todos os parâmetros de volta à URL
+  Object.entries(currentParams).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       if (Array.isArray(value)) {
         // Se for um array, adicionar como valores separados por vírgulas
@@ -294,10 +292,63 @@ function getFilterUrl(params = {}) {
 
 // Adicionar ou remover um valor de atributo dos filtros
 function getAttributeFilterUrl(typeId, value) {
-  // Copiar os filtros atuais
+  // Começar com uma URL limpa
+  const newUrl = new URL(Astro.url);
+  
+  // Preservar todos os parâmetros existentes (incluindo categorias múltiplas)
+  const params = {};
+  
+  // Manter parâmetros de categoria
+  const categoriesStr = newUrl.searchParams.get('categories');
+  if (categoriesStr) {
+    params.categories = categoriesStr.split(',');
+  } else if (selectedCategory) {
+    params.categories = [selectedCategory];
+  }
+  
+  // Manter parâmetros de ordenação
+  const sortParam = newUrl.searchParams.get('sort');
+  if (sortParam) {
+    params.sort = sortParam;
+  } else if (selectedSort) {
+    params.sort = selectedSort;
+  }
+  
+  // Manter parâmetros de preço
+  const minPriceParam = newUrl.searchParams.get('minPrice');
+  if (minPriceParam) {
+    params.minPrice = minPriceParam;
+  } else if (minPrice) {
+    params.minPrice = minPrice;
+  }
+  
+  const maxPriceParam = newUrl.searchParams.get('maxPrice');
+  if (maxPriceParam) {
+    params.maxPrice = maxPriceParam;
+  } else if (maxPrice) {
+    params.maxPrice = maxPrice;
+  }
+  
+  // Manter parâmetro de busca
+  const searchParam = newUrl.searchParams.get('search');
+  if (searchParam) {
+    params.search = searchParam;
+  } else if (search) {
+    params.search = search;
+  }
+  
+  // Copiar os filtros atuais de atributos da URL
   const newFilters = { ...attributeFilters };
   
-  // Se o tipo de atributo já existir
+  // Processar todos os parâmetros de atributos da URL atual
+  for (const [key, value] of newUrl.searchParams.entries()) {
+    if (key.startsWith('attr_')) {
+      const attrTypeId = key.replace('attr_', '');
+      newFilters[attrTypeId] = value.split(',');
+    }
+  }
+  
+  // Agora lidar com o atributo específico que estamos alterando
   if (newFilters[typeId]) {
     // Se o valor já estiver selecionado, removê-lo
     if (newFilters[typeId].includes(value)) {
@@ -315,13 +366,15 @@ function getAttributeFilterUrl(typeId, value) {
   }
   
   // Converter para formato esperado pela URL
-  const urlParams = {};
   Object.entries(newFilters).forEach(([id, vals]) => {
-    urlParams[`attr_${id}`] = vals;
+    params[`attr_${id}`] = vals;
   });
   
   // Resetar a página para 1 quando filtrar
-  return getFilterUrl({ ...urlParams, page: 1 });
+  params.page = 1;
+  
+  // Usar a função getFilterUrl para construir a URL final
+  return getFilterUrl(params);
 }
 
 // Obter IDs dos atributos para uso posterior
