@@ -363,97 +363,116 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
         </div>
         
         <!-- Script para scroll infinito (com fallback para botão) -->
-        <script is:inline>
-          // Para assegurar que o script execute corretamente
-          document.addEventListener('DOMContentLoaded', () => {
+        <script>
+          // Código que será executado quando a página estiver completamente carregada
+          window.onload = function() {
             console.log('Script de scroll infinito iniciado');
             
             // Variáveis para controlar o estado da paginação
             let page = 1;
             const itemsPerPage = 8;
-            const totalItems = {totalItems};
+            const totalItems = 64; // Mesmo valor definido no servidor
             let loading = false;
             let allItemsLoaded = false;
             
             // Elementos do DOM
             const loadingIndicator = document.getElementById('loading-indicator');
-            const endOfResults = document.getElementById('end-of-results');
-            const productsShown = document.getElementById('products-shown');
-            const loadMoreBtn = document.getElementById('load-more-btn');
-            const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
+            if (!loadingIndicator) console.error('Elemento loading-indicator não encontrado');
             
+            const endOfResults = document.getElementById('end-of-results');
+            if (!endOfResults) console.error('Elemento end-of-results não encontrado');
+            
+            const productsShown = document.getElementById('products-shown');
+            if (!productsShown) console.error('Elemento products-shown não encontrado');
+            
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            if (!loadMoreBtn) console.error('Elemento load-more-btn não encontrado');
+            
+            const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
             if (!productsGrid) {
               console.error('Grid de produtos não encontrado!');
               return;
             }
             
             // Função para carregar mais produtos
-            async function loadMoreProducts() {
-              if (loading || allItemsLoaded) return;
+            function loadMoreProducts() {
+              if (loading || allItemsLoaded) {
+                console.log('Carregamento bloqueado: loading='+loading+', allItemsLoaded='+allItemsLoaded);
+                return;
+              }
               
               console.log('Carregando mais produtos...');
               
               // Ativa o estado de carregamento
               loading = true;
-              loadMoreBtn.style.display = 'none';
-              loadingIndicator.classList.remove('hidden');
-              loadingIndicator.classList.add('flex');
+              if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+              if (loadingIndicator) {
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.classList.add('flex');
+              }
               
-              try {
-                // Simular uma requisição ao servidor
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // Obtém os produtos existentes
-                const currentProducts = productsGrid.querySelectorAll('a.block');
-                const currentlyShown = currentProducts.length;
-                
-                console.log(`Produtos atuais: ${currentlyShown}`);
-                
-                if (currentlyShown < totalItems) {
-                  // Clona produtos para simular carregamento
-                  const productsToAdd = Math.min(itemsPerPage, Math.min(8, totalItems - currentlyShown));
+              // Simulação de carregamento assíncrono
+              setTimeout(function() {
+                try {
+                  // Obtém os produtos existentes
+                  const currentProducts = productsGrid.querySelectorAll('a.block');
+                  const currentlyShown = currentProducts.length;
                   
-                  for (let i = 0; i < productsToAdd; i++) {
-                    // Usar módulo para repetir os produtos existentes - em produção você buscaria produtos diferentes
-                    const cloneIndex = i % (Math.min(8, currentProducts.length));
-                    const clone = currentProducts[cloneIndex].cloneNode(true);
+                  console.log(`Produtos atuais: ${currentlyShown}`);
+                  
+                  if (currentlyShown < totalItems) {
+                    // Clona produtos para simular carregamento
+                    const productsToAdd = Math.min(itemsPerPage, Math.min(8, totalItems - currentlyShown));
+                    console.log(`Adicionando ${productsToAdd} produtos`);
                     
-                    // Mudar um pouco a imagem para parecer produto diferente
-                    const img = clone.querySelector('img');
-                    if (img && img.src) {
-                      const randomNum = Math.floor(Math.random() * 1000);
-                      img.src = `https://picsum.photos/400?random=${randomNum}`;
+                    for (let i = 0; i < productsToAdd; i++) {
+                      // Usar módulo para repetir os produtos existentes
+                      const cloneIndex = i % (Math.min(8, currentProducts.length));
+                      const clone = currentProducts[cloneIndex].cloneNode(true);
+                      
+                      // Mudar a imagem para parecer produto diferente
+                      const img = clone.querySelector('img');
+                      if (img && img.src) {
+                        const randomNum = Math.floor(Math.random() * 1000) + 2000;
+                        img.src = `https://picsum.photos/400?random=${randomNum}`;
+                      }
+                      
+                      // Adicionar o clone à grade de produtos
+                      productsGrid.appendChild(clone);
                     }
                     
-                    productsGrid.appendChild(clone);
-                  }
-                  
-                  // Atualiza contadores
-                  const newTotal = Math.min(currentlyShown + productsToAdd, totalItems);
-                  productsShown.textContent = newTotal;
-                  
-                  console.log(`Novos produtos mostrados: ${newTotal}`);
-                  
-                  // Verifica se todos os produtos foram carregados
-                  if (newTotal >= totalItems) {
+                    // Atualiza contadores
+                    const newTotal = Math.min(currentlyShown + productsToAdd, totalItems);
+                    if (productsShown) productsShown.textContent = newTotal;
+                    
+                    console.log(`Novos produtos mostrados: ${newTotal}`);
+                    
+                    // Verifica se todos os produtos foram carregados
+                    if (newTotal >= totalItems) {
+                      allItemsLoaded = true;
+                      if (endOfResults) endOfResults.classList.remove('hidden');
+                      console.log('Todos os produtos foram carregados');
+                    }
+                  } else {
                     allItemsLoaded = true;
-                    endOfResults.classList.remove('hidden');
+                    if (endOfResults) endOfResults.classList.remove('hidden');
+                    console.log('Já está mostrando todos os produtos');
                   }
-                } else {
-                  allItemsLoaded = true;
-                  endOfResults.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Erro ao carregar mais produtos:', error);
+                } finally {
+                  // Desativa o estado de carregamento
+                  loading = false;
+                  if (!allItemsLoaded && loadMoreBtn) {
+                    loadMoreBtn.style.display = 'inline-flex';
+                  }
+                  if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                    loadingIndicator.classList.remove('flex');
+                  }
+                  console.log('Carregamento finalizado');
                 }
-              } catch (error) {
-                console.error('Erro ao carregar mais produtos:', error);
-              } finally {
-                // Desativa o estado de carregamento
-                loading = false;
-                if (!allItemsLoaded) {
-                  loadMoreBtn.style.display = 'inline-flex';
-                }
-                loadingIndicator.classList.add('hidden');
-                loadingIndicator.classList.remove('flex');
-              }
+              }, 800);
             }
             
             // Função para verificar se o usuário chegou perto do final da página
@@ -473,18 +492,22 @@ const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
             }
             
             // Adiciona os event listeners
-            loadMoreBtn.addEventListener('click', loadMoreProducts);
+            if (loadMoreBtn) {
+              console.log('Adicionando event listener ao botão');
+              loadMoreBtn.onclick = loadMoreProducts;
+            }
+            
             window.addEventListener('scroll', handleScroll);
             
             // Inicializa o contador
-            productsShown.textContent = Math.min(productsGrid.querySelectorAll('a.block').length, totalItems);
+            if (productsShown) {
+              productsShown.textContent = Math.min(productsGrid.querySelectorAll('a.block').length, totalItems);
+            }
             
-            // Verifica imediatamente após a página carregar
-            setTimeout(() => {
-              console.log('Verificação inicial');
-              handleScroll();
-            }, 500);
-          });
+            // Verifica imediatamente após o carregamento completo
+            console.log('Verificação inicial');
+            setTimeout(handleScroll, 1000);
+          };
         </script>
       </div>
     </div>
