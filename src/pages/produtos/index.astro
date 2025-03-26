@@ -18,10 +18,14 @@ const params = url.searchParams;
 const search = params.get('search') || '';
 const minPrice = params.get('minPrice') || '';
 const maxPrice = params.get('maxPrice') || '';
+const categoriesParam = params.get('categories') || '';
 const categorySlug = params.get('categoria') || params.get('category') || '';
 const sort = params.get('sort') || 'newest';
 const page = parseInt(params.get('page') || '1', 10);
 const limit = parseInt(params.get('limit') || '8', 10);
+
+// Processar múltiplas categorias
+const selectedCategories = categoriesParam ? categoriesParam.split(',') : (categorySlug ? [categorySlug] : []);
 
 // Construir filtros de atributos a partir dos parâmetros attr_*
 const attributeFilters = {};
@@ -43,25 +47,35 @@ const options = {
   attributeFilters
 };
 
-// Se tiver categoria, adicionar ao filtro
-if (categorySlug) {
-  // Buscar a categoria pelo slug (CID)
-  const category = categoryService.getCategoryByCid(categorySlug);
-  if (category) {
-    options.categoryId = category.id;
+// Se tiver categorias selecionadas, adicionar ao filtro
+if (selectedCategories.length > 0) {
+  // Listar IDs das categorias selecionadas
+  const categoryIds = [];
+  
+  for (const slug of selectedCategories) {
+    const category = categoryService.getCategoryByCid(slug);
+    if (category) {
+      categoryIds.push(category.id);
+    }
+  }
+  
+  if (categoryIds.length > 0) {
+    options.categoryIds = categoryIds;
   }
 }
 
 // Buscar produtos com os filtros aplicados
 const { products, pagination } = productService.listProducts(options);
 
-// Título da página com base na categoria selecionada
+// Título da página com base nas categorias selecionadas
 let pageTitle = "Produtos";
-if (categorySlug) {
-  const category = categoryService.getCategoryByCid(categorySlug);
+if (selectedCategories.length === 1) {
+  const category = categoryService.getCategoryByCid(selectedCategories[0]);
   if (category) {
     pageTitle = category.name;
   }
+} else if (selectedCategories.length > 1) {
+  pageTitle = "Múltiplas Categorias";
 }
 
 // Formatar preço
@@ -284,7 +298,7 @@ const totalItems = pagination.total;
             search={search}
             minPrice={minPrice}
             maxPrice={maxPrice}
-            selectedCategory={categorySlug}
+            selectedCategories={selectedCategories}
             selectedSort={sort}
             attributeFilters={attributeFilters}
           />

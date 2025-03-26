@@ -34,6 +34,7 @@ interface Props {
   minPrice?: string | number;
   maxPrice?: string | number;
   selectedCategory?: string;
+  selectedCategories?: string[];
   selectedSort?: string;
   attributeFilters?: Record<string, string[]>;
 }
@@ -50,9 +51,13 @@ const {
   minPrice = '',
   maxPrice = '',
   selectedCategory = '',
+  selectedCategories = [],
   selectedSort = 'newest',
   attributeFilters = {}
 } = Astro.props;
+
+// Manter compatibilidade com selectedCategory em versões antigas
+const allSelectedCategories = selectedCategories.length > 0 ? selectedCategories : (selectedCategory ? [selectedCategory] : []);
 
 // Tentar obter dados dinâmicos para os filtros se não forem fornecidos nos props
 let dynamicCategories = categories;
@@ -65,7 +70,9 @@ const filterOptions = {
   search: search || undefined,
   minPrice: minPrice ? Number(minPrice) : undefined,
   maxPrice: maxPrice ? Number(maxPrice) : undefined,
-  categoryId: selectedCategory ? categoryService.getCategoryByCid(selectedCategory)?.id : undefined,
+  categoryIds: allSelectedCategories.length > 0 ? 
+    allSelectedCategories.map(cid => categoryService.getCategoryByCid(cid)?.id).filter(Boolean) : 
+    undefined,
   attributeFilters
 };
 
@@ -77,7 +84,7 @@ try {
       name: cat.name,
       count: cat.product_count,
       cid: cat.cid,
-      selected: cat.cid === selectedCategory
+      selected: allSelectedCategories.includes(cat.cid)
     }));
   }
   
@@ -205,8 +212,37 @@ function getFilterUrl(params = {}) {
   const url = new URL(Astro.url);
   
   // Manter parâmetros existentes
-  if (selectedCategory && !('category' in params)) {
-    params.category = selectedCategory;
+  if (selectedCategory && !('categories' in params)) {
+    // Converter categoria única para array de categorias
+    if ('category' in params) {
+      // Se estamos alterando a categoria, verificar se é a mesma que já está selecionada
+      if (params.category === selectedCategory) {
+        // Se for a mesma, remove a seleção
+        delete params.category;
+      } else {
+        // Se for diferente, converte para formato de múltiplas categorias
+        params.categories = [params.category];
+        delete params.category;
+      }
+    } else {
+      // Se não estamos alterando, manter a categoria atual
+      params.categories = [selectedCategory];
+    }
+  } else if ('category' in params) {
+    // Se temos uma nova categoria para adicionar
+    const existingCategoriesStr = url.searchParams.get('categories');
+    const existingCategories = existingCategoriesStr ? existingCategoriesStr.split(',') : [];
+    
+    // Verificar se a categoria já está selecionada
+    if (existingCategories.includes(params.category)) {
+      // Se já estiver selecionada, remover
+      params.categories = existingCategories.filter(c => c !== params.category);
+    } else {
+      // Se não estiver, adicionar
+      params.categories = [...existingCategories, params.category];
+    }
+    
+    delete params.category;
   }
   
   if (search && !('search' in params)) {
@@ -384,8 +420,8 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
               class:list={[
                 "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 selectedCategory === category.cid 
-                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
-                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+                  ? "bg-[#40C1AC] text-white font-medium" 
+                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
               ]}
             >
               {selectedCategory === category.cid && <span class="mr-1">✓</span>}
@@ -461,8 +497,8 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
               class:list={[
                 "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 color.selected 
-                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
-                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+                  ? "bg-[#40C1AC] text-white font-medium" 
+                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
               ]}
             >
               {color.selected && <span class="mr-1">✓</span>}
@@ -489,8 +525,8 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
               class:list={[
                 "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 size.selected 
-                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
-                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+                  ? "bg-[#40C1AC] text-white font-medium" 
+                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
               ]}
             >
               {size.selected && <span class="mr-1">✓</span>}
@@ -513,8 +549,8 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
               class:list={[
                 "inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 material.selected 
-                  ? "bg-[#E0F7F4] text-[#40C1AC]" 
-                  : "bg-[#F9F9F9] text-[#777777] hover:bg-[#EEEEEE]"
+                  ? "bg-[#40C1AC] text-white font-medium" 
+                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
               ]}
             >
               {material.selected && <span class="mr-1">✓</span>}
