@@ -334,36 +334,28 @@ const totalItems = 1000;
           ))}
         </div>
         
-        <!-- Loading indicator e informações para scroll infinito -->
-        <div class="mt-6 py-10 text-center relative" id="infinite-scroll-container">
-          <div class="flex justify-between items-center mb-8 px-4">
-            <span class="text-sm text-gray-500">
-              Exibindo <span class="font-medium" id="products-shown">8</span> de <span class="font-medium">{totalItems}</span> produtos
-            </span>
-            
-            <button id="load-more-btn" class="hidden md:flex items-center gap-2 text-[#39c7bb] hover:text-teal-700 transition-colors">
-              <span>Carregar mais</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Loading indicator -->
-          <div id="loading-indicator" class="hidden flex-col items-center">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
-            <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
-          </div>
+        <!-- Loading indicator para scroll infinito -->
+        <div id="loading-indicator" class="py-8 flex-col items-center hidden">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
+          <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
+        </div>
+        
+        <!-- Contador e mensagem de fim -->
+        <div class="mt-4 text-center">
+          <span class="text-sm text-gray-500 block mb-2">
+            Mostrando <span class="font-medium" id="products-shown">8</span> de <span class="font-medium">{totalItems}</span> produtos
+          </span>
           
           <!-- Fim da lista quando todos os produtos forem carregados -->
-          <div id="end-of-results" class="hidden">
+          <div id="end-of-results" class="py-4 hidden">
             <p class="text-gray-500 text-sm">Você viu todos os {totalItems} produtos 🎉</p>
           </div>
         </div>
         
         <!-- Script para scroll infinito -->
-        <script>
-          document.addEventListener('DOMContentLoaded', function() {
+        <script is:inline>
+          // Garante que o código rode após o DOM estar carregado
+          document.addEventListener('DOMContentLoaded', () => {
             // Variáveis para controlar o estado da paginação
             let page = 1;
             const itemsPerPage = 8;
@@ -372,14 +364,12 @@ const totalItems = 1000;
             let allItemsLoaded = false;
             
             // Elementos do DOM
-            const container = document.getElementById('infinite-scroll-container');
             const loadingIndicator = document.getElementById('loading-indicator');
             const endOfResults = document.getElementById('end-of-results');
             const productsShown = document.getElementById('products-shown');
-            const loadMoreButton = document.getElementById('load-more-btn');
             const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
             
-            // Função para simular carregamento de mais produtos (em produção, isso seria uma chamada AJAX)
+            // Função para carregar mais produtos
             async function loadMoreProducts() {
               if (loading || allItemsLoaded) return;
               
@@ -389,19 +379,17 @@ const totalItems = 1000;
               loadingIndicator.classList.add('flex');
               
               try {
-                // Simula uma requisição ao servidor (usar fetch em produção)
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Simular uma requisição ao servidor
+                await new Promise(resolve => setTimeout(resolve, 1200));
                 
-                // Calcula itens a serem exibidos
+                // Verifica se ainda há produtos para carregar
                 const currentlyShown = page * itemsPerPage;
-                const totalItemsToShow = Math.min(currentlyShown + itemsPerPage, totalItems);
                 
-                // Adiciona novos produtos (clone os atuais para demo)
                 if (currentlyShown < totalItems) {
-                  // Obtém todos os produtos atuais
+                  // Obtém os produtos existentes
                   const currentProducts = productsGrid.querySelectorAll('a.block');
                   
-                  // Clona alguns dos produtos existentes para simular novos produtos
+                  // Clona produtos para simular carregamento (em produção, você buscaria novos produtos)
                   for (let i = 0; i < Math.min(itemsPerPage, currentProducts.length); i++) {
                     const clone = currentProducts[i].cloneNode(true);
                     productsGrid.appendChild(clone);
@@ -411,7 +399,7 @@ const totalItems = 1000;
                   page++;
                   productsShown.textContent = Math.min(page * itemsPerPage, totalItems);
                   
-                  // Verifica se todos os itens foram carregados
+                  // Verifica se todos os produtos foram carregados
                   if (page * itemsPerPage >= totalItems) {
                     allItemsLoaded = true;
                     endOfResults.classList.remove('hidden');
@@ -430,24 +418,31 @@ const totalItems = 1000;
               }
             }
             
-            // Função para verificar se o usuário chegou próximo ao final da página
-            function checkScrollPosition() {
+            // Função para verificar se o usuário chegou perto do final da página
+            function handleScroll() {
               if (loading || allItemsLoaded) return;
               
-              const scrollPosition = window.scrollY + window.innerHeight;
-              const bottomPosition = container.offsetTop + container.offsetHeight - 200; // 200px antes do final
+              // Calcula distância até o final da página
+              const scrollTop = (document.documentElement && document.documentElement.scrollTop) || document.body.scrollTop;
+              const scrollHeight = (document.documentElement && document.documentElement.scrollHeight) || document.body.scrollHeight;
+              const clientHeight = document.documentElement.clientHeight || window.innerHeight;
               
-              if (scrollPosition >= bottomPosition) {
+              // Se chegou a 300px do final da página, carrega mais produtos
+              if (scrollTop + clientHeight >= scrollHeight - 300) {
                 loadMoreProducts();
               }
             }
             
-            // Event listeners
-            window.addEventListener('scroll', checkScrollPosition);
-            loadMoreButton.addEventListener('click', loadMoreProducts);
+            // Adiciona evento de scroll à janela
+            window.addEventListener('scroll', handleScroll);
             
-            // Inicializa a interface
+            // Inicializa o contador
             productsShown.textContent = Math.min(itemsPerPage, totalItems);
+            
+            // Primeira verificação após carregamento (caso a página seja muito pequena)
+            setTimeout(() => {
+              handleScroll();
+            }, 500);
           });
         </script>
       </div>
