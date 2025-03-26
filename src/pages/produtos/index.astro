@@ -556,6 +556,36 @@ const totalItems = pagination.total;
       if (overlay) {
         overlay.addEventListener('click', hideFilters);
       }
+
+      // Adicionar comportamento aos botões de filtro
+      // Os botões que já estão ativos devem ter a classe 'bg-[#40C1AC] text-white font-medium'
+      // Vamos adicionar uma classe CSS extra e listeners para melhorar UX
+      const filterButtons = document.querySelectorAll('.filter-button');
+      
+      filterButtons.forEach(button => {
+        // Adicionar a classe de base para estilos de botão
+        button.classList.add('filter-btn');
+        
+        // Verificar se o botão tem classe indicando que está selecionado
+        if (button.classList.contains('bg-[#40C1AC]')) {
+          button.classList.add('filter-btn-active');
+        }
+        
+        // Adicionar efeito de clique
+        button.addEventListener('click', function(e) {
+          // Não aplicar imediatamente se houver uma classe ativa
+          // isso será resolvido no recarregamento da página
+          if (!button.classList.contains('filter-btn-active')) {
+            // Efeito visual temporário durante o clique
+            button.classList.add('filter-btn-active');
+            setTimeout(() => {
+              if (!button.classList.contains('bg-[#40C1AC]')) {
+                button.classList.remove('filter-btn-active');
+              }
+            }, 300);
+          }
+        });
+      });
       
       // Verificar tamanho da tela quando a janela é redimensionada
       window.addEventListener('resize', handleResize);
