@@ -1,0 +1,34 @@
+---
+/**
+ * Badge Component
+ * 
+ * A badge/tag component for highlighting information.
+ */
+interface Props {
+  text: string;
+  variant?: 'primary' | 'accent' | 'neutral';
+  class?: string;
+}
+
+const { 
+  text, 
+  variant = 'primary',
+  class: className = '',
+} = Astro.props;
+
+const variantClasses = {
+  primary: 'badge-primary',
+  accent: 'badge-accent',
+  neutral: 'bg-gray-200 text-gray-700'
+};
+
+const classes = [
+  'badge',
+  variantClasses[variant],
+  className
+].filter(Boolean).join(' ');
+---
+
+<span class={classes}>
+  {text}
+</span>

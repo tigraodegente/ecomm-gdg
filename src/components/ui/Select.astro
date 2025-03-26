@@ -1,0 +1,60 @@
+---
+/**
+ * Select Component
+ * 
+ * A dropdown select component for forms.
+ */
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+  options: Option[];
+  defaultValue?: string;
+  required?: boolean;
+  error?: string;
+  helpText?: string;
+  class?: string;
+}
+
+const { 
+  id, 
+  name, 
+  label, 
+  options, 
+  defaultValue = '', 
+  required = false,
+  error = '',
+  helpText = '',
+  class: className = '',
+} = Astro.props;
+---
+
+<div class={`form-group ${className}`}>
+  <label for={id} class="form-label">
+    {label} {required && <span class="text-error">*</span>}
+  </label>
+  
+  <select
+    id={id}
+    name={name}
+    required={required}
+    class={`form-input ${error ? 'border-error' : ''}`}
+  >
+    {options.map(option => (
+      <option 
+        value={option.value} 
+        selected={option.value === defaultValue}
+      >
+        {option.label}
+      </option>
+    ))}
+  </select>
+  
+  {error && <p class="text-error text-small mt-xs">{error}</p>}
+  {helpText && !error && <p class="text-gray-500 text-small mt-xs">{helpText}</p>}
+</div>

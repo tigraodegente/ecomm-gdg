@@ -1,0 +1,67 @@
+---
+/**
+ * Button Component
+ * 
+ * A flexible button component that can be used as either a button or a link.
+ */
+interface Props {
+  text: string;
+  variant?: 'primary' | 'outlined' | 'accent';
+  size?: 'sm' | 'md' | 'lg';
+  fullWidth?: boolean;
+  href?: string;
+  onClick?: string;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+  class?: string;
+}
+
+const { 
+  text, 
+  variant = 'primary', 
+  size = 'md', 
+  fullWidth = false,
+  href,
+  onClick,
+  type = 'button',
+  disabled = false,
+  class: className = '',
+} = Astro.props;
+
+// Size classes
+const sizeClasses = {
+  sm: 'py-2 px-4 text-xs',
+  md: 'py-3 px-6 text-sm',
+  lg: 'py-4 px-8 text-base'
+};
+
+// Variant classes
+const variantClasses = {
+  primary: 'btn-primary',
+  outlined: 'btn-outlined',
+  accent: 'btn-accent'
+};
+
+const classes = [
+  'btn',
+  variantClasses[variant],
+  sizeClasses[size],
+  fullWidth ? 'w-full' : '',
+  className
+].filter(Boolean).join(' ');
+
+const Tag = href ? 'a' : 'button';
+const props = href 
+  ? { href, ...(disabled ? { 'aria-disabled': 'true', tabindex: '-1' } : {}) } 
+  : { 
+      type, 
+      disabled,
+      ...(onClick ? { 'x-on:click': onClick } : {})
+    };
+---
+
+<Tag class={classes} {...props}>
+  <slot name="icon-start" />
+  {text}
+  <slot name="icon-end" />
+</Tag>

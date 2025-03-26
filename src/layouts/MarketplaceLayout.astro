@@ -1,0 +1,246 @@
+---
+/**
+ * Marketplace Layout
+ * 
+ * Layout principal para o marketplace Grão de Gente.
+ * Design minimalista e mobile-first.
+ */
+import { SEO } from "astro-seo";
+import "@/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  canonicalUrl?: string;
+  ogImage?: string;
+}
+
+const { 
+  title, 
+  description = 'Marketplace Grão de Gente - Produtos para bebês e crianças',
+  canonicalUrl,
+  ogImage = '/og-image.png'
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="graodegente">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <SEO
+      title={`${title} | Grão de Gente`}
+      description={description}
+    />
+    
+    <!-- Fonte Lato -->
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Slot para head adicional -->
+    <slot name="head" />
+    
+    <style>
+      :root {
+        --cyan500: #00BFB3;
+        --cyan600: #09a5a2;
+        --gray300: #8D8D8D;
+        --gray600: #4B5563;
+        --black800: #323232;
+        --orange400: #FF9800;
+        --pink300: #FF6C6C;
+      }
+      
+      .text-cyan500 {
+        color: var(--cyan500);
+      }
+      .bg-cyan500 {
+        background-color: var(--cyan500);
+      }
+      .text-gray600 {
+        color: var(--gray600);
+      }
+      
+      .border-cyan600 {
+        border-color: var(--cyan600);
+      }
+      
+      .font-lato {
+        font-family: Lato, sans-serif;
+      }
+      
+      .rounded-0 {
+        border-radius: 0px;
+      }
+      
+      body {
+        font-family: Lato, sans-serif;
+      }
+      
+      * {
+        font-family: Lato, sans-serif;
+      }
+    </style>
+  </head>
+  
+  <body class="font-lato">
+    <!-- Anúncio superior -->
+    <nav class="flex static flex-initial gap-5 items-center justify-center m-0 py-4 px-10 w-full h-[48.5px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-start text-black bg-white border-0 border-black rounded-0 opacity-100 transition-all">
+      <p class="font-bold text-[11px] tracking-[1.4px]">
+        😊 Tudo em até <span class="text-cyan500">12x</span> | Envio em até <span class="text-cyan500">24h*</span> | <span class="text-cyan500">15% de desconto*</span> nas compras à vista
+      </p>
+    </nav>
+
+    <!-- Header original com conteúdo não-responsivo -->
+    <header class="bg-cyan500 block static flex-initial m-0 pt-5 w-full h-[168px] min-w-0 min-h-0 font-lato text-base font-normal leading-6 text-start text-[rgb(33,53,71)] border-0 border-[rgb(33,53,71)] rounded-0 opacity-100 transition-all">
+      <div class="max-w-[1360px] block static flex-initial mx-auto px-8 w-full h-[148px] min-w-0 min-h-0 font-lato text-base font-normal leading-6 text-start text-[rgb(33,53,71)] bg-transparent border-0 border-[rgb(33,53,71)] rounded-0 opacity-100 transition-all">
+        <!-- Barra principal -->
+        <div class="flex static flex-initial items-center justify-between m-0 p-0 w-full h-[80px] min-w-0 min-h-0 font-lato text-base font-normal leading-6 text-start text-[rgb(33,53,71)] bg-transparent border-0 border-[rgb(33,53,71)] rounded-0 opacity-100 transition-all">
+          <!-- Menu mobile -->
+          <button class="lg:hidden text-white" aria-label="Abrir menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256">
+              <rect width="256" height="256" fill="none"></rect>
+              <line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></line>
+              <line x1="40" y1="64" x2="216" y2="64" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></line>
+              <line x1="40" y1="192" x2="216" y2="192" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></line>
+            </svg>
+          </button>
+
+          <!-- Logo -->
+          <div class="flex items-center justify-center lg:justify-start">
+            <a href="/" class="block">
+              <img 
+                src="https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp"
+                alt="Logo da grão de gente onde o 'de gente' está abaixo do 'grão'"
+                class="hidden sm:block w-[110px] h-[58px]"
+              >
+              <img 
+                src="https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp"
+                alt="Logo da grão de gente onde o 'de gente' está abaixo do 'grão'"
+                class="sm:hidden w-[80px] h-[42px]"
+              >
+            </a>
+          </div>
+
+          <!-- Busca desktop -->
+          <div class="hidden lg:block lg:w-[60%]">
+            <form role="search" class="flex w-full">
+              <input
+                type="search"
+                placeholder="O que você está procurando?"
+                class="h-[40px] w-full px-[12px] text-[16px] font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="512"
+              >
+              <button 
+                type="submit"
+                id="search-input-desktop-button"
+                class="block static flex-initial m-0 py-2 px-3 w-[40px] h-[40px] max-w-[40px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-center text-black bg-white border-0 rounded-r-[8px] opacity-100 transition-all"
+                aria-label="Buscar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" class="mx-auto">
+                  <rect width="256" height="256" fill="none"></rect>
+                  <circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></circle>
+                  <line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line>
+                </svg>
+              </button>
+            </form>
+          </div>
+
+          <!-- Links da direita -->
+          <div class="flex items-center gap-6 lg:gap-8">
+            <a href="/" class="text-white hidden md:flex items-center gap-2 hover:opacity-80">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 256 256">
+                <rect width="256" height="256" fill="none"></rect>
+                <circle cx="128" cy="96" r="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></circle>
+                <path d="M31,216a112,112,0,0,1,194,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></path>
+              </svg>
+              <span class="hidden xl:block text-base font-semibold whitespace-nowrap">Entre ou Cadastre-se</span>
+            </a>
+
+            <a href="/" class="text-white hover:opacity-80">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 256 256">
+                <rect width="256" height="256" fill="none"></rect>
+                <path d="M128,216S28,160,28,92A52,52,0,0,1,128,72h0A52,52,0,0,1,228,92C228,160,128,216,128,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></path>
+              </svg>
+            </a>
+
+            <a href="/" class="text-white hover:opacity-80 relative">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 256 256">
+                <rect width="256" height="256" fill="none"></rect>
+                <path d="M208.8,72H47.2a8.1,8.1,0,0,0-8,7.1L25,207.1a8,8,0,0,0,7.9,8.9H223.1a8,8,0,0,0,7.9-8.9l-14.2-128A8.1,8.1,0,0,0,208.8,72Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></path>
+                <path d="M88,104V72a40,40,0,0,1,80,0v32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></path>
+              </svg>
+              <!-- Contador de itens -->
+              <span 
+                x-data="{}"
+                x-show="$store.cart.itemCount > 0"
+                x-text="$store.cart.itemCount"
+                class="absolute -top-2 -right-2 bg-white text-cyan500 rounded-full text-[11px] w-5 h-5 flex items-center justify-center font-bold"
+                x-cloak
+              ></span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Barra de busca mobile (posicionada abaixo) -->
+        <div class="block lg:hidden w-full mt-4">
+          <form role="search" class="flex w-full">
+            <input
+              type="search"
+              placeholder="O que você está procurando?"
+              class="h-[40px] w-full px-[12px] text-[14px] font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              maxlength="512"
+            >
+            <button 
+              type="submit"
+              class="block static flex-initial m-0 py-2 px-3 w-[40px] h-[40px] max-w-[40px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-center text-black bg-white border-0 rounded-r-[8px] opacity-100 transition-all"
+              aria-label="Buscar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" class="mx-auto">
+                <rect width="256" height="256" fill="none"></rect>
+                <circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></circle>
+                <line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Menu de categorias -->
+        <nav class="hidden lg:block mt-4">
+          <ul class="flex static flex-initial items-center justify-between m-0 py-4 px-0 w-full h-[52px] min-w-0 min-h-0 font-lato text-sm font-normal leading-5 text-start text-white bg-transparent border-0 border-white rounded-0 opacity-100 transition-all">
+            <slot name="navbar" />
+          </ul>
+        </nav>
+      </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="block w-full max-w-[1360px] min-h-0 font-sans text-base font-normal leading-normal text-[rgb(33,53,71)] bg-transparent mx-auto px-[var(--container-padding)]">
+      <slot />
+    </main>
+    
+    <!-- Footer Simplificado -->
+    <footer class="bg-gray-100 py-8 mt-8">
+      <div class="container mx-auto px-4 text-center">
+        <p>&copy; {new Date().getFullYear()} Grão de Gente</p>
+      </div>
+    </footer>
+
+    <!-- Alpine.js Stores -->
+    <script>
+      // Import Alpine.js stores
+      import '../js/stores/cart.js';
+      import '../js/stores/auth.js';
+      import '../js/stores/search.js';
+      import '../js/stores/wishlist.js';
+    </script>
+  </body>
+</html>

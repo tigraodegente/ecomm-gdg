@@ -1,0 +1,51 @@
+---
+/**
+ * Text Field Component
+ * 
+ * A flexible input field component for forms.
+ */
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel';
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  value?: string | number;
+  helpText?: string;
+  class?: string;
+}
+
+const { 
+  id, 
+  name, 
+  label, 
+  type = 'text', 
+  placeholder = '', 
+  required = false,
+  error = '',
+  value = '',
+  helpText = '',
+  class: className = '',
+} = Astro.props;
+---
+
+<div class={`form-group ${className}`}>
+  <label for={id} class="form-label">
+    {label} {required && <span class="text-error">*</span>}
+  </label>
+  
+  <input
+    id={id}
+    name={name}
+    type={type}
+    placeholder={placeholder}
+    required={required}
+    value={value}
+    class={`form-input ${error ? 'border-error' : ''}`}
+  />
+  
+  {error && <p class="text-error text-small mt-xs">{error}</p>}
+  {helpText && !error && <p class="text-gray-500 text-small mt-xs">{helpText}</p>}
+</div>

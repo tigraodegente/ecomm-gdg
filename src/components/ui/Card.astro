@@ -1,0 +1,31 @@
+---
+/**
+ * Card Component
+ * 
+ * A general-purpose card container component.
+ */
+interface Props {
+  href?: string;
+  hoverEffect?: boolean;
+  class?: string;
+}
+
+const { 
+  href,
+  hoverEffect = true,
+  class: className = '',
+} = Astro.props;
+
+const Tag = href ? 'a' : 'div';
+const cardClasses = [
+  'card',
+  hoverEffect ? 'hover:shadow-md hover:-translate-y-1' : '',
+  className
+].filter(Boolean).join(' ');
+
+const props = href ? { href } : {};
+---
+
+<Tag class={cardClasses} {...props}>
+  <slot />
+</Tag>

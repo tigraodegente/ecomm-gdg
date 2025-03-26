@@ -1,0 +1,438 @@
+---
+/**
+ * Página de Listagem de Produtos
+ * 
+ * Apresenta os produtos de forma paginada com opções de filtro e ordenação.
+ */
+import MarketplaceLayout from '@/layouts/MarketplaceLayout.astro';
+
+// Dados de exemplo - Produtos
+const products = [
+  {
+    id: 'prod-27',
+    name: 'Clássico Biografia Ilustrada',
+    price: 47.45,
+    pricePromotional: 41.75,
+    discountPercent: 12,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+1' }],
+    attributes: {
+      material: 'ALGODÃO',
+      pieces: 9
+    }
+  },
+  {
+    id: 'prod-46',
+    name: 'Clássico Biografia Ilustrada',
+    price: 47.86,
+    pricePromotional: 46.90,
+    discountPercent: 2,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+2' }],
+    attributes: {
+      material: 'ALGODÃO',
+      pieces: 9
+    }
+  },
+  {
+    id: 'prod-134',
+    name: 'Clássico Biografia Ilustrada',
+    price: 10.33,
+    pricePromotional: 5.57,
+    discountPercent: 46,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+3' }],
+    attributes: {
+      material: 'ALGODÃO',
+      pieces: 9
+    }
+  },
+  {
+    id: 'prod-85',
+    name: 'Kit Berço Trança Off White',
+    price: 559.80,
+    pricePromotional: 329.90,
+    discountPercent: 41,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+4' }],
+    attributes: {
+      material: 'POLIÉSTER',
+      pieces: 9
+    }
+  },
+  {
+    id: 'prod-92',
+    name: 'Kit Berço Trança Off White',
+    price: 432.80,
+    pricePromotional: 229.90,
+    discountPercent: 47,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+5' }],
+    attributes: {
+      material: 'POLIÉSTER',
+      pieces: 9
+    }
+  },
+  {
+    id: 'prod-114',
+    name: 'Kit Berço Trança Off White',
+    price: 132.55,
+    pricePromotional: 129.90,
+    discountPercent: 2,
+    photos: [{ url: 'https://placehold.co/500x500?text=Produto+6' }],
+    attributes: {
+      material: 'POLIÉSTER',
+      pieces: 9
+    }
+  }
+];
+
+// Formatar preço
+function formatCurrency(value) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  }).format(value);
+}
+
+// Título da página
+const pageTitle = "Kit Berço";
+const totalItems = 1000;
+---
+
+<MarketplaceLayout title={pageTitle}>
+  <Fragment slot="navbar">
+    <li>
+      <a href="/produtos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Todas as categorias</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=meninos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Meninos</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=meninas" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Meninas</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=kits-berco" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Kits Berço</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=ninho" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Ninho</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=bolsas-maternidade" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Bolsas Maternidade</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=almofada-amamentacao" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Almofada Amamentação</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=infantil" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Infantil</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=lencol" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Lençol</a>
+    </li>
+    <li>
+      <a href="/produtos?promo=75" class="text-pink300 hover:opacity-80 font-bold text-[13px] leading-[19.5px] flex items-center justify-center">75% OFF</a>
+    </li>
+    <li>
+      <a href="/produtos?categoria=quarto-famosos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Quarto dos famosos</a>
+    </li>
+  </Fragment>
+<style>
+  .font-lato {
+    font-family: Lato, sans-serif;
+  }
+</style>
+  <div class="max-w-[1360px] mx-auto px-4 pt-4 font-lato">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-4 text-sm">
+      <ol class="flex items-center space-x-1">
+        <li>
+          <a href="/" class="text-[#8D8D8D] hover:text-[#00BFB3]">Home</a>
+        </li>
+        <li class="flex items-center">
+          <span class="mx-1 text-[#8D8D8D]">/</span>
+          <a href="/produtos" class="text-[#8D8D8D] hover:text-[#00BFB3]">Produtos</a>
+        </li>
+        <li class="flex items-center">
+          <span class="mx-1 text-[#8D8D8D]">/</span>
+          <span class="text-[#00BFB3] font-medium">{pageTitle}</span>
+        </li>
+      </ol>
+    </nav>
+    
+    <!-- Título e contagem -->
+    <div class="flex items-baseline mb-6">
+      <h1 class="text-2xl font-bold text-[#323232]">{pageTitle}</h1>
+      <span class="ml-2 text-sm text-[#8D8D8D]">Total de {totalItems} itens</span>
+    </div>
+    
+    <!-- Conteúdo principal com filtros e produtos -->
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Sidebar de filtros - Coluna esquerda -->
+      <div class="w-full md:w-1/4">
+        <div class="bg-white rounded shadow-sm p-4">
+          <h2 class="font-bold text-lg mb-5 text-[#323232] border-b border-gray-100 pb-2">Filtros</h2>
+          
+          <!-- Filtro: Entrega -->
+          <div class="mb-5">
+            <div class="flex items-center mb-2">
+              <label class="flex items-center cursor-pointer">
+                <div class="relative">
+                  <input type="checkbox" class="sr-only peer">
+                  <div class="w-5 h-5 border border-gray-300 rounded bg-white peer-checked:bg-[#00BFB3] peer-checked:border-[#00BFB3]"></div>
+                  <div class="absolute -top-[2px] left-[2px] hidden text-white peer-checked:block">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                </div>
+                <span class="text-sm ml-2 text-[#323232]">Entrega imediata</span>
+              </label>
+              <span class="text-xs text-[#8D8D8D] ml-1">(710)</span>
+            </div>
+          </div>
+          
+          <!-- Filtro: Ordenar por -->
+          <div class="mb-5">
+            <h3 class="font-semibold mb-3 text-[#323232] text-[14px]">Ordenar por</h3>
+            <div class="flex flex-col space-y-3">
+              <button class="text-sm text-left font-medium text-[#00BFB3] flex items-center">
+                Nome
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
+              <button class="text-sm text-left text-[#8D8D8D] hover:text-[#00BFB3]">Preço</button>
+              <button class="text-sm text-left text-[#8D8D8D] hover:text-[#00BFB3]">Lançamentos</button>
+              <button class="text-sm text-left text-[#8D8D8D] hover:text-[#00BFB3]">Mais vendidos</button>
+            </div>
+          </div>
+          
+          <!-- Filtro: Categorias -->
+          <div class="mb-5 border-t border-gray-100 pt-4">
+            <h3 class="font-semibold mb-3 text-[#323232] text-[14px]">Categorias</h3>
+            <div class="flex flex-col space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-[#323232] hover:text-[#00BFB3] cursor-pointer">Kits Berço</span>
+                <span class="text-xs text-[#8D8D8D]">(239)</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-[#323232] hover:text-[#00BFB3] cursor-pointer">Enxoval</span>
+                <span class="text-xs text-[#8D8D8D]">(226)</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-[#323232] hover:text-[#00BFB3] cursor-pointer">Móveis</span>
+                <span class="text-xs text-[#8D8D8D]">(259)</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-[#323232] hover:text-[#00BFB3] cursor-pointer">Bolsas</span>
+                <span class="text-xs text-[#8D8D8D]">(276)</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Filtro: Preço -->
+          <div class="mb-5 border-t border-gray-100 pt-4">
+            <h3 class="font-semibold mb-3 text-[#323232] text-[14px]">Preço</h3>
+            <div class="flex space-x-2">
+              <div class="w-1/2">
+                <input type="text" placeholder="Mínimo" class="w-full text-sm p-2 border border-gray-300 rounded-md focus:border-[#00BFB3] focus:ring-1 focus:ring-[#00BFB3] outline-none">
+              </div>
+              <div class="w-1/2">
+                <input type="text" placeholder="Máximo" class="w-full text-sm p-2 border border-gray-300 rounded-md focus:border-[#00BFB3] focus:ring-1 focus:ring-[#00BFB3] outline-none">
+              </div>
+            </div>
+            <button class="mt-3 text-[13px] font-medium text-white bg-[#00BFB3] rounded-md py-2 px-4 w-full hover:bg-[#00a89d] transition-colors">
+              Filtrar
+            </button>
+          </div>
+          
+          <!-- Filtro: Cores -->
+          <div class="mb-5 border-t border-gray-100 pt-4">
+            <h3 class="font-semibold mb-3 text-[#323232] text-[14px]">Cores</h3>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full bg-yellow-400 inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Amarelo</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full bg-green-500 inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Verde</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full bg-pink-300 inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Rosa</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform" style="background-color: #8B4513;"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Marrom</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full bg-blue-500 inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Azul</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="h-6 w-6 rounded-full bg-red-500 inline-block border border-gray-200 cursor-pointer hover:scale-110 transition-transform"></span>
+                <span class="text-[10px] text-[#8D8D8D]">Vermelho</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Produtos - Área principal -->
+      <div class="w-full md:w-3/4">
+        <!-- Visualização e Ordenação -->
+        <div class="flex items-center justify-between mb-4 bg-white p-3 rounded shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-600">Visualização:</span>
+            <button class="p-1 bg-[#00BFB3] text-white rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </button>
+            <button class="p-1 text-gray-500 rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600">Ordenar por:</span>
+            <select class="text-sm border border-gray-300 rounded p-1.5">
+              <option>Relevância</option>
+              <option>Menor preço</option>
+              <option>Maior preço</option>
+              <option>Novidades</option>
+            </select>
+          </div>
+        </div>
+        <!-- Produtos Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <article class="c-fHoaOC flex static flex-col relative gap-[6px] m-0 pb-4 w-full h-full font-lato text-[10px] font-normal leading-[15px] text-start text-black bg-transparent border-0 border-black rounded-[16px] opacity-100 transition-all hover:shadow-md">
+              <!-- Discount Badge -->
+              {product.discountPercent > 0 && (
+                <div class="absolute top-3 left-3 z-10">
+                  <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-bold text-white bg-[#FF6C6C] rounded-[4px]">
+                    -{product.discountPercent}%
+                  </span>
+                </div>
+              )}
+            
+              <!-- Material Badge -->
+              {product.attributes.material && (
+                <div class="absolute top-3 right-12 z-10">
+                  <span class="inline-flex items-center justify-center px-3 py-0.5 text-[10px] font-bold text-white bg-[#00BFB3] rounded-[10px] uppercase">
+                    {product.attributes.material}
+                  </span>
+                </div>
+              )}
+            
+              <!-- Wishlist Button -->
+              <button 
+                class="absolute top-3 right-3 z-10 w-[30px] h-[30px] flex items-center justify-center rounded-full text-[#FF6C6C] bg-white shadow-md"
+                aria-label="Adicionar aos favoritos"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                </svg>
+              </button>
+            
+              <!-- Product Card Container -->
+              <div class="flex flex-col bg-white shadow-sm rounded-[16px] overflow-hidden h-full">
+                <!-- Product Image Container -->
+                <div class="relative pt-[24px] px-4 flex justify-center items-center h-[260px]">
+                  <a href={`/produto/${product.id}`} class="block w-full h-full">
+                    <img 
+                      src={product.photos[0].url}
+                      alt={product.name}
+                      class="w-full h-full object-contain mx-auto"
+                      loading="lazy"
+                    />
+                  </a>
+                </div>
+                
+                <!-- Product Info Container -->
+                <div class="px-4 pt-2 flex flex-col flex-1">
+                  <!-- Product Attributes -->
+                  <a href={`/produto/${product.id}`} class="text-[11px] text-[#00BFB3] hover:underline font-medium">
+                    {product.attributes.pieces} peças
+                  </a>
+            
+                  <!-- Product Name -->
+                  <h3 class="text-[13px] font-medium text-[#323232] mt-1 mb-2 leading-[19.5px] min-h-[39px] line-clamp-2">
+                    <a href={`/produto/${product.id}`} class="hover:text-[#00BFB3]">{product.name}</a>
+                  </h3>
+                  
+                  <!-- Product Reference -->
+                  <p class="text-[11px] text-[#8D8D8D] mb-3 leading-[16.5px]">
+                    Ref: {product.id}
+                  </p>
+                  
+                  <!-- Price Section -->
+                  <div class="mt-auto space-y-1">
+                    <!-- Original and Promo Price -->
+                    {product.discountPercent > 0 && (
+                      <div class="flex items-baseline gap-1">
+                        <p class="text-[13px] text-[#8D8D8D] line-through font-normal leading-[19.5px]">
+                          de {formatCurrency(product.price)}
+                        </p>
+                        <p class="text-[13px] text-[#8D8D8D] font-normal leading-[19.5px]">
+                          por
+                        </p>
+                      </div>
+                    )}
+            
+                    <!-- Installment Price -->
+                    <p class="text-[16px] text-[#323232] font-bold leading-[24px]">
+                      12x de {formatCurrency(product.pricePromotional / 12)}
+                    </p>
+            
+                    <!-- Cash Price -->
+                    <p class="text-[13px] text-[#8D8D8D] font-normal leading-[19.5px]">
+                      {formatCurrency(product.pricePromotional)} à vista
+                    </p>
+            
+                    <!-- Fast Delivery -->
+                    <div class="flex items-center gap-1 mt-3 text-[#FF9800]">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                        <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
+                      </svg>
+                      <span class="text-xs font-semibold leading-[18px]">
+                        Chega rapidinho
+                      </span>
+                    </div>
+                    
+                    <!-- Add to Cart Button -->
+                    <button class="mt-4 w-full bg-[#00BFB3] hover:bg-[#00a89d] text-white font-medium py-2.5 px-4 rounded-[20px] text-[13px] transition-colors">
+                      Adicionar ao carrinho
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        
+        <!-- Paginação -->
+        <div class="flex items-center justify-center mt-10">
+          <nav class="flex items-center gap-1" aria-label="Paginação">
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded text-gray-400 border border-gray-300 hover:bg-gray-50">
+              <span class="sr-only">Anterior</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded bg-[#00BFB3] text-white font-medium">1</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 text-gray-700 font-medium">2</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 text-gray-700 font-medium">3</a>
+            <span class="px-2 text-gray-500">...</span>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 text-gray-700 font-medium">42</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded text-gray-400 border border-gray-300 hover:bg-gray-50">
+              <span class="sr-only">Próximo</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</MarketplaceLayout>

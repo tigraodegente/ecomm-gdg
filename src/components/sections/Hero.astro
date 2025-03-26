@@ -1,0 +1,65 @@
+---
+/**
+ * Hero Component
+ * 
+ * Main hero section for the marketplace homepage.
+ */
+import Button from '../ui/Button.astro';
+
+interface Props {
+  title?: string;
+  subtitle?: string;
+  imageUrl?: string;
+  ctaText?: string;
+  ctaHref?: string;
+  secondaryCtaText?: string;
+  secondaryCtaHref?: string;
+}
+
+const {
+  title = "Tudo para o seu bebê em um só lugar",
+  subtitle = "O marketplace infantil com os melhores produtos para o seu filho, reunindo centenas de marcas e vendedores confiáveis.",
+  imageUrl = "/images/hero-baby.jpg",
+  ctaText = "Explorar Produtos",
+  ctaHref = "/products",
+  secondaryCtaText = "Vender no Marketplace",
+  secondaryCtaHref = "/vender-no-marketplace"
+} = Astro.props;
+---
+
+<section class="bg-primary-light py-xl">
+  <div class="container">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-xl items-center">
+      <div class="text-center md:text-left fade-in">
+        <h1 class="text-4xl font-black mb-md">{title}</h1>
+        <p class="text-xl mb-lg">{subtitle}</p>
+        
+        <div class="flex flex-col sm:flex-row gap-sm">
+          <Button 
+            text={ctaText}
+            variant="primary"
+            href={ctaHref}
+            size="lg"
+          />
+          
+          {secondaryCtaText && secondaryCtaHref && (
+            <Button 
+              text={secondaryCtaText}
+              variant="outlined"
+              href={secondaryCtaHref}
+              size="lg"
+            />
+          )}
+        </div>
+      </div>
+      
+      <div class="slide-in">
+        <img 
+          src={imageUrl} 
+          alt="Grão de Gente Marketplace" 
+          class="w-full rounded-lg shadow-lg"
+        />
+      </div>
+    </div>
+  </div>
+</section>

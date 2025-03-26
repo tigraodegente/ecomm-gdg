@@ -1,0 +1,368 @@
+---
+/**
+ * Página do Carrinho
+ * 
+ * Exibe os produtos adicionados ao carrinho, permite atualizar quantidades,
+ * remover itens e iniciar o processo de checkout.
+ */
+import MarketplaceLayout from "@/layouts/MarketplaceLayout.astro";
+---
+
+<MarketplaceLayout title="Carrinho de Compras">
+  <div class="container mx-auto px-4 py-6">
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+      <ul class="flex items-center text-sm">
+        <li class="flex items-center">
+          <a href="/" class="text-gray-500 hover:text-[#4DC0B5]">Home</a>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mx-2 text-gray-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </li>
+        <li>
+          <span class="text-gray-900 font-medium">Carrinho de Compras</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Título da página -->
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Meu Carrinho</h1>
+    
+    <div 
+      x-data="{
+        proceedToCheckout() {
+          if (this.$store.cart.itemCount === 0) {
+            $dispatch('toast', { 
+              message: 'Adicione produtos ao carrinho para continuar', 
+              type: 'warning' 
+            });
+            return;
+          }
+          window.location.href = '/checkout';
+        }
+      }"
+      class="flex flex-col lg:flex-row gap-8"
+    >
+      <!-- Carrinho - Lado Esquerdo -->
+      <div class="lg:w-2/3 w-full">
+        <!-- Produtos no carrinho -->
+        <div 
+          x-data="{}"
+          x-cloak
+          class="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-4"
+        >
+          <!-- Cabeçalho da tabela - apenas em telas maiores -->
+          <div class="hidden md:grid md:grid-cols-12 border-b pb-4 mb-4 text-sm font-medium text-gray-500">
+            <div class="md:col-span-6">Produto</div>
+            <div class="md:col-span-2 text-center">Preço</div>
+            <div class="md:col-span-2 text-center">Quantidade</div>
+            <div class="md:col-span-2 text-right">Subtotal</div>
+          </div>
+          
+          <!-- Lista de produtos -->
+          <template x-if="$store.cart.itemCount > 0">
+            <div>
+              <template x-for="(item, index) in $store.cart.items" :key="item.id">
+                <div class="flex flex-col md:grid md:grid-cols-12 py-4 border-b border-gray-100 last:border-0">
+                  <!-- Produto (imagem + info) -->
+                  <div class="md:col-span-6 flex">
+                    <!-- Imagem do produto -->
+                    <div class="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                      <img :src="item.image" :alt="item.name" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <!-- Informações do produto -->
+                    <div class="ml-4 flex-1">
+                      <h3 class="font-medium text-gray-800" x-text="item.name"></h3>
+                      <p class="text-xs text-gray-500 mt-1" x-text="'Vendido por: ' + (item.vendorName || 'Grão de Gente')"></p>
+                      
+                      <!-- Detalhes adicionais (cor, tamanho, etc) -->
+                      <div x-show="item.variation" class="mt-1">
+                        <span class="text-xs text-gray-600" x-text="item.variation"></span>
+                      </div>
+                      
+                      <!-- Remover - Mobile -->
+                      <button 
+                        @click="$store.cart.removeItem(item.id); $dispatch('toast', { message: 'Produto removido do carrinho', type: 'info' })"
+                        class="text-sm text-red-500 mt-2 hover:underline md:hidden"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Preço -->
+                  <div class="md:col-span-2 flex justify-between md:justify-center items-center mt-3 md:mt-0">
+                    <span class="text-sm font-medium text-gray-600 md:hidden">Preço:</span>
+                    <span class="text-sm font-medium text-gray-800" x-text="'R$ ' + item.price.toFixed(2).replace('.', ',')"></span>
+                  </div>
+                  
+                  <!-- Quantidade -->
+                  <div class="md:col-span-2 flex justify-between md:justify-center items-center mt-3 md:mt-0">
+                    <span class="text-sm font-medium text-gray-600 md:hidden">Qtd:</span>
+                    <div class="flex items-center border border-gray-300 rounded-md">
+                      <button 
+                        @click="$store.cart.decreaseQuantity(item.id)"
+                        class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        :disabled="item.quantity <= 1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
+                        </svg>
+                      </button>
+                      <span class="w-8 text-center text-sm" x-text="item.quantity"></span>
+                      <button 
+                        @click="$store.cart.increaseQuantity(item.id)"
+                        class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Subtotal -->
+                  <div class="md:col-span-2 flex justify-between md:justify-end items-center mt-3 md:mt-0">
+                    <span class="text-sm font-medium text-gray-600 md:hidden">Subtotal:</span>
+                    <div class="text-right">
+                      <span class="text-sm font-semibold text-gray-800" x-text="'R$ ' + (item.price * item.quantity).toFixed(2).replace('.', ',')"></span>
+                      
+                      <!-- Remover - Desktop -->
+                      <button 
+                        @click="$store.cart.removeItem(item.id); $dispatch('toast', { message: 'Produto removido do carrinho', type: 'info' })"
+                        class="text-xs text-red-500 mt-1 hover:underline hidden md:block"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              
+              <!-- Ações do carrinho -->
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6 gap-3">
+                <a href="/produtos" class="text-sm text-[#4DC0B5] hover:underline flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                  </svg>
+                  Continuar comprando
+                </a>
+                
+                <button 
+                  @click="$store.cart.clear(); $dispatch('toast', { message: 'Carrinho limpo com sucesso', type: 'info' })"
+                  class="text-sm text-red-500 hover:underline flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                  </svg>
+                  Limpar carrinho
+                </button>
+              </div>
+            </div>
+          </template>
+          
+          <!-- Carrinho vazio -->
+          <template x-if="$store.cart.itemCount === 0">
+            <div class="py-8 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto text-gray-300 mb-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-800 mb-2">Seu carrinho está vazio</h3>
+              <p class="text-gray-500 mb-4">Adicione produtos para continuar suas compras</p>
+              <a 
+                href="/produtos" 
+                class="inline-block bg-[#4DC0B5] text-white font-medium py-2 px-6 rounded-full text-sm hover:bg-[#40a99f] transition-colors"
+              >
+                Ver produtos
+              </a>
+            </div>
+          </template>
+        </div>
+      </div>
+      
+      <!-- Resumo do Pedido - Lado Direito -->
+      <div class="lg:w-1/3 w-full">
+        <div 
+          x-data="{
+            cupom: '',
+            cupomAplicado: false,
+            descontoCupom: 0,
+            
+            aplicarCupom() {
+              if (this.cupom.toLowerCase() === 'bemvindo10') {
+                this.cupomAplicado = true;
+                this.descontoCupom = $store.cart.total * 0.1;
+                $dispatch('toast', { message: 'Cupom aplicado com sucesso!', type: 'success' });
+              } else {
+                $dispatch('toast', { message: 'Cupom inválido', type: 'error' });
+              }
+            },
+            
+            removerCupom() {
+              this.cupomAplicado = false;
+              this.descontoCupom = 0;
+              this.cupom = '';
+              $dispatch('toast', { message: 'Cupom removido', type: 'info' });
+            },
+            
+            // Simulação de cálculo de frete
+            cepDestino: '',
+            freteCalculado: false,
+            valorFrete: 0,
+            
+            calcularFrete() {
+              if (this.cepDestino.length < 8) {
+                $dispatch('toast', { message: 'Digite um CEP válido', type: 'warning' });
+                return;
+              }
+              
+              // Simulação de cálculo de frete
+              this.freteCalculado = true;
+              
+              if ($store.cart.total > 299) {
+                this.valorFrete = 0; // Frete grátis
+              } else {
+                // Cálculo simulado baseado no número do CEP
+                const cepNumber = parseInt(this.cepDestino.replace(/\D/g, ''));
+                this.valorFrete = (cepNumber % 5) * 5 + 15;
+              }
+            }
+          }"
+          class="bg-white rounded-lg shadow-sm p-6"
+        >
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Resumo do Pedido</h2>
+          
+          <!-- Resumo de valores -->
+          <div class="space-y-3 border-b border-gray-100 pb-4 mb-4">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Subtotal</span>
+              <span class="font-medium text-gray-800" x-text="'R$ ' + $store.cart.total.toFixed(2).replace('.', ',')"></span>
+            </div>
+            
+            <!-- Desconto do cupom -->
+            <div x-show="cupomAplicado" class="flex justify-between text-sm">
+              <span class="text-gray-600">Desconto do cupom</span>
+              <span class="font-medium text-green-600" x-text="'- R$ ' + descontoCupom.toFixed(2).replace('.', ',')"></span>
+            </div>
+            
+            <!-- Frete -->
+            <div x-show="freteCalculado" class="flex justify-between text-sm">
+              <span class="text-gray-600">Frete</span>
+              <template x-if="valorFrete === 0">
+                <span class="font-medium text-green-600">Grátis</span>
+              </template>
+              <template x-if="valorFrete > 0">
+                <span class="font-medium text-gray-800" x-text="'R$ ' + valorFrete.toFixed(2).replace('.', ',')"></span>
+              </template>
+            </div>
+          </div>
+          
+          <!-- Total -->
+          <div class="flex justify-between items-center mb-6">
+            <span class="text-base font-bold text-gray-800">Total</span>
+            <span class="text-xl font-bold text-[#4DC0B5]" x-text="'R$ ' + ($store.cart.total - descontoCupom + valorFrete).toFixed(2).replace('.', ',')"></span>
+          </div>
+          
+          <!-- Cupom de desconto -->
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-gray-800 mb-2">Cupom de desconto</h3>
+            <div class="flex items-stretch">
+              <template x-if="!cupomAplicado">
+                <div class="flex-1 flex">
+                  <input 
+                    type="text" 
+                    x-model="cupom"
+                    placeholder="Digite seu cupom" 
+                    class="flex-1 rounded-l-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  />
+                  <button 
+                    @click="aplicarCupom"
+                    class="bg-[#4DC0B5] text-white px-4 rounded-r-md text-sm hover:bg-[#40a99f] transition-colors"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </template>
+              
+              <template x-if="cupomAplicado">
+                <div class="flex items-center justify-between w-full bg-gray-50 px-3 py-2 rounded-md">
+                  <div>
+                    <span class="text-sm font-medium text-gray-800" x-text="cupom"></span>
+                    <span class="text-xs text-green-600 block">10% de desconto</span>
+                  </div>
+                  <button 
+                    @click="removerCupom"
+                    class="text-gray-500 hover:text-red-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </template>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Use o cupom BEMVINDO10 para 10% de desconto!</p>
+          </div>
+          
+          <!-- Cálculo de frete -->
+          <div class="mb-6">
+            <h3 class="text-sm font-medium text-gray-800 mb-2">Calcular frete</h3>
+            <div class="flex items-stretch">
+              <input 
+                type="text" 
+                x-model="cepDestino"
+                placeholder="Digite seu CEP" 
+                maxlength="9"
+                class="flex-1 rounded-l-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                x-mask="99999-999"
+              />
+              <button 
+                @click="calcularFrete"
+                class="bg-[#4DC0B5] text-white px-4 rounded-r-md text-sm hover:bg-[#40a99f] transition-colors"
+              >
+                Calcular
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Frete grátis para compras acima de R$ 299</p>
+          </div>
+          
+          <!-- CTA - Finalizar compra -->
+          <button 
+            @click="proceedToCheckout"
+            class="w-full bg-[#4DC0B5] text-white font-bold py-3 px-6 rounded-md text-sm hover:bg-[#40a99f] transition-colors flex items-center justify-center"
+            :class="{ 'opacity-50 cursor-not-allowed': $store.cart.itemCount === 0 }"
+            :disabled="$store.cart.itemCount === 0"
+          >
+            Finalizar Compra
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 ml-2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+          
+          <!-- Métodos de pagamento -->
+          <div class="mt-4 flex flex-wrap justify-center">
+            <img src="/images/pagamentos.png" alt="Formas de pagamento" class="h-6">
+          </div>
+          
+          <!-- Informação de segurança -->
+          <div class="mt-4 text-center">
+            <p class="text-xs text-gray-500 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1 text-green-600">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+              Ambiente seguro
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</MarketplaceLayout>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Fix para count do carrinho na primeira renderização
+    Alpine.store('cart').itemCount = Alpine.store('cart').items.reduce((total, item) => total + item.quantity, 0);
+  });
+</script>

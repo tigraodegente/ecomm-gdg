@@ -1,0 +1,157 @@
+---
+/**
+ * Product Card Component
+ * 
+ * A specialized card for displaying product information in the marketplace.
+ */
+import Button from './Button.astro';
+import Badge from './Badge.astro';
+import Rating from './Rating.astro';
+
+interface Props {
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    oldPrice?: number;
+    image: string;
+    vendorName: string;
+    vendorId: string;
+    rating?: number;
+    reviewCount?: number;
+    badges?: Array<{
+      text: string;
+      variant: 'primary' | 'accent' | 'neutral';
+    }>;
+  };
+}
+
+const { product } = Astro.props;
+const discount = product.oldPrice 
+  ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
+  : 0;
+
+// Format price function
+const formatPrice = (price: number) => {
+  return price.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
+---
+
+<div 
+  class="flex flex-col relative w-full max-w-[33.3333%] min-w-[calc(33.3333%-40px)] h-[530px] gap-[6px] p-0 pb-4 font-['Lato'] text-[10px] font-normal leading-[15px] text-black rounded-[16px] transition-all"
+>
+  {/* Componente principal do produto */}
+  <div class="flex flex-col bg-white shadow-sm rounded-[16px] overflow-hidden h-full">
+    {/* Container da imagem */}
+    <div class="relative pt-4 px-4 flex justify-center items-center mb-3">
+      {/* Discount Badge */}
+      {discount > 0 && (
+        <div class="absolute top-5 right-5 z-10">
+          <span class="flex items-center justify-center bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-[4px]">
+            -{discount}%
+          </span>
+        </div>
+      )}
+      
+      {/* Additional Badges */}
+      {product.badges && product.badges.length > 0 && (
+        <div class="absolute top-5 left-5 z-10 flex flex-col gap-1">
+          {product.badges.map(badge => (
+            <Badge text={badge.text} variant={badge.variant} />
+          ))}
+        </div>
+      )}
+      
+      {/* Product Image */}
+      <a href={`/produtos/${product.id}`} class="block w-full">
+        <img src={product.image} alt={product.name} class="w-full h-[200px] object-contain mx-auto" />
+      </a>
+      
+      {/* Wishlist Button */}
+      <button 
+        class="absolute top-4 right-4 h-8 w-8 rounded-full bg-white text-gray-400 flex items-center justify-center shadow-sm"
+        x-data="{}"
+        x-on:click="$store.wishlist.toggle('${product.id}')"
+        x-bind:class="$store.wishlist.has('${product.id}') ? 'text-red-500' : 'text-gray-400'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      </button>
+    </div>
+    
+    {/* Product Info */}
+    <div class="product-info px-4 flex-1 flex flex-col">
+      <a href={`/vendors/${product.vendorId}`} class="text-[11px] text-teal-500 hover:underline">
+        {product.vendorName}
+      </a>
+      
+      <h3 class="text-[13px] font-medium text-gray-800 mt-1 mb-2 leading-tight min-h-[40px] line-clamp-2">
+        <a href={`/produtos/${product.id}`} class="hover:text-teal-500">{product.name}</a>
+      </h3>
+      
+      <div class="flex items-center mb-2">
+        {product.rating !== undefined && (
+          <div class="flex items-center">
+            <Rating value={product.rating} size="sm" />
+            <span class="text-[11px] text-gray-500 ml-1">({product.reviewCount})</span>
+          </div>
+        )}
+      </div>
+      
+      <div class="flex flex-col mt-auto">
+        {product.oldPrice && (
+          <span class="text-[11px] text-gray-500 line-through">{formatPrice(product.oldPrice)}</span>
+        )}
+        <span class="text-[18px] font-bold text-teal-600">{formatPrice(product.price)}</span>
+        <span class="text-[11px] text-gray-700 mb-4">ou 12x de {formatPrice(product.price / 12)}</span>
+        
+        <div
+          x-data="{
+            isInCart() {
+              return $store.cart.hasItem('${product.id}');
+            }
+          }"
+        >
+          <template x-if="!isInCart()">
+            <button 
+              class="w-full bg-teal-500 hover:bg-teal-600 text-white font-medium py-2.5 px-4 rounded-full text-[12px] transition-colors"
+              x-on:click="$store.cart.addItem({
+                id: '${product.id}',
+                name: '${product.name.replace(/'/g, '\\\'')}',
+                price: ${product.price},
+                image: '${product.image}',
+                vendorId: '${product.vendorId}',
+                vendorName: '${product.vendorName.replace(/'/g, '\\\'')}'
+              })"
+            >
+              Adicionar ao carrinho
+            </button>
+          </template>
+          
+          <template x-if="isInCart()">
+            <div class="flex gap-2">
+              <a 
+                href="/carrinho" 
+                class="flex-1 bg-gray-100 hover:bg-gray-200 text-teal-600 font-medium py-2.5 px-3 rounded-l-full text-[12px] transition-colors text-center"
+              >
+                Ver carrinho
+              </a>
+              <button 
+                class="bg-teal-500 hover:bg-teal-600 text-white font-medium py-2.5 px-3 rounded-r-full text-[12px] transition-colors"
+                x-on:click="$store.cart.increaseQuantity('${product.id}')"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

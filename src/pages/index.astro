@@ -1,0 +1,650 @@
+---
+import MarketplaceLayout from '../layouts/MarketplaceLayout.astro';
+---
+
+<MarketplaceLayout 
+  title="Grão de Gente - Produtos para Bebês e Crianças" 
+  description="Encontre tudo para o seu bebê: berços, enxovais, móveis, decoração e muito mais."
+>
+  <!-- Banner Principal -->
+  <section class="relative">
+    <div class="swiper-container w-full" x-data="{ currentSlide: 0, totalSlides: 3 }">
+      <!-- Slides -->
+      <div class="relative overflow-hidden">
+        <div class="flex transition-transform duration-300 ease-in-out h-[200px] md:h-[300px] lg:h-[400px]" x-bind:style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+          <!-- Slide 1 -->
+          <div class="flex-shrink-0 w-full relative">
+            <img 
+              src="https://placehold.co/1200x400/4DC0B5/FFFFFF?text=Oferta+Especial" 
+              alt="Oferta especial em produtos para bebê" 
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-white p-4 text-center">
+              <h2 class="text-2xl md:text-4xl font-bold mb-2">Até 40% Off</h2>
+              <p class="text-sm md:text-base mb-4">Em produtos selecionados</p>
+              <a href="/produtos?promocao=true" class="bg-white text-[#4DC0B5] px-6 py-2 rounded-full font-medium text-sm md:text-base hover:bg-gray-100 transition-colors">
+                Ver ofertas
+              </a>
+            </div>
+          </div>
+          
+          <!-- Slide 2 -->
+          <div class="flex-shrink-0 w-full relative">
+            <img 
+              src="https://placehold.co/1200x400/FFF6DC/333333?text=Novidades" 
+              alt="Novidades para o quarto do bebê" 
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-800 p-4 text-center">
+              <h2 class="text-2xl md:text-4xl font-bold mb-2">Quartos Temáticos</h2>
+              <p class="text-sm md:text-base mb-4">Nova coleção acaba de chegar</p>
+              <a href="/produtos?categoria=quarto" class="bg-[#4DC0B5] text-white px-6 py-2 rounded-full font-medium text-sm md:text-base hover:bg-[#40a99f] transition-colors">
+                Conheça agora
+              </a>
+            </div>
+          </div>
+          
+          <!-- Slide 3 -->
+          <div class="flex-shrink-0 w-full relative">
+            <img 
+              src="https://placehold.co/1200x400/F8F9FA/333333?text=Frete+Grátis" 
+              alt="Frete grátis em compras acima de R$299" 
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-800 p-4 text-center">
+              <h2 class="text-2xl md:text-4xl font-bold mb-2">Frete Grátis</h2>
+              <p class="text-sm md:text-base mb-4">Em compras acima de R$299</p>
+              <a href="/produtos" class="bg-[#4DC0B5] text-white px-6 py-2 rounded-full font-medium text-sm md:text-base hover:bg-[#40a99f] transition-colors">
+                Comprar agora
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Controles do Slider -->
+        <button 
+          class="absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-800 focus:outline-none"
+          x-on:click="currentSlide = currentSlide > 0 ? currentSlide - 1 : totalSlides - 1"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        
+        <button 
+          class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-800 focus:outline-none"
+          x-on:click="currentSlide = currentSlide < totalSlides - 1 ? currentSlide + 1 : 0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+        
+        <!-- Indicadores -->
+        <div class="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+          <button 
+            class="w-2 h-2 rounded-full transition-colors" 
+            x-bind:class="currentSlide === 0 ? 'bg-white' : 'bg-white/50'"
+            x-on:click="currentSlide = 0"
+          ></button>
+          <button 
+            class="w-2 h-2 rounded-full transition-colors" 
+            x-bind:class="currentSlide === 1 ? 'bg-white' : 'bg-white/50'"
+            x-on:click="currentSlide = 1"
+          ></button>
+          <button 
+            class="w-2 h-2 rounded-full transition-colors" 
+            x-bind:class="currentSlide === 2 ? 'bg-white' : 'bg-white/50'"
+            x-on:click="currentSlide = 2"
+          ></button>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Categorias Destacadas -->
+  <section class="py-8 px-4">
+    <div class="container mx-auto">
+      <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-6">Categorias Populares</h2>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Categoria 1 -->
+        <a href="/produtos?categoria=quarto" class="group">
+          <div class="relative rounded-lg overflow-hidden aspect-square">
+            <img 
+              src="https://placehold.co/300x300?text=Quarto" 
+              alt="Quarto do Bebê" 
+              class="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+              <h3 class="text-white font-bold">Quarto do Bebê</h3>
+            </div>
+          </div>
+        </a>
+        
+        <!-- Categoria 2 -->
+        <a href="/produtos?categoria=enxoval" class="group">
+          <div class="relative rounded-lg overflow-hidden aspect-square">
+            <img 
+              src="https://placehold.co/300x300?text=Enxoval" 
+              alt="Enxoval" 
+              class="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+              <h3 class="text-white font-bold">Enxoval</h3>
+            </div>
+          </div>
+        </a>
+        
+        <!-- Categoria 3 -->
+        <a href="/produtos?categoria=brinquedos" class="group">
+          <div class="relative rounded-lg overflow-hidden aspect-square">
+            <img 
+              src="https://placehold.co/300x300?text=Brinquedos" 
+              alt="Brinquedos" 
+              class="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+              <h3 class="text-white font-bold">Brinquedos</h3>
+            </div>
+          </div>
+        </a>
+        
+        <!-- Categoria 4 -->
+        <a href="/produtos?categoria=higiene" class="group">
+          <div class="relative rounded-lg overflow-hidden aspect-square">
+            <img 
+              src="https://placehold.co/300x300?text=Higiene" 
+              alt="Higiene e Banho" 
+              class="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+              <h3 class="text-white font-bold">Higiene e Banho</h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Produtos Destaque -->
+  <section class="py-8 px-4 bg-gray-50">
+    <div class="container mx-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Os Mais Vendidos</h2>
+        <a href="/produtos?ordenar=sales" class="text-[#4DC0B5] text-sm font-medium hover:underline">
+          Ver todos
+        </a>
+      </div>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Produto 1 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/1" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Berço" 
+                alt="Berço Montessoriano Cinza" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-sm">
+              -18%
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/1" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Berço Montessoriano Cinza</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 1.099,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 899,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 2 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/2" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Kit" 
+                alt="Kit Enxoval Completo Nuvem Azul" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-sm">
+              -20%
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/2" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Kit Enxoval Completo Nuvem Azul</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 429,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 349,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 3 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/6" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Berço+Kit" 
+                alt="Kit Berço 9 Peças Coroa Azul" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-sm">
+              -10%
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/6" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Kit Berço 9 Peças Coroa Azul</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 299,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 269,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 4 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/8" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Cômoda" 
+                alt="Cômoda Infantil 4 Gavetas" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-sm">
+              -13%
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/8" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Cômoda Infantil 4 Gavetas</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 799,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 699,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Banners Promocionais -->
+  <section class="py-8 px-4">
+    <div class="container mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Banner 1 -->
+        <div class="relative rounded-lg overflow-hidden">
+          <img 
+            src="https://placehold.co/600x300/FFF6DC/333333?text=Novo+Enxoval" 
+            alt="Nova coleção de enxovais" 
+            class="w-full h-[150px] md:h-[200px] object-cover"
+          />
+          <div class="absolute inset-0 flex flex-col justify-center p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Novo Enxoval</h3>
+            <p class="text-sm text-gray-700 mb-4">Coleção primavera/verão chegou</p>
+            <a href="/produtos?categoria=enxoval" class="bg-[#4DC0B5] text-white px-4 py-2 rounded-full text-sm font-medium inline-block w-max hover:bg-[#40a99f] transition-colors">
+              Explorar
+            </a>
+          </div>
+        </div>
+        
+        <!-- Banner 2 -->
+        <div class="relative rounded-lg overflow-hidden">
+          <img 
+            src="https://placehold.co/600x300/F0F9FF/333333?text=Outlet" 
+            alt="Outlet - Até 70% off" 
+            class="w-full h-[150px] md:h-[200px] object-cover"
+          />
+          <div class="absolute inset-0 flex flex-col justify-center p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Outlet</h3>
+            <p class="text-sm text-gray-700 mb-4">Descontos de até 70% off</p>
+            <a href="/produtos?promocao=true" class="bg-[#4DC0B5] text-white px-4 py-2 rounded-full text-sm font-medium inline-block w-max hover:bg-[#40a99f] transition-colors">
+              Ver ofertas
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Novidades / Recém-chegados -->
+  <section class="py-8 px-4 bg-gray-50">
+    <div class="container mx-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Acabou de Chegar</h2>
+        <a href="/produtos?ordenar=newest" class="text-[#4DC0B5] text-sm font-medium hover:underline">
+          Ver todos
+        </a>
+      </div>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Produto 1 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/4" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Carrinho" 
+                alt="Carrinho de Bebê Dobrável" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 left-2 bg-[#4DC0B5] text-white text-xs font-bold py-1 px-2 rounded-sm">
+              Novo
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/4" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Carrinho de Bebê Dobrável</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 999,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 799,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 2 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/9" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Andador" 
+                alt="Andador Musical de Bebê" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/9" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Andador Musical de Bebê</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-xs text-gray-500 line-through">R$ 399,90</span>
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 349,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 3 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/5" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Cadeira" 
+                alt="Cadeira de Alimentação Multifuncional" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/5" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Cadeira de Alimentação Multifuncional</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 549,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
+              disabled
+            >
+              Indisponível
+            </button>
+          </div>
+        </div>
+        
+        <!-- Produto 4 -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+          <a href="/produtos/3" class="block relative">
+            <div class="aspect-square overflow-hidden">
+              <img 
+                src="https://placehold.co/300x300?text=Mobile" 
+                alt="Mobile Musical Estrelas" 
+                class="w-full h-full object-contain transition-transform group-hover:scale-105"
+              />
+            </div>
+            <span class="absolute top-2 left-2 bg-[#4DC0B5] text-white text-xs font-bold py-1 px-2 rounded-sm">
+              Novo
+            </span>
+          </a>
+          
+          <div class="p-3">
+            <a href="/produtos/3" class="block">
+              <h3 class="text-sm font-medium text-gray-800 line-clamp-2 h-10">Mobile Musical Estrelas</h3>
+              <div class="mt-1 mb-2">
+                <span class="text-base font-bold text-[#4DC0B5] block">R$ 129,90</span>
+              </div>
+            </a>
+            <button 
+              class="w-full mt-1 py-1.5 px-3 rounded-full text-xs font-medium bg-[#4DC0B5] text-white hover:bg-[#40a99f] transition-colors"
+            >
+              Adicionar ao carrinho
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Depoimentos / Social Proof -->
+  <section class="py-12 px-4">
+    <div class="container mx-auto">
+      <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-8 text-center">O que as mamães e papais dizem</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Depoimento 1 -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div class="flex text-yellow-400 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <p class="text-gray-600 italic mb-4 text-[15px]">"O kit berço que comprei é simplesmente perfeito! A qualidade do tecido é excelente e as cores são exatamente como mostradas no site. Meu bebê adora e dorme super bem."</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-gray-200 rounded-full mr-3 overflow-hidden">
+              <img src="https://placehold.co/100x100?text=M" alt="Maria S." class="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p class="font-medium text-gray-800">Maria S.</p>
+              <p class="text-xs text-gray-500">Rio de Janeiro, RJ</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Depoimento 2 -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div class="flex text-yellow-400 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <p class="text-gray-600 italic mb-4 text-[15px]">"Comprei o berço montessoriano e estou encantada! Entrega rápida, produto de alta qualidade e acabamento perfeito. Vale cada centavo investido. Recomendo!"</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-gray-200 rounded-full mr-3 overflow-hidden">
+              <img src="https://placehold.co/100x100?text=A" alt="Ana F." class="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p class="font-medium text-gray-800">Ana F.</p>
+              <p class="text-xs text-gray-500">São Paulo, SP</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Depoimento 3 -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div class="flex text-yellow-400 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-300">
+              <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <p class="text-gray-600 italic mb-4 text-[15px]">"Atendimento excepcional! Tive uma dúvida sobre o produto e o suporte respondeu muito rápido. A entrega foi no prazo combinado e os produtos são de ótima qualidade."</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-gray-200 rounded-full mr-3 overflow-hidden">
+              <img src="https://placehold.co/100x100?text=C" alt="Carlos L." class="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p class="font-medium text-gray-800">Carlos L.</p>
+              <p class="text-xs text-gray-500">Belo Horizonte, MG</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center mt-10">
+        <a href="/depoimentos" class="inline-block border border-[#4DC0B5] text-[#4DC0B5] px-6 py-2 rounded-full font-medium text-sm hover:bg-[#4DC0B5] hover:text-white transition-colors">
+          Ver mais depoimentos
+        </a>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Banner de benefícios -->
+  <section class="py-8 border-t border-gray-200">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+        <!-- Benefício 1 -->
+        <div class="text-center">
+          <div class="flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-[#4DC0B5]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+            </svg>
+          </div>
+          <h3 class="text-base font-medium text-gray-800">Frete Grátis</h3>
+          <p class="text-xs text-gray-600">Para compras acima de R$299</p>
+        </div>
+        
+        <!-- Benefício 2 -->
+        <div class="text-center">
+          <div class="flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-[#4DC0B5]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+            </svg>
+          </div>
+          <h3 class="text-base font-medium text-gray-800">Parcele em 12x</h3>
+          <p class="text-xs text-gray-600">Sem juros no cartão</p>
+        </div>
+        
+        <!-- Benefício 3 -->
+        <div class="text-center">
+          <div class="flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-[#4DC0B5]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </div>
+          <h3 class="text-base font-medium text-gray-800">Site Seguro</h3>
+          <p class="text-xs text-gray-600">Compra 100% protegida</p>
+        </div>
+        
+        <!-- Benefício 4 -->
+        <div class="text-center">
+          <div class="flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-[#4DC0B5]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5v2.25h-7.5V6ZM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0 0 12 2.25Z" />
+            </svg>
+          </div>
+          <h3 class="text-base font-medium text-gray-800">Troca Fácil</h3>
+          <p class="text-xs text-gray-600">Em até 30 dias</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Marcas Parceiras -->
+  <section class="py-8 bg-gray-50 border-t border-gray-200">
+    <div class="container mx-auto px-4">
+      <h2 class="text-center text-base font-medium text-gray-600 mb-6">Marcas Parceiras</h2>
+      <div class="flex flex-wrap justify-center items-center gap-8 opacity-60">
+        <img src="https://placehold.co/120x60?text=Marca+1" alt="Marca parceira" class="h-8 md:h-10 w-auto object-contain" />
+        <img src="https://placehold.co/120x60?text=Marca+2" alt="Marca parceira" class="h-8 md:h-10 w-auto object-contain" />
+        <img src="https://placehold.co/120x60?text=Marca+3" alt="Marca parceira" class="h-8 md:h-10 w-auto object-contain" />
+        <img src="https://placehold.co/120x60?text=Marca+4" alt="Marca parceira" class="h-8 md:h-10 w-auto object-contain" />
+        <img src="https://placehold.co/120x60?text=Marca+5" alt="Marca parceira" class="h-8 md:h-10 w-auto object-contain" />
+      </div>
+    </div>
+  </section>
+</MarketplaceLayout>

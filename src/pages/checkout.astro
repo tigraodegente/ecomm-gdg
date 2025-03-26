@@ -1,0 +1,725 @@
+---
+/**
+ * Página de Checkout
+ * 
+ * Processo de finalização da compra com etapas para cadastro, 
+ * endereço de entrega, pagamento e confirmação do pedido.
+ */
+import MarketplaceLayout from "@/layouts/MarketplaceLayout.astro";
+---
+
+<MarketplaceLayout title="Checkout">
+  <div class="container mx-auto px-4 py-6">
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+      <ul class="flex items-center text-sm">
+        <li class="flex items-center">
+          <a href="/" class="text-gray-500 hover:text-[#4DC0B5]">Home</a>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mx-2 text-gray-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </li>
+        <li class="flex items-center">
+          <a href="/carrinho" class="text-gray-500 hover:text-[#4DC0B5]">Carrinho</a>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mx-2 text-gray-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </li>
+        <li>
+          <span class="text-gray-900 font-medium">Checkout</span>
+        </li>
+      </ul>
+    </div>
+
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Finalizar Compra</h1>
+    
+    <div 
+      x-data="{
+        step: 1,
+        
+        // Dados do cliente
+        customer: {
+          name: '',
+          email: '',
+          cpf: '',
+          phone: ''
+        },
+        
+        // Endereço de entrega
+        address: {
+          zipcode: '',
+          street: '',
+          number: '',
+          complement: '',
+          neighborhood: '',
+          city: '',
+          state: ''
+        },
+        
+        // Dados de pagamento
+        payment: {
+          method: 'credit_card',
+          cardNumber: '',
+          cardName: '',
+          cardExpiry: '',
+          cardCvv: '',
+          installments: 1
+        },
+        
+        // Verifica se tem itens no carrinho
+        checkCartItems() {
+          if (this.$store.cart.itemCount === 0) {
+            window.location.href = '/carrinho';
+            return false;
+          }
+          return true;
+        },
+        
+        // Validação dos formulários
+        validateCustomerForm() {
+          if (!this.customer.name || !this.customer.email || !this.customer.cpf || !this.customer.phone) {
+            $dispatch('toast', { 
+              message: 'Preencha todos os campos obrigatórios', 
+              type: 'warning' 
+            });
+            return false;
+          }
+          return true;
+        },
+        
+        validateAddressForm() {
+          if (!this.address.zipcode || !this.address.street || !this.address.number || 
+              !this.address.neighborhood || !this.address.city || !this.address.state) {
+            $dispatch('toast', { 
+              message: 'Preencha todos os campos obrigatórios do endereço', 
+              type: 'warning' 
+            });
+            return false;
+          }
+          return true;
+        },
+        
+        validatePaymentForm() {
+          if (this.payment.method === 'credit_card') {
+            if (!this.payment.cardNumber || !this.payment.cardName || 
+                !this.payment.cardExpiry || !this.payment.cardCvv) {
+              $dispatch('toast', { 
+                message: 'Preencha todos os dados do cartão', 
+                type: 'warning' 
+              });
+              return false;
+            }
+          }
+          return true;
+        },
+        
+        // Navegação entre etapas
+        nextStep() {
+          if (this.step === 1 && !this.validateCustomerForm()) return;
+          if (this.step === 2 && !this.validateAddressForm()) return;
+          if (this.step === 3 && !this.validatePaymentForm()) return;
+          
+          if (this.step < 4) {
+            this.step++;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        },
+        
+        prevStep() {
+          if (this.step > 1) {
+            this.step--;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        },
+        
+        // Simulação de finalização do pedido
+        finishOrder() {
+          // Aqui seria feita a integração com o backend
+          
+          // Exibe mensagem de sucesso
+          $dispatch('toast', { 
+            message: 'Pedido realizado com sucesso!', 
+            type: 'success' 
+          });
+          
+          // Limpa o carrinho
+          this.$store.cart.clear();
+          
+          // Redireciona para confirmação
+          setTimeout(() => {
+            this.step = 4;
+          }, 500);
+        },
+        
+        // Busca CEP
+        fetchAddress() {
+          if (this.address.zipcode.length < 8) return;
+          
+          const cep = this.address.zipcode.replace(/\D/g, '');
+          
+          // Simula busca de CEP
+          setTimeout(() => {
+            // Valores simulados
+            this.address.street = 'Rua das Flores';
+            this.address.neighborhood = 'Jardim Primavera';
+            this.address.city = 'São Paulo';
+            this.address.state = 'SP';
+            
+            $dispatch('toast', { 
+              message: 'Endereço encontrado!', 
+              type: 'success' 
+            });
+          }, 500);
+        }
+      }"
+      x-init="checkCartItems()"
+      class="flex flex-col lg:flex-row gap-8"
+    >
+      <!-- Etapas do checkout - Lado esquerdo -->
+      <div class="lg:w-2/3 w-full">
+        <!-- Barra de progresso -->
+        <div class="mb-8">
+          <div class="flex items-center justify-between mb-2">
+            <div class="w-full flex items-center">
+              <div 
+                class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold"
+                :class="step >= 1 ? 'bg-[#4DC0B5] text-white' : 'bg-gray-200 text-gray-500'"
+              >
+                1
+              </div>
+              <div class="flex-1 h-1 mx-2" :class="step > 1 ? 'bg-[#4DC0B5]' : 'bg-gray-200'"></div>
+              <div 
+                class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold"
+                :class="step >= 2 ? 'bg-[#4DC0B5] text-white' : 'bg-gray-200 text-gray-500'"
+              >
+                2
+              </div>
+              <div class="flex-1 h-1 mx-2" :class="step > 2 ? 'bg-[#4DC0B5]' : 'bg-gray-200'"></div>
+              <div 
+                class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold"
+                :class="step >= 3 ? 'bg-[#4DC0B5] text-white' : 'bg-gray-200 text-gray-500'"
+              >
+                3
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-600">
+            <div class="text-center" :class="step >= 1 ? 'text-[#4DC0B5] font-medium' : ''">Identificação</div>
+            <div class="text-center" :class="step >= 2 ? 'text-[#4DC0B5] font-medium' : ''">Endereço</div>
+            <div class="text-center" :class="step >= 3 ? 'text-[#4DC0B5] font-medium' : ''">Pagamento</div>
+          </div>
+        </div>
+        
+        <!-- Step 1: Dados do cliente -->
+        <div x-show="step === 1" class="bg-white rounded-lg shadow-sm p-6 mb-4">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Identificação</h2>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+              <input 
+                type="text" 
+                id="name" 
+                x-model="customer.name"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                placeholder="Digite seu nome completo"
+              />
+            </div>
+            
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <input 
+                type="email" 
+                id="email" 
+                x-model="customer.email"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                placeholder="exemplo@email.com"
+              />
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="cpf" class="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                <input 
+                  type="text" 
+                  id="cpf" 
+                  x-model="customer.cpf"
+                  x-mask="999.999.999-99"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              
+              <div>
+                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <input 
+                  type="text" 
+                  id="phone" 
+                  x-model="customer.phone"
+                  x-mask="(99) 99999-9999"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex justify-end">
+            <button 
+              @click="nextStep"
+              class="bg-[#4DC0B5] text-white font-medium py-2.5 px-6 rounded-md text-sm hover:bg-[#40a99f] transition-colors flex items-center"
+            >
+              Continuar
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 ml-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Step 2: Endereço de entrega -->
+        <div x-show="step === 2" class="bg-white rounded-lg shadow-sm p-6 mb-4">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Endereço de Entrega</h2>
+          
+          <div class="space-y-4">
+            <div class="flex gap-4">
+              <div class="w-1/2">
+                <label for="zipcode" class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                <div class="flex">
+                  <input 
+                    type="text" 
+                    id="zipcode" 
+                    x-model="address.zipcode"
+                    x-mask="99999-999"
+                    @blur="fetchAddress"
+                    class="flex-1 rounded-l-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                    placeholder="00000-000"
+                  />
+                  <button 
+                    @click="fetchAddress"
+                    class="bg-gray-100 text-gray-600 px-3 rounded-r-md text-sm hover:bg-gray-200 transition-colors"
+                  >
+                    Buscar
+                  </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                  <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" class="text-[#4DC0B5] hover:underline">
+                    Não sei meu CEP
+                  </a>
+                </p>
+              </div>
+              
+              <div class="w-1/2">
+                <label for="state" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select 
+                  id="state" 
+                  x-model="address.state"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                >
+                  <option value="">Selecione</option>
+                  <option value="AC">Acre</option>
+                  <option value="AL">Alagoas</option>
+                  <option value="AP">Amapá</option>
+                  <option value="AM">Amazonas</option>
+                  <option value="BA">Bahia</option>
+                  <option value="CE">Ceará</option>
+                  <option value="DF">Distrito Federal</option>
+                  <option value="ES">Espírito Santo</option>
+                  <option value="GO">Goiás</option>
+                  <option value="MA">Maranhão</option>
+                  <option value="MT">Mato Grosso</option>
+                  <option value="MS">Mato Grosso do Sul</option>
+                  <option value="MG">Minas Gerais</option>
+                  <option value="PA">Pará</option>
+                  <option value="PB">Paraíba</option>
+                  <option value="PR">Paraná</option>
+                  <option value="PE">Pernambuco</option>
+                  <option value="PI">Piauí</option>
+                  <option value="RJ">Rio de Janeiro</option>
+                  <option value="RN">Rio Grande do Norte</option>
+                  <option value="RS">Rio Grande do Sul</option>
+                  <option value="RO">Rondônia</option>
+                  <option value="RR">Roraima</option>
+                  <option value="SC">Santa Catarina</option>
+                  <option value="SP">São Paulo</option>
+                  <option value="SE">Sergipe</option>
+                  <option value="TO">Tocantins</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label for="city" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+              <input 
+                type="text" 
+                id="city" 
+                x-model="address.city"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                placeholder="Digite sua cidade"
+              />
+            </div>
+            
+            <div>
+              <label for="street" class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+              <input 
+                type="text" 
+                id="street" 
+                x-model="address.street"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                placeholder="Rua, Avenida, etc."
+              />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                <input 
+                  type="text" 
+                  id="number" 
+                  x-model="address.number"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  placeholder="Ex: 123"
+                />
+              </div>
+              
+              <div>
+                <label for="complement" class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                <input 
+                  type="text" 
+                  id="complement" 
+                  x-model="address.complement"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  placeholder="Apto, Bloco, etc."
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label for="neighborhood" class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+              <input 
+                type="text" 
+                id="neighborhood" 
+                x-model="address.neighborhood"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                placeholder="Digite seu bairro"
+              />
+            </div>
+          </div>
+          
+          <div class="mt-6 flex justify-between">
+            <button 
+              @click="prevStep"
+              class="bg-gray-100 text-gray-700 font-medium py-2.5 px-6 rounded-md text-sm hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
+              Voltar
+            </button>
+            
+            <button 
+              @click="nextStep"
+              class="bg-[#4DC0B5] text-white font-medium py-2.5 px-6 rounded-md text-sm hover:bg-[#40a99f] transition-colors flex items-center"
+            >
+              Continuar
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 ml-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Step 3: Forma de Pagamento -->
+        <div x-show="step === 3" class="bg-white rounded-lg shadow-sm p-6 mb-4">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Forma de Pagamento</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-sm font-medium text-gray-700 mb-3">Escolha uma forma de pagamento</h3>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div 
+                  @click="payment.method = 'credit_card'"
+                  class="border p-4 rounded-md cursor-pointer transition-colors"
+                  :class="payment.method === 'credit_card' ? 'border-[#4DC0B5] bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+                >
+                  <div class="flex items-center">
+                    <div class="w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center"
+                         :class="payment.method === 'credit_card' ? 'border-[#4DC0B5]' : 'border-gray-300'">
+                      <div class="w-3 h-3 rounded-full bg-[#4DC0B5]" x-show="payment.method === 'credit_card'"></div>
+                    </div>
+                    <span class="text-sm font-medium">Cartão de Crédito</span>
+                  </div>
+                </div>
+                
+                <div 
+                  @click="payment.method = 'boleto'"
+                  class="border p-4 rounded-md cursor-pointer transition-colors"
+                  :class="payment.method === 'boleto' ? 'border-[#4DC0B5] bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+                >
+                  <div class="flex items-center">
+                    <div class="w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center"
+                         :class="payment.method === 'boleto' ? 'border-[#4DC0B5]' : 'border-gray-300'">
+                      <div class="w-3 h-3 rounded-full bg-[#4DC0B5]" x-show="payment.method === 'boleto'"></div>
+                    </div>
+                    <span class="text-sm font-medium">Boleto Bancário</span>
+                  </div>
+                </div>
+                
+                <div 
+                  @click="payment.method = 'pix'"
+                  class="border p-4 rounded-md cursor-pointer transition-colors"
+                  :class="payment.method === 'pix' ? 'border-[#4DC0B5] bg-teal-50' : 'border-gray-200 hover:border-gray-300'"
+                >
+                  <div class="flex items-center">
+                    <div class="w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center"
+                         :class="payment.method === 'pix' ? 'border-[#4DC0B5]' : 'border-gray-300'">
+                      <div class="w-3 h-3 rounded-full bg-[#4DC0B5]" x-show="payment.method === 'pix'"></div>
+                    </div>
+                    <span class="text-sm font-medium">PIX</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Cartão de Crédito -->
+            <div x-show="payment.method === 'credit_card'" class="border border-gray-200 rounded-md p-4">
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Dados do Cartão</h4>
+              
+              <div class="space-y-4">
+                <div>
+                  <label for="card_number" class="block text-sm font-medium text-gray-700 mb-1">Número do Cartão</label>
+                  <input 
+                    type="text" 
+                    id="card_number" 
+                    x-model="payment.cardNumber"
+                    x-mask="9999 9999 9999 9999"
+                    class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                    placeholder="0000 0000 0000 0000"
+                  />
+                </div>
+                
+                <div>
+                  <label for="card_name" class="block text-sm font-medium text-gray-700 mb-1">Nome Impresso no Cartão</label>
+                  <input 
+                    type="text" 
+                    id="card_name" 
+                    x-model="payment.cardName"
+                    class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5] uppercase"
+                    placeholder="NOME COMO ESTÁ NO CARTÃO"
+                  />
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="card_expiry" class="block text-sm font-medium text-gray-700 mb-1">Validade</label>
+                    <input 
+                      type="text" 
+                      id="card_expiry" 
+                      x-model="payment.cardExpiry"
+                      x-mask="99/99"
+                      class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                      placeholder="MM/AA"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label for="card_cvv" class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
+                    <input 
+                      type="text" 
+                      id="card_cvv" 
+                      x-model="payment.cardCvv"
+                      x-mask="999"
+                      class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                      placeholder="000"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="installments" class="block text-sm font-medium text-gray-700 mb-1">Parcelas</label>
+                  <select 
+                    id="installments" 
+                    x-model="payment.installments"
+                    class="w-full rounded-md border-gray-300 text-sm focus:ring-[#4DC0B5] focus:border-[#4DC0B5]"
+                  >
+                    <template x-for="i in 12" :key="i">
+                      <option :value="i" x-text="i + 'x de R$ ' + ($store.cart.total / i).toFixed(2).replace('.', ',') + (i === 1 ? ' à vista' : ' sem juros')"></option>
+                    </template>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Boleto -->
+            <div x-show="payment.method === 'boleto'" class="border border-gray-200 rounded-md p-4">
+              <div class="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-700">O boleto bancário será exibido após a finalização da compra e enviado para seu e-mail.</p>
+                  <p class="text-sm text-yellow-600 mt-2 font-medium">O pedido será confirmado apenas após a confirmação do pagamento.</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- PIX -->
+            <div x-show="payment.method === 'pix'" class="border border-gray-200 rounded-md p-4">
+              <div class="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-700">O QR Code para pagamento via PIX será exibido após a finalização da compra.</p>
+                  <p class="text-sm text-green-600 mt-2 font-medium">Seu pedido será confirmado automaticamente após o pagamento.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex justify-between">
+            <button 
+              @click="prevStep"
+              class="bg-gray-100 text-gray-700 font-medium py-2.5 px-6 rounded-md text-sm hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
+              Voltar
+            </button>
+            
+            <button 
+              @click="finishOrder"
+              class="bg-[#4DC0B5] text-white font-medium py-2.5 px-6 rounded-md text-sm hover:bg-[#40a99f] transition-colors flex items-center"
+            >
+              Finalizar Compra
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 ml-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Step 4: Confirmação do Pedido -->
+        <div x-show="step === 4" class="bg-white rounded-lg shadow-sm p-6 mb-4 text-center">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-green-600">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          
+          <h2 class="text-xl font-bold text-gray-800 mb-2">Pedido Realizado com Sucesso!</h2>
+          <p class="text-gray-600 mb-6">Seu pedido foi registrado e está sendo processado.</p>
+          
+          <div class="bg-gray-50 p-4 rounded-md text-left mb-6">
+            <p class="text-sm font-medium text-gray-700 mb-1">Número do Pedido:</p>
+            <p class="text-lg font-bold text-[#4DC0B5]">#GDG2023001</p>
+            
+            <div class="mt-4 text-sm text-gray-600">
+              <p>Enviamos um e-mail para você com todos os detalhes do seu pedido.</p>
+              <p class="mt-2">Acompanhe o status do seu pedido na área "Meus Pedidos" da sua conta.</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a 
+              href="/produtos" 
+              class="bg-white border border-[#4DC0B5] text-[#4DC0B5] font-medium py-2.5 px-6 rounded-md text-sm hover:bg-gray-50 transition-colors"
+            >
+              Continuar Comprando
+            </a>
+            
+            <a 
+              href="/minha-conta/pedidos" 
+              class="bg-[#4DC0B5] text-white font-medium py-2.5 px-6 rounded-md text-sm hover:bg-[#40a99f] transition-colors"
+            >
+              Acompanhar Pedido
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resumo da compra - Lado direito -->
+      <div class="lg:w-1/3 w-full">
+        <div class="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Resumo da Compra</h2>
+          
+          <div class="max-h-[300px] overflow-y-auto mb-4 pr-2">
+            <template x-for="item in $store.cart.items" :key="item.id">
+              <div class="flex py-3 border-b border-gray-100 last:border-0">
+                <div class="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                  <img :src="item.image" :alt="item.name" class="w-full h-full object-cover">
+                </div>
+                
+                <div class="ml-3 flex-1">
+                  <h3 class="text-xs font-medium text-gray-800 line-clamp-2" x-text="item.name"></h3>
+                  <p class="text-xs text-gray-500 mt-0.5" x-text="'Qtd: ' + item.quantity"></p>
+                  <p class="text-sm font-medium text-[#4DC0B5] mt-1" x-text="'R$ ' + (item.price * item.quantity).toFixed(2).replace('.', ',')"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+          
+          <div class="space-y-3 border-t border-b border-gray-100 py-4 my-4">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Subtotal</span>
+              <span class="font-medium text-gray-800" x-text="'R$ ' + $store.cart.total.toFixed(2).replace('.', ',')"></span>
+            </div>
+            
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Frete</span>
+              <span class="font-medium text-green-600">Grátis</span>
+            </div>
+            
+            <div class="flex justify-between text-sm" x-show="step >= 3 && payment.method === 'boleto'">
+              <span class="text-gray-600">Desconto Boleto</span>
+              <span class="font-medium text-green-600" x-text="'- R$ ' + ($store.cart.total * 0.05).toFixed(2).replace('.', ',')"></span>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-base font-bold text-gray-800">Total</span>
+            <span 
+              class="text-xl font-bold text-[#4DC0B5]"
+              x-text="'R$ ' + (payment.method === 'boleto' ? ($store.cart.total * 0.95).toFixed(2) : $store.cart.total.toFixed(2)).replace('.', ',')"
+            ></span>
+          </div>
+          
+          <template x-if="payment.method === 'credit_card' && step >= 3">
+            <p class="text-xs text-gray-500 text-center">
+              <span x-text="payment.installments + 'x de R$ ' + ($store.cart.total / payment.installments).toFixed(2).replace('.', ',')"></span>
+              <span> sem juros</span>
+            </p>
+          </template>
+          
+          <template x-if="payment.method === 'boleto' && step >= 3">
+            <p class="text-xs text-green-600 text-center font-medium">
+              5% de desconto para pagamento via boleto
+            </p>
+          </template>
+          
+          <template x-if="payment.method === 'pix' && step >= 3">
+            <p class="text-xs text-green-600 text-center font-medium">
+              Pagamento instantâneo via PIX
+            </p>
+          </template>
+          
+          <div class="mt-6 p-3 bg-yellow-50 rounded-md" x-show="step < 4">
+            <div class="flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <div>
+                <p class="text-sm text-gray-700 font-medium">Compra Segura</p>
+                <p class="text-xs text-gray-600 mt-1">
+                  Utilizamos tecnologia de ponta para garantir a segurança das suas compras.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</MarketplaceLayout>

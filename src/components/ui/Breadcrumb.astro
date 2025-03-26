@@ -1,0 +1,53 @@
+---
+/**
+ * Breadcrumb Component
+ * 
+ * Exibe um caminho de navegação hierárquico.
+ */
+interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
+
+interface Props {
+  items: BreadcrumbItem[];
+  class?: string;
+}
+
+const { 
+  items,
+  class: className = '',
+} = Astro.props;
+
+const containerClasses = [
+  'bg-gray-100',
+  'py-sm',
+  className
+].filter(Boolean).join(' ');
+---
+
+<div class="bg-gray-100 py-2">
+  <div class="container mx-auto px-4">
+    <nav class="text-sm" aria-label="Breadcrumb">
+      <ol class="flex flex-wrap items-center">
+        {items.map((item, index) => (
+          <li class="flex items-center">
+            {index > 0 && <span class="mx-1 text-gray-400" aria-hidden="true">/</span>}
+            {index === items.length - 1 ? (
+              <span class="text-primary font-bold" aria-current="page">
+                {item.name}
+              </span>
+            ) : (
+              <a 
+                href={item.url} 
+                class="text-gray-600 hover:text-primary"
+              >
+                {item.name}
+              </a>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  </div>
+</div>
