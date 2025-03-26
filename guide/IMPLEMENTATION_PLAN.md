@@ -6,9 +6,19 @@ Este documento acompanha o progresso da implementação do marketplace "Grão de
 
 Um marketplace completo e moderno que permite que diversos lojistas vendam seus produtos em um único ambiente, com foco em performance, SEO e acessibilidade.
 
+### Esclarecimento Importante sobre o Freedom Stack
+O Freedom Stack não é uma API externa ou serviço separado, mas sim o nome dado à combinação de tecnologias utilizadas neste projeto:
+- Astro (renderização e roteamento)
+- Alpine.js (interatividade no cliente)
+- Tailwind CSS e daisyUI (estilização)
+- Astro DB/Turso (banco de dados)
+
+Todas as integrações devem ser feitas usando os recursos nativos dessas tecnologias, especialmente o sistema de banco de dados Astro DB e o mecanismo de actions do Astro.
+
 ### Tecnologias Principais
 - **AstroJS**: Framework principal para renderização híbrida (SSG/SSR)
 - **Alpine.js**: Para interatividade do cliente
+- **Astro DB**: Para armazenamento e consulta de dados
 - **Cloudflare Pages/Workers**: Para hospedagem e APIs serverless
 - **FlexSearch**: Biblioteca para implementação de busca avançada
 
@@ -55,11 +65,13 @@ Um marketplace completo e moderno que permite que diversos lojistas vendam seus 
   - [ ] Extrato detalhado
 
 - [ ] **Implementações Técnicas**
-  - [ ] Dizzle ORM para SQLite
-  - [ ] Hono.dev para API
-  - [ ] Auth.js para Autenticação
-  - [ ] Alpine.js com Stores para Estado
+  - [x] Drizzle ORM com Astro DB para armazenamento de dados
+  - [x] Sistema de Actions nativo do Astro para API
+  - [x] Better-auth para Autenticação (já configurado)
+  - [x] Alpine.js com Stores para Estado (implementado para carrinho e wishlist)
   - [ ] FlexSearch para sistema de busca
+  - [ ] Modelagem de dados para categorias e produtos
+  - [ ] Implementação do menu dinâmico baseado em categorias
 
 ## Design System
 
@@ -126,23 +138,25 @@ Seguiremos uma abordagem progressiva, construindo o marketplace página por pág
 - Componentes a implementar:
   - [x] ProductCard (básico já implementado)
   - [x] Filtros de pesquisa (preço, categoria, atributos)
-  - [x] Paginação
+  - [x] Paginação com scroll infinito
   - [x] Ordenação de resultados
   - [x] Breadcrumbs
   - [x] Visualização em grade/lista
   - [x] Rating (avaliações)
+  - [ ] Integração com dados reais do Astro DB
 
 ### 2. Página de Produto Individual
 - Componentes a implementar:
-  - [ ] Galeria de imagens com zoom
-  - [ ] Seletor de variações (cor, tamanho, etc.)
-  - [ ] Sistema de avaliações e comentários
-  - [ ] Produtos relacionados
-  - [ ] Botão Comprar
-  - [ ] Botão Adicionar à lista de desejos
-  - [ ] Informações do vendedor
-  - [ ] Estimativa de frete
-  - [ ] Abas de descrição, especificações, avaliações
+  - [x] Galeria de imagens com miniaturas
+  - [x] Seletor de variações (cor, tamanho, etc.)
+  - [x] Sistema de avaliações e comentários
+  - [x] Produtos relacionados
+  - [x] Botão Comprar
+  - [x] Botão Adicionar à lista de desejos
+  - [x] Informações do vendedor
+  - [x] Estimativa de frete
+  - [x] Abas de descrição, especificações, avaliações
+  - [ ] Integração com dados reais do Astro DB
 
 ### 3. Página da Home Marketplace
 - Componentes a implementar:
@@ -152,6 +166,7 @@ Seguiremos uma abordagem progressiva, construindo o marketplace página por pág
   - [ ] Banners promocionais
   - [ ] Destaques de vendedores
   - [ ] Newsletter
+  - [ ] Menu de categorias dinâmico
 
 ### 4. Carrinho de Compras
 - Componentes a implementar:
