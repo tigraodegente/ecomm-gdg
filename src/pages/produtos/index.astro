@@ -218,7 +218,7 @@ const totalItems = 1000;
       <!-- Ordenação e visualização -->
       <div class="flex items-center gap-4">
         <div class="flex items-center">
-          <span class="text-sm text-gray-600 mr-2">Ordenar por:</span>
+          <span class="text-sm text-gray-600 mr-2 hidden sm:inline">Ordenar por:</span>
           <div class="relative">
             <select class="text-sm appearance-none bg-transparent focus:outline-none cursor-pointer pr-6">
               <option>Relevância</option>
@@ -246,14 +246,36 @@ const totalItems = 1000;
             </svg>
           </button>
         </div>
+        
+        <!-- Botão para mostrar/ocultar filtros no mobile -->
+        <button 
+          id="toggleFilters" 
+          class="md:hidden flex items-center justify-center bg-[#39c7bb] text-white px-2 py-1 rounded-md text-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtros
+        </button>
       </div>
     </div>
     
     <!-- Conteúdo principal com filtros e produtos -->
     <div class="flex flex-col md:flex-row gap-5">
-      <!-- Sidebar de filtros - Coluna esquerda -->
-      <div class="w-full md:w-[260px] md:sticky md:top-4 md:self-start">
-        <div class="mb-4">
+      <!-- Sidebar de filtros - Coluna esquerda (escondida no mobile por padrão) -->
+      <div id="filtersContainer" class="hidden md:block w-full md:w-[260px] md:sticky md:top-4 md:self-start">
+        <div class="mb-4 relative">
+          <!-- Botão fechar visível apenas no mobile -->
+          <button 
+            id="closeFilters" 
+            class="absolute top-2 right-2 md:hidden bg-white rounded-full p-1 shadow-sm z-10"
+            aria-label="Fechar filtros"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
           <Filters 
             categories={[
               { name: 'Kits Berço', count: 239, selected: true },
@@ -284,6 +306,9 @@ const totalItems = 1000;
           />
         </div>
       </div>
+      
+      <!-- Overlay para mobile quando filtros estão abertos -->
+      <div id="filtersOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
       
       <!-- Produtos - Área principal -->
       <div class="w-full md:flex-1">
@@ -342,4 +367,63 @@ const totalItems = 1000;
       </div>
     </div>
   </div>
+
+  <script>
+    // Função para mostrar os filtros no mobile
+    function showFilters() {
+      document.getElementById('filtersContainer').classList.remove('hidden');
+      document.getElementById('filtersContainer').classList.add('fixed', 'inset-y-0', 'left-0', 'w-[80%]', 'max-w-xs', 'z-50', 'bg-white', 'shadow-xl', 'overflow-y-auto');
+      document.getElementById('filtersOverlay').classList.remove('hidden');
+      // Prevenir scroll do body
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Função para esconder os filtros no mobile
+    function hideFilters() {
+      document.getElementById('filtersContainer').classList.add('hidden');
+      document.getElementById('filtersContainer').classList.remove('fixed', 'inset-y-0', 'left-0', 'w-[80%]', 'max-w-xs', 'z-50', 'bg-white', 'shadow-xl', 'overflow-y-auto');
+      document.getElementById('filtersOverlay').classList.add('hidden');
+      // Restaurar scroll do body
+      document.body.style.overflow = '';
+    }
+
+    // Detectar quando a tela é redimensionada para desktop
+    function handleResize() {
+      if (window.innerWidth >= 768) { // 768px é o breakpoint md no Tailwind
+        document.getElementById('filtersContainer').classList.remove('fixed', 'inset-y-0', 'left-0', 'w-[80%]', 'max-w-xs', 'z-50', 'bg-white', 'shadow-xl', 'overflow-y-auto');
+        document.getElementById('filtersContainer').classList.remove('hidden');
+        document.getElementById('filtersContainer').classList.add('block');
+        document.getElementById('filtersOverlay').classList.add('hidden');
+        document.body.style.overflow = '';
+      } else {
+        document.getElementById('filtersContainer').classList.add('hidden');
+        document.getElementById('filtersContainer').classList.remove('block');
+      }
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleButton = document.getElementById('toggleFilters');
+      const closeButton = document.getElementById('closeFilters');
+      const overlay = document.getElementById('filtersOverlay');
+      
+      if (toggleButton) {
+        toggleButton.addEventListener('click', showFilters);
+      }
+      
+      if (closeButton) {
+        closeButton.addEventListener('click', hideFilters);
+      }
+      
+      if (overlay) {
+        overlay.addEventListener('click', hideFilters);
+      }
+      
+      // Verificar tamanho da tela quando a janela é redimensionada
+      window.addEventListener('resize', handleResize);
+      
+      // Inicializar
+      handleResize();
+    });
+  </script>
 </MarketplaceLayout>
