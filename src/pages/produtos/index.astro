@@ -334,36 +334,122 @@ const totalItems = 1000;
           ))}
         </div>
         
-        <!-- Paginação simplificada -->
-        <div class="mt-10 flex justify-between items-center border-t border-gray-200 pt-6">
-          <span class="text-sm text-gray-500">
-            Exibindo <span class="font-medium">1-12</span> de <span class="font-medium">{totalItems}</span>
-          </span>
-          
-          <nav class="flex items-center gap-1" aria-label="Paginação">
-            <a href="#" class="w-8 h-8 flex items-center justify-center text-gray-500 border border-gray-200">
-              <span class="sr-only">Anterior</span>
+        <!-- Loading indicator e informações para scroll infinito -->
+        <div class="mt-6 py-10 text-center relative" id="infinite-scroll-container">
+          <div class="flex justify-between items-center mb-8 px-4">
+            <span class="text-sm text-gray-500">
+              Exibindo <span class="font-medium" id="products-shown">8</span> de <span class="font-medium">{totalItems}</span> produtos
+            </span>
+            
+            <button id="load-more-btn" class="hidden md:flex items-center gap-2 text-[#39c7bb] hover:text-teal-700 transition-colors">
+              <span>Carregar mais</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
-            </a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center bg-[#39c7bb] text-white font-medium text-sm">1</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center text-gray-800 hover:bg-gray-100 text-sm">2</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center text-gray-800 hover:bg-gray-100 text-sm">3</a>
-            <span class="text-gray-500 text-sm px-1">...</span>
-            <a href="#" class="w-8 h-8 flex items-center justify-center text-gray-800 hover:bg-gray-100 text-sm">42</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center text-gray-500 border border-gray-200">
-              <span class="sr-only">Próximo</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </a>
-          </nav>
+            </button>
+          </div>
           
-          <span class="text-sm text-gray-500">
-            12 por página
-          </span>
+          <!-- Loading indicator -->
+          <div id="loading-indicator" class="hidden flex-col items-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
+            <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
+          </div>
+          
+          <!-- Fim da lista quando todos os produtos forem carregados -->
+          <div id="end-of-results" class="hidden">
+            <p class="text-gray-500 text-sm">Você viu todos os {totalItems} produtos 🎉</p>
+          </div>
         </div>
+        
+        <!-- Script para scroll infinito -->
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // Variáveis para controlar o estado da paginação
+            let page = 1;
+            const itemsPerPage = 8;
+            const totalItems = {totalItems};
+            let loading = false;
+            let allItemsLoaded = false;
+            
+            // Elementos do DOM
+            const container = document.getElementById('infinite-scroll-container');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const endOfResults = document.getElementById('end-of-results');
+            const productsShown = document.getElementById('products-shown');
+            const loadMoreButton = document.getElementById('load-more-btn');
+            const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
+            
+            // Função para simular carregamento de mais produtos (em produção, isso seria uma chamada AJAX)
+            async function loadMoreProducts() {
+              if (loading || allItemsLoaded) return;
+              
+              // Ativa o estado de carregamento
+              loading = true;
+              loadingIndicator.classList.remove('hidden');
+              loadingIndicator.classList.add('flex');
+              
+              try {
+                // Simula uma requisição ao servidor (usar fetch em produção)
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Calcula itens a serem exibidos
+                const currentlyShown = page * itemsPerPage;
+                const totalItemsToShow = Math.min(currentlyShown + itemsPerPage, totalItems);
+                
+                // Adiciona novos produtos (clone os atuais para demo)
+                if (currentlyShown < totalItems) {
+                  // Obtém todos os produtos atuais
+                  const currentProducts = productsGrid.querySelectorAll('a.block');
+                  
+                  // Clona alguns dos produtos existentes para simular novos produtos
+                  for (let i = 0; i < Math.min(itemsPerPage, currentProducts.length); i++) {
+                    const clone = currentProducts[i].cloneNode(true);
+                    productsGrid.appendChild(clone);
+                  }
+                  
+                  // Atualiza contadores
+                  page++;
+                  productsShown.textContent = Math.min(page * itemsPerPage, totalItems);
+                  
+                  // Verifica se todos os itens foram carregados
+                  if (page * itemsPerPage >= totalItems) {
+                    allItemsLoaded = true;
+                    endOfResults.classList.remove('hidden');
+                  }
+                } else {
+                  allItemsLoaded = true;
+                  endOfResults.classList.remove('hidden');
+                }
+              } catch (error) {
+                console.error('Erro ao carregar mais produtos:', error);
+              } finally {
+                // Desativa o estado de carregamento
+                loading = false;
+                loadingIndicator.classList.add('hidden');
+                loadingIndicator.classList.remove('flex');
+              }
+            }
+            
+            // Função para verificar se o usuário chegou próximo ao final da página
+            function checkScrollPosition() {
+              if (loading || allItemsLoaded) return;
+              
+              const scrollPosition = window.scrollY + window.innerHeight;
+              const bottomPosition = container.offsetTop + container.offsetHeight - 200; // 200px antes do final
+              
+              if (scrollPosition >= bottomPosition) {
+                loadMoreProducts();
+              }
+            }
+            
+            // Event listeners
+            window.addEventListener('scroll', checkScrollPosition);
+            loadMoreButton.addEventListener('click', loadMoreProducts);
+            
+            // Inicializa a interface
+            productsShown.textContent = Math.min(itemsPerPage, totalItems);
+          });
+        </script>
       </div>
     </div>
   </div>
