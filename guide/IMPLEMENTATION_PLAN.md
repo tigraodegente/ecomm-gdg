@@ -130,23 +130,126 @@ O design segue o estilo visual do site Grão de Gente, com ênfase em:
   - [ ] Relatórios de vendas por vendedor/categoria
   - [ ] Métricas de conversão e abandono
 
-## Sequência de Implementação de Páginas
+## Nova Sequência de Implementação (Modelo-Primeiro)
 
-Seguiremos uma abordagem progressiva, construindo o marketplace página por página, adicionando os componentes necessários dentro de cada página conforme avançamos.
+Para um desenvolvimento mais eficiente e estruturado, adotaremos uma abordagem "modelo-primeiro" que define completamente a estrutura de dados antes de implementar a interface. Esta abordagem minimiza retrabalho e facilita a integração entre os componentes.
+
+### 1. Modelagem Completa do Banco de Dados
+- [ ] **Esquema de Categorias e Produtos**
+  - [x] Definição de tabela de Categorias (hierárquica)
+  - [ ] Definição de tabela de Produtos
+  - [ ] Definição de tabela de Variantes de Produtos
+  - [ ] Definição de tabela de Imagens de Produtos
+  - [ ] Definição de tabela de Atributos e Valores
+
+- [ ] **Esquema de Usuários e Vendedores**
+  - [x] Definição de tabela de Usuários (já existente via Better-auth)
+  - [ ] Definição de tabela de Vendedores/Lojistas
+  - [ ] Definição de tabela de Endereços
+
+- [ ] **Esquema de Pedidos e Carrinho**
+  - [ ] Definição de tabela de Pedidos
+  - [ ] Definição de tabela de Itens de Pedido
+  - [ ] Definição de tabela de Status de Pedido
+  - [ ] Definição de tabela de Pagamentos
+
+- [ ] **Esquema de Configurações e Conteúdo**
+  - [ ] Definição de tabela de Links de Menu (não-categorias)
+  - [ ] Definição de tabela de Banners
+  - [ ] Definição de tabela de Configurações Globais
+
+### 2. Scripts de Migração e Seed de Dados
+- [ ] Criar migration para todas as tabelas
+- [ ] Desenvolver seed para categorias e subcategorias
+- [ ] Desenvolver seed para produtos de exemplo
+- [ ] Desenvolver seed para usuários e vendedores de teste
+- [ ] Desenvolver seed para banners e conteúdo da home
+
+### 3. Implementação dos Serviços de Acesso a Dados
+- [ ] **Serviço de Categorias**
+  - [ ] Implementar getCategoryTree (hierarquia completa)
+  - [ ] Implementar getMainCategories (categorias principais)
+  - [ ] Implementar getSubcategories (subcategorias de uma categoria)
+
+- [ ] **Serviço de Produtos**
+  - [ ] Implementar listProducts (com filtros e paginação)
+  - [ ] Implementar getProductById (com todas as relações)
+  - [ ] Implementar getProductsByCategoryId
+  - [ ] Implementar searchProducts (busca avançada)
+
+- [ ] **Serviço de Usuários**
+  - [ ] Integrar autenticação existente
+  - [ ] Implementar getUserProfile
+  - [ ] Implementar updateUserProfile
+
+- [ ] **Serviço de Pedidos**
+  - [ ] Implementar createOrder
+  - [ ] Implementar getOrdersByUserId
+  - [ ] Implementar updateOrderStatus
+
+### 4. Adaptação dos Componentes Visuais para Usar Dados Reais
+- [ ] **Componentes Globais (primeiro)**
+  - [ ] Menu de Navegação com categorias dinâmicas
+  - [ ] Sistema de busca integrado com FlexSearch
+  - [ ] Componente de autenticação (login/registro)
+
+- [ ] **Listagem de Produtos**
+  - [x] ProductCard (já implementado visualmente)
+  - [ ] Integrar ProductCard com dados reais
+  - [ ] Filtros funcionais conectados ao banco
+  - [ ] Paginação por scroll infinito com dados reais
+  - [ ] Breadcrumbs dinâmicos
+
+- [ ] **Página de Produto Individual**
+  - [x] Layout de produto (já implementado visualmente)
+  - [ ] Integrar galeria com imagens reais do banco
+  - [ ] Seletor de variações dinâmico
+  - [ ] Sistema de avaliações real
+  - [ ] Produtos relacionados dinâmicos
+
+- [ ] **Home do Marketplace**
+  - [ ] Banners dinâmicos do banco
+  - [ ] Produtos em destaque dinâmicos
+  - [ ] Categorias em destaque
+  - [ ] Destaques de vendedores
+
+- [ ] **Carrinho e Checkout**
+  - [ ] Integrar carrinho com banco de dados
+  - [ ] Sistema de pagamento
+  - [ ] Cálculo de frete real
+
+### 5. Perfis e Área Administrativa
+- [ ] **Perfil do Cliente**
+  - [ ] Dashboard do cliente
+  - [ ] Histórico de pedidos
+  - [ ] Gerenciamento de endereços
+
+- [ ] **Perfil do Vendedor**
+  - [ ] Dashboard do vendedor
+  - [ ] Gestão de produtos
+  - [ ] Relatórios de vendas
+
+- [ ] **Área Administrativa**
+  - [ ] Gestão de categorias
+  - [ ] Gestão de vendedores
+  - [ ] Relatórios gerais
+
+## Componentes Visuais Já Implementados
+
+Nota: Os componentes visuais abaixo já foram implementados, mas ainda precisam ser integrados com dados reais do banco:
 
 ### 1. Página de Listagem de Produtos (Vitrine)
-- Componentes a implementar:
-  - [x] ProductCard (básico já implementado)
+- Componentes implementados visualmente:
+  - [x] ProductCard 
   - [x] Filtros de pesquisa (preço, categoria, atributos)
   - [x] Paginação com scroll infinito
   - [x] Ordenação de resultados
   - [x] Breadcrumbs
   - [x] Visualização em grade/lista
   - [x] Rating (avaliações)
-  - [ ] Integração com dados reais do Astro DB
 
 ### 2. Página de Produto Individual
-- Componentes a implementar:
+- Componentes implementados visualmente:
   - [x] Galeria de imagens com miniaturas
   - [x] Seletor de variações (cor, tamanho, etc.)
   - [x] Sistema de avaliações e comentários
@@ -156,56 +259,3 @@ Seguiremos uma abordagem progressiva, construindo o marketplace página por pág
   - [x] Informações do vendedor
   - [x] Estimativa de frete
   - [x] Abas de descrição, especificações, avaliações
-  - [ ] Integração com dados reais do Astro DB
-
-### 3. Página da Home Marketplace
-- Componentes a implementar:
-  - [ ] Banner principal rotativo
-  - [ ] Carrossel de categorias
-  - [ ] Seções de produtos (mais vendidos, ofertas)
-  - [ ] Banners promocionais
-  - [ ] Destaques de vendedores
-  - [ ] Newsletter
-  - [ ] Menu de categorias dinâmico
-
-### 4. Carrinho de Compras
-- Componentes a implementar:
-  - [ ] Lista de itens do carrinho
-  - [ ] Resumo do pedido
-  - [ ] Cupom de desconto
-  - [ ] Cálculo de frete
-  - [ ] Sugestões de produtos complementares
-
-### 5. Checkout
-- Componentes a implementar:
-  - [ ] Formulário de dados do cliente
-  - [ ] Seleção de endereço
-  - [ ] Opções de entrega
-  - [ ] Opções de pagamento
-  - [ ] Resumo do pedido
-  - [ ] Confirmação
-
-### 6. Minha Conta (Área do Cliente)
-- Componentes a implementar:
-  - [ ] Dashboard do cliente
-  - [ ] Histórico de pedidos
-  - [ ] Lista de desejos
-  - [ ] Gerenciamento de endereços
-  - [ ] Avaliações feitas
-  - [ ] Dados pessoais
-
-### 7. Área do Vendedor
-- Componentes a implementar:
-  - [ ] Dashboard do vendedor
-  - [ ] Gestão de produtos
-  - [ ] Gestão de pedidos
-  - [ ] Relatórios de vendas
-  - [ ] Configurações da loja
-
-### 8. Páginas Administrativas
-- Componentes a implementar:
-  - [ ] Dashboard administrativo
-  - [ ] Gestão de vendedores
-  - [ ] Gestão de categorias
-  - [ ] Gestão de comissões
-  - [ ] Relatórios gerais
