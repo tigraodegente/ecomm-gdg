@@ -1,0 +1,207 @@
+---
+/**
+ * Componente de Filtros
+ * 
+ * Implementação idêntica ao design fornecido da imagem.
+ */
+
+interface FilterCount {
+  name: string;
+  count: number;
+  selected?: boolean;
+}
+
+interface ColorInfo {
+  name: string;
+  hex: string;
+  count: number;
+  selected?: boolean;
+}
+
+interface Props {
+  categories?: FilterCount[];
+  colors?: ColorInfo[];
+  sizes?: FilterCount[];
+  materials?: FilterCount[];
+  hasImmediateDelivery?: boolean;
+  deliveryCount?: number;
+  showClearFilters?: boolean;
+}
+
+const { 
+  categories = [{ name: 'Roupas', count: 3, selected: true }], 
+  colors = [{ name: 'Preto', hex: '#000000', count: 3, selected: true }],
+  sizes = [{ name: 'P', count: 3, selected: true }],
+  materials = [{ name: 'Algodão', count: 3, selected: true }],
+  hasImmediateDelivery = false,
+  deliveryCount = 1,
+  showClearFilters = true
+} = Astro.props;
+
+---
+
+<div class="shadow-none bg-[#F5F5F5] w-[100%] h-full">
+  <div class="bg-white rounded-none shadow-none p-6">
+    <!-- Cabeçalho com título e botão limpar -->
+    <div class="flex items-center justify-between w-full pb-4">
+      <h2 class="text-lg font-semibold text-[#333333] m-0 p-0">Filtros</h2>
+      <button class="text-sm text-[#40C1AC] font-medium border-0 bg-transparent">
+        Limpar filtros
+      </button>
+    </div>
+
+    <!-- Filtro de entrega imediata em destaque -->
+    <div class="mb-6">
+      <div class="w-full flex items-center px-4 py-3 rounded-md bg-[#EEEEEE] mb-4">
+        <div class="flex items-center flex-1 min-w-0">
+          <span class="text-sm font-medium text-[#333333] truncate">Entrega imediata</span>
+          <span class="ml-1 text-xs text-[#777777] whitespace-nowrap">({deliveryCount})</span>
+        </div>
+        
+        <!-- Switch toggle -->
+        <div class="relative flex items-center ml-3">
+          <div class="w-12 h-6 rounded-full bg-[#CCCCCC] flex items-center p-0.5">
+            <div class="w-5 h-5 bg-white rounded-full shadow absolute left-0.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ordenação -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Ordenar por</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            class="text-center py-2 text-sm rounded-md border border-[#40C1AC] transition-colors bg-[#E0F7F4] text-[#40C1AC]"
+          >
+            Nome ↑
+          </button>
+          <button
+            class="text-center py-2 text-sm rounded-md border border-[#DDDDDD] transition-colors text-[#777777] hover:bg-[#F9F9F9]"
+          >
+            Preço
+          </button>
+        </div>
+      </div>
+
+      <!-- Categorias -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Categorias</h3>
+        <div class="flex flex-wrap gap-2">
+          {categories.map(category => (
+            <div 
+              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+            >
+              <span class="mr-1">✓</span>
+              <span>{category.name}</span>
+              <span class="ml-1.5 text-xs text-[#777777]">({category.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <!-- Preço -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Preço</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#777777] mb-1">Mínimo</label>
+            <input
+              type="text"
+              class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
+              placeholder="R$ Min"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-[#777777] mb-1">Máximo</label>
+            <input
+              type="text"
+              class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
+              value="200"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Cores -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Cores</h3>
+        <div class="flex flex-wrap gap-2">
+          {colors.map(color => (
+            <div
+              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+            >
+              <span class="mr-1">✓</span>
+              <span 
+                class="w-4 h-4 rounded-full mr-2 border border-gray-200" 
+                style={`background-color: ${color.hex}`}
+              ></span>
+              <span>{color.name}</span>
+              <span class="ml-1.5 text-xs text-[#777777]">({color.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <!-- Tamanhos -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Tamanho</h3>
+        <div class="flex flex-wrap gap-2">
+          {sizes.map(size => (
+            <div
+              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+            >
+              <span class="mr-1">✓</span>
+              <span>{size.name}</span>
+              <span class="ml-1.5 text-xs text-[#777777]">({size.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <!-- Materiais -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-[#333333] mb-3">Material</h3>
+        <div class="flex flex-wrap gap-2">
+          {materials.map(material => (
+            <div
+              class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-[#E0F7F4] text-[#40C1AC]"
+            >
+              <span class="mr-1">✓</span>
+              <span>{material.name}</span>
+              <span class="ml-1.5 text-xs text-[#777777]">({material.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  body {
+    background-color: #F5F5F5;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Estilização da scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f4f4f4;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #40C1AC;
+    border-radius: 3px;
+    border: 1px solid #f4f4f4;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #2ba090;
+  }
+</style>
