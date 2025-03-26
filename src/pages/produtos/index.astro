@@ -162,6 +162,72 @@ const totalItems = pagination.total;
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-sm text-gray-800 font-medium">Filtros:</span>
         
+        {/* Categorias selecionadas */}
+        {selectedCategories.map(catSlug => {
+          const category = categoryService.getCategoryByCid(catSlug);
+          if (!category) return null;
+          
+          // Criar URL para remover esta categoria
+          const url = new URL(Astro.url);
+          const newCategories = selectedCategories.filter(c => c !== catSlug);
+          
+          url.searchParams.delete('categories');
+          if (newCategories.length > 0) {
+            url.searchParams.set('categories', newCategories.join(','));
+          }
+          
+          return (
+            <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+              <span>{category.name}</span>
+              <a href={url.toString()} class="ml-1.5 focus:outline-none text-[#39c7bb]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </a>
+            </div>
+          );
+        })}
+        
+        {/* Filtros de preço */}
+        {minPrice && (
+          <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+            <span>Preço Min: R$ {minPrice}</span>
+            <a 
+              href={(() => {
+                const url = new URL(Astro.url);
+                url.searchParams.delete('minPrice');
+                return url.toString();
+              })()}
+              class="ml-1.5 focus:outline-none text-[#39c7bb]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </a>
+          </div>
+        )}
+        
+        {maxPrice && (
+          <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+            <span>Preço Max: R$ {maxPrice}</span>
+            <a 
+              href={(() => {
+                const url = new URL(Astro.url);
+                url.searchParams.delete('maxPrice');
+                return url.toString();
+              })()}
+              class="ml-1.5 focus:outline-none text-[#39c7bb]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </a>
+          </div>
+        )}
+        
         {/* Filtros de atributos ativos */}
         {Object.entries(attributeFilters).map(([typeId, values]) => {
           const attributeType = productService.getAttributeTypesForFilters().find(t => t.id.toString() === typeId);
@@ -201,7 +267,7 @@ const totalItems = pagination.total;
             
             return (
               <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                <span>{displayValue}</span>
+                <span>{attributeType.display_name}: {displayValue}</span>
                 <a href={url.toString()} class="ml-1.5 focus:outline-none text-[#39c7bb]">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -232,7 +298,7 @@ const totalItems = pagination.total;
           <span class="text-sm text-gray-600 mr-2 hidden sm:inline">Ordenar por:</span>
           <div class="relative">
             <select 
-              class="text-sm appearance-none bg-transparent focus:outline-none cursor-pointer pr-6"
+              class="text-sm border border-[#E0F7F4] bg-white text-[#40C1AC] px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-[#40C1AC] focus:border-[#40C1AC] cursor-pointer pr-7 appearance-none"
               onchange="window.location.href = this.value"
             >
               <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'newest' })}`, Astro.url)}
@@ -244,8 +310,8 @@ const totalItems = pagination.total;
               <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'name_asc' })}`, Astro.url)}
                       selected={sort === 'name_asc'}>Nome (A-Z)</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[#40C1AC]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -268,7 +334,7 @@ const totalItems = pagination.total;
         <!-- Botão para mostrar/ocultar filtros no mobile -->
         <button 
           id="toggleFilters" 
-          class="md:hidden flex items-center justify-center bg-[#39c7bb] text-white px-2 py-1 rounded-md text-sm"
+          class="md:hidden flex items-center justify-center bg-[#39c7bb] hover:bg-[#2ba090] active:bg-[#218a7a] focus:ring-2 focus:ring-[#39c7bb] focus:ring-opacity-50 text-white px-2 py-1 rounded-md text-sm transition-colors duration-150"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />

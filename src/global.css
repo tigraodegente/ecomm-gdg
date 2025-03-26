@@ -418,6 +418,39 @@ textarea {
   display: none;
 }
 
+/* Custom Marketplace Styles */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Fix Safari rendering of select element */
+select::-ms-expand {
+  display: none;
+}
+
+/* Style filter buttons */
+.filter-btn {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-btn:active {
+  transform: scale(0.97);
+}
+
+.filter-btn-active {
+  background-color: #40C1AC !important;
+  color: white !important;
+}
+
+/* Improve select dropdown appearance */
+select option {
+  padding: 10px;
+  background-color: white;
+  color: #333;
+}
+
 /* Override some of the Tailwind .prose CSS */
 .prose h1,
 .prose h2,
