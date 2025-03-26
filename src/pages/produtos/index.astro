@@ -119,7 +119,8 @@ function formatCurrency(value) {
 
 // Título da página
 const pageTitle = "Kit Berço";
-const totalItems = 1000;
+// Definindo um número mais realista para o número total de itens em relação aos produtos de exemplo
+const totalItems = 64; // 8 produtos x 8 páginas = 64 produtos no total
 ---
 
 <MarketplaceLayout title={pageTitle}>
@@ -410,11 +411,20 @@ const totalItems = 1000;
                 
                 if (currentlyShown < totalItems) {
                   // Clona produtos para simular carregamento
-                  const productsToAdd = Math.min(itemsPerPage, currentProducts.length);
+                  const productsToAdd = Math.min(itemsPerPage, Math.min(8, totalItems - currentlyShown));
                   
                   for (let i = 0; i < productsToAdd; i++) {
-                    const cloneIndex = i % currentProducts.length;
+                    // Usar módulo para repetir os produtos existentes - em produção você buscaria produtos diferentes
+                    const cloneIndex = i % (Math.min(8, currentProducts.length));
                     const clone = currentProducts[cloneIndex].cloneNode(true);
+                    
+                    // Mudar um pouco a imagem para parecer produto diferente
+                    const img = clone.querySelector('img');
+                    if (img && img.src) {
+                      const randomNum = Math.floor(Math.random() * 1000);
+                      img.src = `https://picsum.photos/400?random=${randomNum}`;
+                    }
+                    
                     productsGrid.appendChild(clone);
                   }
                   
