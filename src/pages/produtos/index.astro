@@ -334,17 +334,26 @@ const totalItems = 1000;
           ))}
         </div>
         
-        <!-- Loading indicator para scroll infinito -->
-        <div id="loading-indicator" class="py-8 flex-col items-center hidden">
-          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
-          <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
-        </div>
-        
-        <!-- Contador e mensagem de fim -->
-        <div class="mt-4 text-center">
-          <span class="text-sm text-gray-500 block mb-2">
+        <!-- Botão e indicador de carregamento para scroll infinito -->
+        <div class="py-4 text-center">
+          <!-- Contador de produtos -->
+          <span class="text-sm text-gray-500 block mb-4">
             Mostrando <span class="font-medium" id="products-shown">8</span> de <span class="font-medium">{totalItems}</span> produtos
           </span>
+          
+          <!-- Botão carregar mais para caso o scroll não seja detectado -->
+          <button id="load-more-btn" class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2">
+            <span>Carregar mais produtos</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          
+          <!-- Loading indicator -->
+          <div id="loading-indicator" class="py-4 flex-col items-center hidden">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
+            <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
+          </div>
           
           <!-- Fim da lista quando todos os produtos forem carregados -->
           <div id="end-of-results" class="py-4 hidden">
@@ -352,10 +361,12 @@ const totalItems = 1000;
           </div>
         </div>
         
-        <!-- Script para scroll infinito -->
+        <!-- Script para scroll infinito (com fallback para botão) -->
         <script is:inline>
-          // Garante que o código rode após o DOM estar carregado
+          // Para assegurar que o script execute corretamente
           document.addEventListener('DOMContentLoaded', () => {
+            console.log('Script de scroll infinito iniciado');
+            
             // Variáveis para controlar o estado da paginação
             let page = 1;
             const itemsPerPage = 8;
@@ -367,40 +378,54 @@ const totalItems = 1000;
             const loadingIndicator = document.getElementById('loading-indicator');
             const endOfResults = document.getElementById('end-of-results');
             const productsShown = document.getElementById('products-shown');
+            const loadMoreBtn = document.getElementById('load-more-btn');
             const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
+            
+            if (!productsGrid) {
+              console.error('Grid de produtos não encontrado!');
+              return;
+            }
             
             // Função para carregar mais produtos
             async function loadMoreProducts() {
               if (loading || allItemsLoaded) return;
               
+              console.log('Carregando mais produtos...');
+              
               // Ativa o estado de carregamento
               loading = true;
+              loadMoreBtn.style.display = 'none';
               loadingIndicator.classList.remove('hidden');
               loadingIndicator.classList.add('flex');
               
               try {
                 // Simular uma requisição ao servidor
-                await new Promise(resolve => setTimeout(resolve, 1200));
+                await new Promise(resolve => setTimeout(resolve, 800));
                 
-                // Verifica se ainda há produtos para carregar
-                const currentlyShown = page * itemsPerPage;
+                // Obtém os produtos existentes
+                const currentProducts = productsGrid.querySelectorAll('a.block');
+                const currentlyShown = currentProducts.length;
+                
+                console.log(`Produtos atuais: ${currentlyShown}`);
                 
                 if (currentlyShown < totalItems) {
-                  // Obtém os produtos existentes
-                  const currentProducts = productsGrid.querySelectorAll('a.block');
+                  // Clona produtos para simular carregamento
+                  const productsToAdd = Math.min(itemsPerPage, currentProducts.length);
                   
-                  // Clona produtos para simular carregamento (em produção, você buscaria novos produtos)
-                  for (let i = 0; i < Math.min(itemsPerPage, currentProducts.length); i++) {
-                    const clone = currentProducts[i].cloneNode(true);
+                  for (let i = 0; i < productsToAdd; i++) {
+                    const cloneIndex = i % currentProducts.length;
+                    const clone = currentProducts[cloneIndex].cloneNode(true);
                     productsGrid.appendChild(clone);
                   }
                   
                   // Atualiza contadores
-                  page++;
-                  productsShown.textContent = Math.min(page * itemsPerPage, totalItems);
+                  const newTotal = Math.min(currentlyShown + productsToAdd, totalItems);
+                  productsShown.textContent = newTotal;
+                  
+                  console.log(`Novos produtos mostrados: ${newTotal}`);
                   
                   // Verifica se todos os produtos foram carregados
-                  if (page * itemsPerPage >= totalItems) {
+                  if (newTotal >= totalItems) {
                     allItemsLoaded = true;
                     endOfResults.classList.remove('hidden');
                   }
@@ -413,6 +438,9 @@ const totalItems = 1000;
               } finally {
                 // Desativa o estado de carregamento
                 loading = false;
+                if (!allItemsLoaded) {
+                  loadMoreBtn.style.display = 'inline-flex';
+                }
                 loadingIndicator.classList.add('hidden');
                 loadingIndicator.classList.remove('flex');
               }
@@ -422,25 +450,28 @@ const totalItems = 1000;
             function handleScroll() {
               if (loading || allItemsLoaded) return;
               
-              // Calcula distância até o final da página
-              const scrollTop = (document.documentElement && document.documentElement.scrollTop) || document.body.scrollTop;
-              const scrollHeight = (document.documentElement && document.documentElement.scrollHeight) || document.body.scrollHeight;
-              const clientHeight = document.documentElement.clientHeight || window.innerHeight;
+              // Detecta scroll
+              const windowHeight = window.innerHeight;
+              const documentHeight = document.documentElement.scrollHeight;
+              const scrollPosition = window.scrollY;
               
-              // Se chegou a 300px do final da página, carrega mais produtos
-              if (scrollTop + clientHeight >= scrollHeight - 300) {
+              // Se estiver próximo do fim (200px antes do final)
+              if (windowHeight + scrollPosition >= documentHeight - 200) {
+                console.log('Próximo do final da página - carregando mais produtos');
                 loadMoreProducts();
               }
             }
             
-            // Adiciona evento de scroll à janela
+            // Adiciona os event listeners
+            loadMoreBtn.addEventListener('click', loadMoreProducts);
             window.addEventListener('scroll', handleScroll);
             
             // Inicializa o contador
-            productsShown.textContent = Math.min(itemsPerPage, totalItems);
+            productsShown.textContent = Math.min(productsGrid.querySelectorAll('a.block').length, totalItems);
             
-            // Primeira verificação após carregamento (caso a página seja muito pequena)
+            // Verifica imediatamente após a página carregar
             setTimeout(() => {
+              console.log('Verificação inicial');
               handleScroll();
             }, 500);
           });
