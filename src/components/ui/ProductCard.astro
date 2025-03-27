@@ -29,17 +29,22 @@ const formatPrice = (price: number): string => {
 
 // Calcular valor da parcela
 const installmentValue = (product.pricePromotional || product.price) / 12;
+const hasDiscount = product.discountPercent && product.discountPercent > 0;
 ---
 
 <div class="group relative bg-white w-full max-w-[380px] mx-auto">
   <!-- Imagem do produto -->
-  <div class="relative">
+  <div class="relative h-[380px]">
     <!-- Badge de desconto posicionado no canto superior direito -->
-    {product.discountPercent && product.discountPercent > 0 && (
-      <div class="absolute right-2 -top-8 py-[2px] text-[14px] font-bold z-10">
-        <span class="text-gray-800">{product.discountPercent}% </span><span class="text-[#39c7bb]">OFF</span>
+    <div class="h-8" aria-hidden={!hasDiscount}>
+      <div class="absolute right-2 top-0 py-[2px] text-[14px] font-bold z-10">
+        {hasDiscount ? (
+          <>
+            <span class="text-gray-800">{product.discountPercent}% </span><span class="text-[#39c7bb]">OFF</span>
+          </>
+        ) : null}
       </div>
-    )}
+    </div>
     
     <!-- Imagem principal -->
     <div class="relative aspect-square bg-white overflow-hidden">
@@ -70,7 +75,7 @@ const installmentValue = (product.pricePromotional || product.price) / 12;
   <div class="text-left pt-2">
     <!-- Quantidade de peças -->
     <p class="text-[14px] text-gray-600 mb-0.5">
-      {product.pieces || 9} peças
+      {product.pieces ? `${product.pieces} peças` : '9 peças'}
     </p>
 
     <!-- Nome do produto -->
