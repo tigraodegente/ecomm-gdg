@@ -662,28 +662,44 @@ document.addEventListener('alpine:init', () => {
       
       // Extrair dos nomes dos produtos
       results.slice(0, 10).forEach(product => {
+        // Adicionar sempre nome completo do produto se não for muito longo
+        if (product.name && product.name.length < 50) {
+          candidates.push(product.name);
+        }
+        
         // Dividir nome em palavras
         const words = (product.name || '').split(/\s+/);
         
         // Para cada palavra/frase no nome
         if (words.length > 1) {
-          // Adicionar palavras individuais que incluem o termo de busca
+          // Adicionar palavras individuais relevantes que incluem o termo de busca
           const matchedParts = words.filter(word => 
-            word.toLowerCase().includes(searchTerm)
+            word.toLowerCase().includes(searchTerm) && word.length > 2
           );
           
-          candidates.push(...matchedParts);
+          // Adicionar apenas palavras relevantes para evitar preposições isoladas
+          matchedParts.forEach(word => {
+            if (word.length > 3 || word.toLowerCase() === searchTerm) {
+              candidates.push(word);
+            }
+          });
           
-          // Adicionar combinações de duas palavras
+          // Frases-chave de 3 palavras para nomes de produtos
+          // Isso captura frases completas como "Kit Lençol e Fronha"
+          if (words.length >= 3) {
+            for (let i = 0; i < words.length - 2; i++) {
+              candidates.push(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
+            }
+          }
+          
+          // Adicionar combinações significativas de duas palavras, evitando preposições isoladas
           for (let i = 0; i < words.length - 1; i++) {
-            candidates.push(`${words[i]} ${words[i + 1]}`);
+            // Evitar combinações que comecem com preposições pequenas
+            if (words[i].length > 2 || words[i+1].length > 2) {
+              candidates.push(`${words[i]} ${words[i + 1]}`);
+            }
           }
-          
-          // Adicionar nome completo se for curto
-          if (product.name.length < 30) {
-            candidates.push(product.name);
-          }
-        } else if (words.length === 1) {
+        } else if (words.length === 1 && words[0].length > 2) {
           candidates.push(product.name);
         }
         
@@ -717,20 +733,62 @@ document.addEventListener('alpine:init', () => {
         }
       });
       
-      // Ordenar por contagem e depois por comprimento (preferindo mais curtos)
+      // Pontuação personalizada para cada termo
+      const getTermScore = (term) => {
+        let score = termCounts[term] * 10; // Base: contagem de ocorrências
+        
+        // Priorizar frases completas
+        const wordCount = term.split(/\s+/).length;
+        score += wordCount * 5; // Maior pontuação para frases completas
+        
+        // Penalizar preposições e termos muito curtos isolados
+        const hasShortWords = term.split(/\s+/).some(word => word.length <= 2);
+        if (wordCount === 1 && term.length <= 2) {
+          score -= 20; // Penalizar palavras curtas isoladas
+        } else if (hasShortWords && wordCount === 1) {
+          score -= 5;  // Penalizar levemente palavras curtas
+        }
+        
+        // Bônus para termos que começam com a consulta de busca
+        if (term.toLowerCase().startsWith(searchTerm.toLowerCase())) {
+          score += 15;
+        }
+        
+        // Bônus para termos que contêm a consulta completa
+        if (term.toLowerCase().includes(searchTerm.toLowerCase())) {
+          score += 10;
+        }
+        
+        return score;
+      };
+      
+      // Ordenar por pontuação personalizada (maior primeiro)
       const sortedTerms = Object.keys(termCounts)
         .sort((a, b) => {
-          // Primeiro por contagem
-          const countDiff = termCounts[b] - termCounts[a];
-          if (countDiff !== 0) return countDiff;
-          
-          // Depois por comprimento (mais curtos primeiro)
-          return a.length - b.length;
+          return getTermScore(b) - getTermScore(a);
         });
       
-      // Filtrar termos muito similares ao termo de busca
+      // Remover duplicatas funcionais (por exemplo, "Kit" e "Kit Lençol")
+      const isDuplicate = (term, index, terms) => {
+        // Verificar se algum termo anterior contém este termo completamente
+        for (let i = 0; i < index; i++) {
+          if (terms[i].toLowerCase().includes(term.toLowerCase()) && 
+              terms[i].split(/\s+/).length > term.split(/\s+/).length) {
+            return true;
+          }
+        }
+        return false;
+      };
+      
+      // Filtrar resultados para obter sugestões de alta qualidade
       return sortedTerms
+        // Remover o próprio termo de busca
         .filter(term => term !== searchTerm.toLowerCase())
+        // Remover termos muito curtos isolados como "e", "de", etc.
+        .filter(term => !(term.length <= 2 && term.split(/\s+/).length === 1))
+        // Remover termos que são partes de outros termos já selecionados
+        .filter((term, index, terms) => !isDuplicate(term, index, terms))
+        // Limitar a 3 sugestões
         .slice(0, 3)
         .map(term => {
           // Usar a versão original (com acentuação) que guardamos
