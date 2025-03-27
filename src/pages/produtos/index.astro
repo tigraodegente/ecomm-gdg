@@ -124,7 +124,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
     ))}
   </Fragment>
   <div class="min-h-screen bg-gray-100 py-12">
-    <div class="container mx-auto px-4">
+    <div class="container mx-auto px-2.5 md:px-4">
       <!-- Filtros aplicados e controles superiores -->
       <div class="mb-6">
         <!-- Navegação e contador de produtos -->
@@ -376,7 +376,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
         <!-- Produtos - Área principal -->
         <div class="w-full md:flex-1">
           <!-- Produtos Grid - 3 por linha no desktop, 1 no mobile com espaçamento vertical aumentado -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-10 bg-white p-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-10 bg-white px-[15px] py-4 md:p-4">
             {products.length > 0 ? products.map((product) => (
               <a href={`/produto/${product.slug || product.id}`} class="block pt-7">
                 <ProductCard 
