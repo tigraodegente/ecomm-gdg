@@ -1,0 +1,338 @@
+---
+/**
+ * Componente de Busca
+ * 
+ * Este componente implementa a interface de busca avançada com FlexSearch
+ * incluindo sugestões, histórico e resultados instantâneos.
+ */
+
+interface Props {
+  placeholder?: string;
+  isMobile?: boolean;
+}
+
+const { 
+  placeholder = "O que você está procurando?",
+  isMobile = false
+} = Astro.props;
+---
+
+<div 
+  x-data="{
+    isOpen: false,
+    searchTerm: '',
+    
+    init() {
+      // Definir ouvintes de evento para fechar ao clicar fora
+      document.addEventListener('click', e => {
+        if (!this.$el.contains(e.target)) {
+          this.isOpen = false;
+        }
+      });
+      
+      // Precarregar FlexSearch quando a página estiver ociosa
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          console.log('Inicializando FlexSearch (via requestIdleCallback)');
+          Alpine.store('search').initFlexSearch();
+        });
+      } else {
+        setTimeout(() => {
+          console.log('Inicializando FlexSearch (via setTimeout)');
+          Alpine.store('search').initFlexSearch();
+        }, 500);
+      }
+    },
+    
+    search() {
+      this.isOpen = this.searchTerm.length >= 1;
+      Alpine.store('search').query(this.searchTerm);
+    },
+    
+    clearSearch() {
+      this.searchTerm = '';
+      this.isOpen = false;
+      Alpine.store('search').clearSearch();
+    },
+    
+    executeSearch() {
+      if (this.searchTerm.trim().length >= 2) {
+        Alpine.store('search').executeSearch(this.searchTerm);
+      }
+    },
+    
+    selectRecentSearch(term) {
+      this.searchTerm = term;
+      this.executeSearch();
+    }
+  }"
+  @keydown.escape.window="isOpen = false"
+  @keydown.down.prevent="$refs.searchResults?.querySelector('a')?.focus()"
+  class="relative w-full"
+>
+  <form 
+    role="search" 
+    class="flex w-full"
+    @submit.prevent="executeSearch()"
+  >
+    <input
+      type="search"
+      x-model="searchTerm"
+      x-on:input.debounce.200ms="search()"
+      x-on:focus="isOpen = searchTerm.length >= 1"
+      placeholder={placeholder}
+      class={`h-[40px] w-full ${isMobile ? 'text-[14px]' : 'text-[16px]'} font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none`}
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      maxlength="512"
+      minlength="1"
+    >
+    <button 
+      type="submit"
+      class="block static flex-initial m-0 py-2 px-3 w-[40px] h-[40px] max-w-[40px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-center text-black bg-white border-0 rounded-r-[8px] opacity-100 transition-all"
+      aria-label="Buscar"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" class="mx-auto">
+        <rect width="256" height="256" fill="none"></rect>
+        <circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></circle>
+        <line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line>
+      </svg>
+    </button>
+    
+    <!-- Botão limpar, mostrado apenas quando há texto -->
+    <button 
+      x-show="searchTerm.length > 0"
+      x-on:click="clearSearch()"
+      type="button" 
+      class="absolute right-[50px] top-[10px] text-gray-400 hover:text-gray-600"
+      aria-label="Limpar busca"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </form>
+  
+  <!-- Resultados da busca -->
+  <div 
+    x-show="isOpen"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 transform scale-95"
+    x-transition:enter-end="opacity-100 transform scale-100" 
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 transform scale-100"
+    x-transition:leave-end="opacity-0 transform scale-95"
+    class="absolute z-50 top-[48px] left-0 w-full bg-white rounded-md shadow-xl"
+    style="max-height: 480px; overflow-y: auto;"
+    x-ref="searchResults"
+  >
+    <!-- Indicador de carregamento -->
+    <div x-show="$store.search.loading" class="flex items-center justify-center p-4">
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500"></div>
+      <span class="ml-2 text-sm text-gray-500">Buscando...</span>
+    </div>
+    
+    <!-- Buscas recentes (mostradas quando o usuário clica no campo vazio ou começa a digitar) -->
+    <div x-show="$store.search.recentSearches.length > 0 && !$store.search.hasSearched" class="p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-sm font-medium text-gray-700">Buscas recentes</h3>
+        <button 
+          x-on:click="$store.search.clearRecentSearches()"
+          class="text-xs text-cyan-600 hover:text-cyan-800"
+        >
+          Limpar
+        </button>
+      </div>
+      <div class="mt-2 space-y-2">
+        <template x-for="term in $store.search.recentSearches" :key="term">
+          <div class="flex items-center text-sm">
+            <button 
+              x-on:click="selectRecentSearch(term)"
+              class="flex items-center text-gray-800 hover:text-cyan-600 w-full text-left"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span x-text="term"></span>
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+    
+    <!-- Categorias sugeridas -->
+    <div x-show="$store.search.categories && $store.search.categories.length > 0" class="p-4 pb-0 border-b border-gray-100">
+      <h3 class="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-2">Categorias</h3>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <template x-for="category in $store.search.categories" :key="category.name">
+          <a 
+            :href="`/produtos?q=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category.name)}`"
+            class="inline-flex items-center px-3 py-1.5 text-xs bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#39c7bb]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <span x-text="category.name"></span>
+            <span class="ml-1 text-[9px] text-gray-500" x-text="`(${category.count})`"></span>
+          </a>
+        </template>
+      </div>
+    </div>
+    
+    <!-- Sugestões de busca aprimoradas -->
+    <div x-show="$store.search.suggestions && $store.search.suggestions.length > 0" class="p-4 pb-0 border-b border-gray-100">
+      <h3 class="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-2">Sugestões</h3>
+      <div class="flex flex-col space-y-2 mb-4">
+        <template x-for="(suggestion, index) in $store.search.suggestions" :key="index">
+          <button 
+            @click="searchTerm = suggestion; executeSearch()"
+            class="text-left text-sm text-gray-800 hover:text-[#39c7bb] flex items-center transition-colors"
+          >
+            <!-- Ícone diferente para primeira sugestão (possível correção) -->
+            <template x-if="index === 0 && suggestion.toLowerCase() !== searchTerm.toLowerCase() && searchTerm.length > 3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </template>
+            <!-- Ícone padrão para outras sugestões -->
+            <template x-if="!(index === 0 && suggestion.toLowerCase() !== searchTerm.toLowerCase() && searchTerm.length > 3)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </template>
+            
+            <!-- Texto de sugestão com possível marcação "Você quis dizer" -->
+            <template x-if="index === 0 && suggestion.toLowerCase() !== searchTerm.toLowerCase() && searchTerm.length > 3">
+              <span>
+                <span class="text-xs italic text-gray-500">Você quis dizer: </span>
+                <span x-text="suggestion" class="font-medium"></span>
+              </span>
+            </template>
+            <template x-if="!(index === 0 && suggestion.toLowerCase() !== searchTerm.toLowerCase() && searchTerm.length > 3)">
+              <span x-text="suggestion"></span>
+            </template>
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Resultados de produtos -->
+    <div x-show="$store.search.results.length > 0" class="p-4">
+      <h3 class="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-3">Produtos</h3>
+      <div class="divide-y divide-gray-100">
+        <template x-for="product in $store.search.results" :key="product.id">
+          <a 
+            :href="$store.search.getProductUrl(product)"
+            class="block py-3 px-2 hover:bg-gray-50 rounded-md transition duration-150"
+          >
+            <div class="flex items-start">
+              <!-- Imagem do produto -->
+              <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded overflow-hidden mr-4 relative flex items-center justify-center">
+                <img 
+                  :src="product.image || 'https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp'" 
+                  :alt="product.name"
+                  class="object-contain w-full h-full"
+                  onerror="this.onerror=null; this.src='https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp';"
+                >
+                <!-- Badge de desconto se houver -->
+                <div 
+                  x-show="$store.search.getDiscountPercent(product.price, product.comparePrice)"
+                  class="absolute top-0 left-0 bg-[#FF6C6C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br-md"
+                >
+                  <span x-text="$store.search.getDiscountPercent(product.price, product.comparePrice) + '% OFF'"></span>
+                </div>
+              </div>
+              
+              <!-- Informações do produto -->
+              <div class="flex-1 min-w-0">
+                <h4 
+                  class="text-sm font-medium text-gray-900 truncate"
+                  x-html="$store.search.highlightText(product.name)"
+                ></h4>
+                
+                <p 
+                  class="mt-1 text-xs text-gray-500 line-clamp-1"
+                  x-html="$store.search.highlightText(product.description)"
+                ></p>
+                
+                <!-- Badges de categoria e marca -->
+                <div class="mt-1 flex flex-wrap gap-1">
+                  <!-- Categoria -->
+                  <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">
+                    <span x-text="product.category || 'Produto'"></span>
+                  </span>
+                  
+                  <!-- Marca/Vendedor (se existir) -->
+                  <span x-show="product.brand" class="text-[10px] px-1.5 py-0.5 bg-[#E0F7F4] text-[#39c7bb] rounded">
+                    <span x-text="product.brand"></span>
+                  </span>
+                </div>
+                
+                <!-- Preço e avaliação -->
+                <div class="mt-1 flex items-center justify-between">
+                  <!-- Preço -->
+                  <div class="flex items-baseline">
+                    <div x-show="product.comparePrice && product.comparePrice > product.price" class="text-xs text-gray-500 line-through mr-1" x-text="$store.search.formatPrice(product.comparePrice)"></div>
+                    <div class="text-sm font-medium text-cyan-600" x-text="$store.search.formatPrice(product.price)"></div>
+                  </div>
+                  
+                  <!-- Rating (se existir) -->
+                  <div x-show="product.rating" class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span class="text-xs text-gray-600 ml-1" x-text="product.rating"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a>
+        </template>
+      </div>
+      
+      <!-- Botão para ver todos os resultados -->
+      <div class="mt-4 text-center">
+        <button 
+          x-on:click="executeSearch()"
+          class="text-sm text-white bg-[#39c7bb] py-2 px-4 rounded-md hover:bg-[#2ba090] transition duration-150"
+        >
+          Ver todos os resultados
+        </button>
+      </div>
+    </div>
+    
+    <!-- Mensagem nenhum resultado -->
+    <div 
+      x-show="$store.search.hasSearched && $store.search.results.length === 0 && !$store.search.loading" 
+      class="p-4 text-center"
+    >
+      <div class="text-gray-500 py-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-sm mb-1">Nenhum resultado encontrado para</p>
+        <p class="text-base font-medium">"<span x-text="searchTerm"></span>"</p>
+        <p class="text-sm mt-2">Verifique a ortografia ou tente termos mais gerais</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Estilos para a caixa de busca */
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+  }
+  
+  /* Destaque para termos buscados */
+  .bg-yellow-100 {
+    background-color: rgba(254, 243, 199, 0.8);
+    padding: 0 2px;
+  }
+</style>
