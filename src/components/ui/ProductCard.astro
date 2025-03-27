@@ -39,7 +39,7 @@ if (product.discountPercent !== undefined &&
 }
 ---
 
-<div class="group relative bg-white w-full max-w-[380px] mx-auto">
+<div class="group relative bg-white w-full md:max-w-[380px] md:mx-auto mx-0">
   <!-- Imagem do produto -->
   <div class="relative">
     <!-- Badge de desconto posicionado no canto superior direito -->
@@ -50,7 +50,7 @@ if (product.discountPercent !== undefined &&
     )}
     
     <!-- Imagem principal -->
-    <div class="relative aspect-square bg-white overflow-hidden">
+    <div class="relative aspect-square bg-white overflow-hidden w-full px-1">
       <img 
         src={product.image || "https://picsum.photos/400?random=999"}
         alt={product.name}
