@@ -256,204 +256,456 @@ async function seedProductsData() {
         .replace(/\s+/g, '-');
     };
     
-    // Inserir produtos
-    const products = [
+    // Dados para gerar produtos diversos
+    const categories = [
+      'Alimentação',
+      'Berços',
+      'Colchões para Berço',
+      'Acessórios para berço',
+      'Lençóis',
+      'Fronhas e Travesseiros',
+      'Edredons e Cobertores',
+      'Almofadas',
+      'Brinquedos para Bebês',
+      'Móveis para Quarto',
+      'Cadeiras e Poltronas',
+      'Kits de Higiene',
+      'Bolsas Maternidade',
+      'Troca Fraldas',
+      'Segurança para Bebê',
+      'Roupas de Bebê',
+      'Calçados Infantis',
+      'Carrinho de Bebê',
+      'Suporte para Banho',
+      'Saída Maternidade'
+    ];
+    
+    const colors = [
+      'Azul',
+      'Rosa',
+      'Verde',
+      'Amarelo',
+      'Branco',
+      'Cinza',
+      'Bege',
+      'Marrom',
+      'Vermelho',
+      'Preto',
+      'Roxo',
+      'Laranja',
+      'Lilás',
+      'Turquesa',
+      'Multicor'
+    ];
+    
+    const materials = [
+      'Algodão',
+      'Poliéster',
+      'Madeira',
+      'MDF',
+      'Plástico',
+      'Metal',
+      'Bambu',
+      'Espuma',
+      'Malha',
+      'Microfibra',
+      'Linho',
+      'Silicone',
+      'Acrílico',
+      'Látex',
+      'Nylon'
+    ];
+    
+    const sizes = [
+      'PP',
+      'P',
+      'M',
+      'G',
+      'GG',
+      'Padrão',
+      'Americano',
+      'Mini',
+      'Berço',
+      'Infantil',
+      'Único',
+      '0-3 meses',
+      '3-6 meses',
+      '6-12 meses',
+      '12-24 meses'
+    ];
+    
+    const ageGroups = [
+      '0 a 3 meses',
+      '3 a 6 meses',
+      '6 a 12 meses',
+      '1 a 2 anos',
+      '2 a 3 anos',
+      '3 a 4 anos',
+      '4 a 5 anos',
+      '0 a 12 meses',
+      '0 a 24 meses',
+      '6 meses a 3 anos',
+      'Recém-nascido',
+      'Todas as idades'
+    ];
+    
+    // Nomes de produtos para diferentes categorias
+    const productNamesByCategory = {
+      'Alimentação': [
+        'Cadeira de Alimentação Multifuncional',
+        'Kit de Utensílios para Alimentação',
+        'Babador Impermeável',
+        'Bandeja de Alimentação',
+        'Porta Papinha Térmico',
+        'Mamadeira Anticólica',
+        'Copo de Transição',
+        'Processador de Alimentos para Bebê',
+        'Conjunto de Pratos e Talheres Infantis',
+        'Garrafa Térmica Infantil'
+      ],
+      'Berços': [
+        'Berço Montessoriano Basic',
+        'Berço 3 em 1 Convertível',
+        'Mini Berço Dobrável',
+        'Berço Multifuncional com Trocador',
+        'Berço de Viagem Portátil',
+        'Berço Americano Premium',
+        'Berço com Balanço',
+        'Berço Estilo Retrô',
+        'Berço 4 em 1 com Cômoda',
+        'Berço Sidebyside'
+      ],
+      'Colchões para Berço': [
+        'Colchão de Berço Ortopédico',
+        'Colchão para Mini Berço',
+        'Colchão de Espuma D28',
+        'Colchão Impermeável para Berço',
+        'Colchão de Fibra Natural',
+        'Colchão Antialérgico Infantil',
+        'Colchão para Berço Americano',
+        'Protetor de Colchão Impermeável',
+        'Colchão com Espuma Viscoelástica',
+        'Colchão de Látex Natural para Berço'
+      ],
+      'Acessórios para berço': [
+        'Móbile Musical Estrelas',
+        'Protetor de Berço Acolchoado',
+        'Kit Mosquiteiro para Berço',
+        'Grade de Proteção',
+        'Suporte para Dossel',
+        'Luminária para Berço',
+        'Monitor de Som e Imagem',
+        'Carrossel Musical',
+        'Trocador de Fraldas para Berço',
+        'Projetor de Luz Noturna'
+      ],
+      'Lençóis': [
+        'Kit Berço Nuvem Azul',
+        'Lençol com Elástico para Berço',
+        'Jogo de Lençóis Infantil',
+        'Lençol Térmico para Berço',
+        'Kit Lençol e Fronha',
+        'Lençol Impermeável',
+        'Lençol de Malha para Berço',
+        'Kit Berço 3 Peças',
+        'Lençol Avulso Estampado',
+        'Lençol Infantil 100% Algodão'
+      ]
+    };
+    
+    // Para outras categorias, usaremos nomes genéricos
+    for (const category of categories) {
+      if (!productNamesByCategory[category]) {
+        productNamesByCategory[category] = [];
+        for (let i = 1; i <= 10; i++) {
+          productNamesByCategory[category].push(`${category} Premium ${i}`);
+        }
+      }
+    }
+    
+    // Função para gerar descrição aleatória para o produto
+    function generateDescription(name, categoryName) {
+      return `
+        <h2>${name}</h2>
+        <p>Produto de alta qualidade da categoria ${categoryName}, ideal para o conforto e desenvolvimento do seu bebê.</p>
+        <h3>Características:</h3>
+        <ul>
+          <li>Design moderno e seguro</li>
+          <li>Material de alta qualidade</li>
+          <li>Fácil de limpar</li>
+          <li>Certificado pelo INMETRO</li>
+          <li>Durável e resistente</li>
+        </ul>
+        <h3>Especificações:</h3>
+        <p>Consulte as dimensões no manual do produto.<br>Garantia de 3 meses contra defeitos de fabricação.</p>
+      `;
+    }
+    
+    // Gerar 100 produtos variados
+    const products = [];
+    let imageCounter = 1001; // Contador para gerar URLs de imagens únicas
+    
+    for (let i = 0; i < 100; i++) {
+      // Escolher categoria aleatória
+      const categoryIndex = i % categories.length;
+      const categoryName = categories[categoryIndex];
+      
+      // Escolher nome de produto para a categoria
+      const nameIndex = i % productNamesByCategory[categoryName].length;
+      let name = productNamesByCategory[categoryName][nameIndex];
+      
+      // Adicionar um sufixo para evitar nomes duplicados
+      if (i >= productNamesByCategory[categoryName].length) {
+        const variant = Math.floor(i / productNamesByCategory[categoryName].length) + 1;
+        name = `${name} v${variant}`;
+      }
+      
+      // Gerar preço base entre 50 e 1000
+      const basePrice = 50 + Math.floor(Math.random() * 950);
+      // Desconto entre 0% e 40%
+      const discountPercent = Math.floor(Math.random() * 41);
+      const priceAfterDiscount = basePrice * (1 - discountPercent / 100);
+      
+      // Produto variável (com tamanhos, cores) ou não
+      let isVariable = Math.random() > 0.5;
+      
+      // Atributos do produto
+      const attributes = [];
+      
+      // Adicionar atributo de material (75% dos produtos)
+      if (Math.random() < 0.75) {
+        const materialIndex = Math.floor(Math.random() * materials.length);
+        attributes.push({ typeId: materialTypeId, value: materials[materialIndex] });
+      }
+      
+      // Adicionar atributo de faixa etária (90% dos produtos)
+      if (Math.random() < 0.9) {
+        const ageGroupIndex = Math.floor(Math.random() * ageGroups.length);
+        attributes.push({ typeId: ageGroupTypeId, value: ageGroups[ageGroupIndex] });
+      }
+      
+      // Se não for variável, pode ter uma cor fixa (50% dos produtos não variáveis)
+      if (!isVariable && Math.random() < 0.5) {
+        const colorIndex = Math.floor(Math.random() * colors.length);
+        attributes.push({ typeId: colorTypeId, value: colors[colorIndex] });
+      }
+      
+      // Gerar variantes se o produto for variável
+      const variants = [];
+      if (isVariable) {
+        // Determinar quais variantes teremos (cor, tamanho ou ambos)
+        const hasColorVariants = Math.random() < 0.7;
+        const hasSizeVariants = Math.random() < 0.6;
+        
+        if (hasColorVariants && hasSizeVariants) {
+          // Variantes com cor e tamanho
+          const numColors = 2 + Math.floor(Math.random() * 3); // 2-4 cores
+          const numSizes = 2 + Math.floor(Math.random() * 3); // 2-4 tamanhos
+          
+          for (let c = 0; c < numColors; c++) {
+            const colorIndex = Math.floor(Math.random() * colors.length);
+            for (let s = 0; s < numSizes; s++) {
+              const sizeIndex = Math.floor(Math.random() * sizes.length);
+              // Calcular preço da variante (±10% do preço base)
+              const variantPrice = priceAfterDiscount * (0.9 + Math.random() * 0.2);
+              variants.push({
+                sku: `${name.replace(/\s+/g, '-').toUpperCase()}-${c+1}-${s+1}`.substring(0, 20),
+                price: Math.round(variantPrice * 100) / 100,
+                stock: 1 + Math.floor(Math.random() * 20),
+                attributes: [
+                  { typeId: colorTypeId, value: colors[colorIndex] },
+                  { typeId: sizeTypeId, value: sizes[sizeIndex] }
+                ]
+              });
+            }
+          }
+        } else if (hasColorVariants) {
+          // Apenas variantes de cor
+          const numColors = 2 + Math.floor(Math.random() * 4); // 2-5 cores
+          for (let c = 0; c < numColors; c++) {
+            const colorIndex = Math.floor(Math.random() * colors.length);
+            const variantPrice = priceAfterDiscount * (0.95 + Math.random() * 0.1);
+            variants.push({
+              sku: `${name.replace(/\s+/g, '-').toUpperCase()}-${colors[colorIndex].substring(0, 2)}`.substring(0, 20),
+              price: Math.round(variantPrice * 100) / 100,
+              stock: 1 + Math.floor(Math.random() * 20),
+              attributes: [
+                { typeId: colorTypeId, value: colors[colorIndex] }
+              ]
+            });
+          }
+        } else if (hasSizeVariants) {
+          // Apenas variantes de tamanho
+          const numSizes = 2 + Math.floor(Math.random() * 4); // 2-5 tamanhos
+          for (let s = 0; s < numSizes; s++) {
+            const sizeIndex = Math.floor(Math.random() * sizes.length);
+            const variantPrice = priceAfterDiscount * (0.9 + Math.random() * 0.2);
+            variants.push({
+              sku: `${name.replace(/\s+/g, '-').toUpperCase()}-${sizes[sizeIndex]}`.substring(0, 20),
+              price: Math.round(variantPrice * 100) / 100,
+              stock: 1 + Math.floor(Math.random() * 20),
+              attributes: [
+                { typeId: sizeTypeId, value: sizes[sizeIndex] }
+              ]
+            });
+          }
+        } else {
+          // Produto variável sem variantes específicas
+          isVariable = false;
+        }
+      }
+      
+      // Gerar imagens
+      const numImages = 1 + Math.floor(Math.random() * 3); // 1-3 imagens
+      const images = [];
+      for (let j = 0; j < numImages; j++) {
+        images.push({
+          url: `https://picsum.photos/400?random=${imageCounter++}`,
+          alt: `${name} - Imagem ${j+1}`,
+          isDefault: j === 0
+        });
+      }
+      
+      // Construir objeto do produto
+      const product = {
+        name,
+        categoryName,
+        shortDescription: `${name} - ${categoryName}`,
+        description: generateDescription(name, categoryName),
+        price: basePrice,
+        compareAtPrice: discountPercent > 0 ? basePrice : null,
+        sku: name.replace(/\s+/g, '-').toUpperCase().substring(0, 20),
+        stock: 5 + Math.floor(Math.random() * 30),
+        isVariable,
+        weight: 0.5 + Math.random() * 9.5, // 0.5kg - 10kg
+        isFeatured: Math.random() < 0.2, // 20% dos produtos são destaque
+        attributes,
+        images
+      };
+      
+      if (variants.length > 0) {
+        product.variants = variants;
+      }
+      
+      products.push(product);
+    }
+    
+    // Adicionar alguns produtos específicos para garantir testes de combinações
+    const specificProducts = [
       {
-        name: 'Berço Montessoriano Basic',
+        name: 'Berço Multifuncional Combinado',
         categoryName: 'Berços',
-        shortDescription: 'Berço montessoriano com design moderno e seguro',
-        description: `
-          <h2>Berço Montessoriano Basic</h2>
-          <p>O Berço Montessoriano Basic é perfeito para o quarto do seu bebê. Feito com madeira de alta qualidade, possui design moderno e seguro, seguindo a filosofia montessoriana que incentiva a autonomia da criança.</p>
-          <h3>Características:</h3>
-          <ul>
-            <li>Madeira de reflorestamento</li>
-            <li>Altura adequada para bebês</li>
-            <li>Acabamento não tóxico</li>
-            <li>Fácil montagem</li>
-            <li>Certificado pelo INMETRO</li>
-          </ul>
-          <h3>Dimensões:</h3>
-          <p>Largura: 70cm<br>Comprimento: 130cm<br>Altura: 40cm</p>
-        `,
+        shortDescription: 'Berço com múltiplas funcionalidades e opções',
+        description: generateDescription('Berço Multifuncional Combinado', 'Berços'),
         price: 899.90,
         compareAtPrice: 999.90,
-        sku: 'BERCO-MONT-001',
-        stock: 15,
-        isVariable: false,
-        weight: 15.5,
-        width: 70,
-        height: 40,
-        length: 130,
+        sku: 'BERCO-MULTI-COMB',
+        stock: 10,
+        isVariable: true,
+        weight: 15.0,
         isFeatured: true,
         attributes: [
           { typeId: materialTypeId, value: 'Madeira' },
-          { typeId: ageGroupTypeId, value: '0 a 2 anos' }
-        ],
-        images: [
-          { url: 'https://picsum.photos/400?random=1001', alt: 'Berço Montessoriano Basic', isDefault: true },
-          { url: 'https://picsum.photos/400?random=1002', alt: 'Detalhe do Berço Montessoriano Basic' }
-        ]
-      },
-      {
-        name: 'Kit Berço Nuvem Azul',
-        categoryName: 'Lençóis',
-        shortDescription: 'Kit completo para berço com 7 peças no tema nuvem',
-        description: `
-          <h2>Kit Berço Nuvem Azul - 7 peças</h2>
-          <p>Kit Berço completo no tema nuvem, na cor azul, com acabamento premium para o conforto e segurança do seu bebê.</p>
-          <h3>O kit contém:</h3>
-          <ul>
-            <li>1 Protetor de berço</li>
-            <li>1 Edredom</li>
-            <li>1 Lençol de cima com elástico</li>
-            <li>1 Lençol de baixo</li>
-            <li>1 Fronha</li>
-            <li>1 Almofada decorativa</li>
-            <li>1 Saia de berço</li>
-          </ul>
-          <h3>Especificações:</h3>
-          <p>Material: 100% Algodão<br>Enchimento: 100% Poliéster<br>Lavável à Máquina<br>Certificado pelo INMETRO</p>
-        `,
-        price: 279.90,
-        compareAtPrice: 329.90,
-        sku: 'KIT-BERCO-AZ-001',
-        stock: 20,
-        isVariable: true,
-        weight: 1.5,
-        isFeatured: true,
-        attributes: [
-          { typeId: colorTypeId, value: 'Azul' },
-          { typeId: materialTypeId, value: 'Algodão' },
           { typeId: ageGroupTypeId, value: '0 a 24 meses' }
         ],
         variants: [
-          { sku: 'KIT-BERCO-AZ-P', price: 279.90, stock: 7, attributes: [{ typeId: sizeTypeId, value: 'Padrão' }] },
-          { sku: 'KIT-BERCO-AZ-G', price: 299.90, stock: 5, attributes: [{ typeId: sizeTypeId, value: 'Grande' }] },
-          { sku: 'KIT-BERCO-AZ-A', price: 349.90, stock: 8, attributes: [{ typeId: sizeTypeId, value: 'Americano' }] }
+          { sku: 'BERCO-MULTI-COMB-AZ-P', price: 899.90, stock: 3, attributes: [
+            { typeId: colorTypeId, value: 'Azul' },
+            { typeId: sizeTypeId, value: 'P' }
+          ]},
+          { sku: 'BERCO-MULTI-COMB-AZ-M', price: 929.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Azul' },
+            { typeId: sizeTypeId, value: 'M' }
+          ]},
+          { sku: 'BERCO-MULTI-COMB-RS-P', price: 899.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Rosa' },
+            { typeId: sizeTypeId, value: 'P' }
+          ]},
+          { sku: 'BERCO-MULTI-COMB-RS-M', price: 929.90, stock: 3, attributes: [
+            { typeId: colorTypeId, value: 'Rosa' },
+            { typeId: sizeTypeId, value: 'M' }
+          ]}
         ],
         images: [
-          { url: 'https://picsum.photos/400?random=1003', alt: 'Kit Berço Nuvem Azul', isDefault: true },
-          { url: 'https://picsum.photos/400?random=1004', alt: 'Kit Berço Nuvem Azul montado no berço' },
-          { url: 'https://picsum.photos/400?random=1005', alt: 'Detalhe da fronha do Kit Berço Nuvem Azul' }
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Berço Multifuncional Combinado', isDefault: true },
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Berço Multifuncional Combinado - Detalhe' }
         ]
       },
       {
-        name: 'Móbile Musical Estrelas',
-        categoryName: 'Acessórios para berço',
-        shortDescription: 'Móbile musical com estrelas e luzes relaxantes',
-        description: `
-          <h2>Móbile Musical Estrelas</h2>
-          <p>O Móbile Musical Estrelas é perfeito para entreter e acalmar o bebê. Com luzes suaves e músicas relaxantes, ajuda no desenvolvimento sensorial.</p>
-          <h3>Características:</h3>
-          <ul>
-            <li>10 melodias clássicas</li>
-            <li>Luzes LED suaves com controle de intensidade</li>
-            <li>Estrelas giratórias coloridas</li>
-            <li>Timer de desligamento automático</li>
-            <li>Controle de volume</li>
-            <li>Funciona com 3 pilhas AA (não inclusas)</li>
-          </ul>
-          <h3>Benefícios:</h3>
-          <p>Estimula a visão<br>Acalma o bebê<br>Aprimora a percepção auditiva<br>Auxilia no desenvolvimento cognitivo</p>
-        `,
-        price: 149.90,
-        compareAtPrice: 189.90,
-        sku: 'MOBILE-EST-001',
-        stock: 35,
-        isVariable: false,
-        weight: 0.5,
-        isFeatured: true,
-        attributes: [
-          { typeId: colorTypeId, value: 'Multicor' },
-          { typeId: ageGroupTypeId, value: '0 a 12 meses' }
-        ],
-        images: [
-          { url: 'https://picsum.photos/400?random=1006', alt: 'Móbile Musical Estrelas', isDefault: true },
-          { url: 'https://picsum.photos/400?random=1007', alt: 'Móbile Musical Estrelas em funcionamento' }
-        ]
-      },
-      {
-        name: 'Tapete de Atividades Floresta',
-        categoryName: 'Brinquedos para Bebês',
-        shortDescription: 'Tapete de atividades com temática de floresta e diversos estímulos',
-        description: `
-          <h2>Tapete de Atividades Floresta</h2>
-          <p>O Tapete de Atividades Floresta é um espaço divertido e educativo para o bebê brincar com segurança. Com várias texturas, sons e atividades, proporciona estímulos importantes para o desenvolvimento.</p>
-          <h3>Características:</h3>
-          <ul>
-            <li>5 brinquedos removíveis</li>
-            <li>Espelho seguro</li>
-            <li>Diferentes texturas e materiais</li>
-            <li>Arco com brinquedos pendentes</li>
-            <li>Almofada de apoio</li>
-            <li>Material lavável</li>
-          </ul>
-          <h3>Dimensões:</h3>
-          <p>Diâmetro: 90cm<br>Altura do arco: 50cm</p>
-        `,
-        price: 199.90,
-        compareAtPrice: 249.90,
-        sku: 'TAPETE-FLOR-001',
-        stock: 12,
-        isVariable: false,
-        weight: 1.2,
-        isFeatured: true,
-        attributes: [
-          { typeId: materialTypeId, value: 'Poliéster' },
-          { typeId: ageGroupTypeId, value: '0 a 12 meses' }
-        ],
-        images: [
-          { url: 'https://picsum.photos/400?random=1008', alt: 'Tapete de Atividades Floresta', isDefault: true },
-          { url: 'https://picsum.photos/400?random=1009', alt: 'Bebê brincando no Tapete de Atividades Floresta' },
-          { url: 'https://picsum.photos/400?random=1010', alt: 'Detalhes dos brinquedos do Tapete de Atividades Floresta' }
-        ]
-      },
-      {
-        name: 'Cadeira de Alimentação Multifuncional',
+        name: 'Kit Alimentação Completo',
         categoryName: 'Alimentação',
-        shortDescription: 'Cadeira de alimentação ajustável e multifuncional',
-        description: `
-          <h2>Cadeira de Alimentação Multifuncional</h2>
-          <p>A Cadeira de Alimentação Multifuncional é ideal para acompanhar o crescimento do bebê. Com múltiplas configurações, serve desde os primeiros meses até a fase infantil.</p>
-          <h3>Características:</h3>
-          <ul>
-            <li>7 níveis de altura</li>
-            <li>5 posições de reclinação</li>
-            <li>Bandeja removível</li>
-            <li>Cinto de segurança de 5 pontos</li>
-            <li>Pode ser convertida em cadeira de atividades</li>
-            <li>Rodízios com travas</li>
-            <li>Capa removível e lavável</li>
-          </ul>
-          <h3>Especificações:</h3>
-          <p>Peso máximo suportado: 15kg<br>Material: Plástico e aço<br>Dimensões montada: 105cm x 60cm x 80cm</p>
-        `,
-        price: 459.90,
-        compareAtPrice: 599.90,
-        sku: 'CADEIRA-ALIM-001',
-        stock: 8,
+        shortDescription: 'Kit completo com todos os itens para alimentação do bebê',
+        description: generateDescription('Kit Alimentação Completo', 'Alimentação'),
+        price: 189.90,
+        compareAtPrice: 249.90,
+        sku: 'KIT-ALIM-COMPLETO',
+        stock: 15,
         isVariable: true,
-        weight: 8.5,
-        width: 60,
-        height: 105,
-        length: 80,
+        weight: 2.0,
+        isFeatured: true,
         attributes: [
-          { typeId: ageGroupTypeId, value: '6 meses a 3 anos' }
+          { typeId: materialTypeId, value: 'Plástico' },
+          { typeId: ageGroupTypeId, value: '6 a 12 meses' }
         ],
         variants: [
-          { sku: 'CADEIRA-ALIM-AZ', price: 459.90, stock: 3, attributes: [{ typeId: colorTypeId, value: 'Azul' }] },
-          { sku: 'CADEIRA-ALIM-RS', price: 459.90, stock: 3, attributes: [{ typeId: colorTypeId, value: 'Rosa' }] },
-          { sku: 'CADEIRA-ALIM-VD', price: 459.90, stock: 2, attributes: [{ typeId: colorTypeId, value: 'Verde' }] }
+          { sku: 'KIT-ALIM-COMP-AZ', price: 189.90, stock: 5, attributes: [
+            { typeId: colorTypeId, value: 'Azul' }
+          ]},
+          { sku: 'KIT-ALIM-COMP-RS', price: 189.90, stock: 5, attributes: [
+            { typeId: colorTypeId, value: 'Rosa' }
+          ]},
+          { sku: 'KIT-ALIM-COMP-VD', price: 189.90, stock: 5, attributes: [
+            { typeId: colorTypeId, value: 'Verde' }
+          ]}
         ],
         images: [
-          { url: 'https://picsum.photos/400?random=1011', alt: 'Cadeira de Alimentação Multifuncional', isDefault: true },
-          { url: 'https://picsum.photos/400?random=1012', alt: 'Cadeira de Alimentação Multifuncional - Azul' },
-          { url: 'https://picsum.photos/400?random=1013', alt: 'Cadeira de Alimentação Multifuncional - Rosa' },
-          { url: 'https://picsum.photos/400?random=1014', alt: 'Cadeira de Alimentação Multifuncional - Verde' }
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Kit Alimentação Completo', isDefault: true },
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Kit Alimentação Completo - Itens' }
+        ]
+      },
+      {
+        name: 'Cama Infantil Multitema',
+        categoryName: 'Móveis para Quarto',
+        shortDescription: 'Cama infantil com opções de tema e tamanho',
+        description: generateDescription('Cama Infantil Multitema', 'Móveis para Quarto'),
+        price: 599.90,
+        compareAtPrice: 699.90,
+        sku: 'CAMA-INF-MULTI',
+        stock: 8,
+        isVariable: true,
+        weight: 25.0,
+        isFeatured: true,
+        attributes: [
+          { typeId: materialTypeId, value: 'MDF' },
+          { typeId: ageGroupTypeId, value: '2 a 3 anos' }
+        ],
+        variants: [
+          { sku: 'CAMA-INF-MULTI-AZ-P', price: 599.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Azul' },
+            { typeId: sizeTypeId, value: 'P' }
+          ]},
+          { sku: 'CAMA-INF-MULTI-RS-P', price: 599.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Rosa' },
+            { typeId: sizeTypeId, value: 'P' }
+          ]},
+          { sku: 'CAMA-INF-MULTI-AZ-M', price: 649.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Azul' },
+            { typeId: sizeTypeId, value: 'M' }
+          ]},
+          { sku: 'CAMA-INF-MULTI-RS-M', price: 649.90, stock: 2, attributes: [
+            { typeId: colorTypeId, value: 'Rosa' },
+            { typeId: sizeTypeId, value: 'M' }
+          ]}
+        ],
+        images: [
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Cama Infantil Multitema', isDefault: true },
+          { url: `https://picsum.photos/400?random=${imageCounter++}`, alt: 'Cama Infantil Multitema - Lateral' }
         ]
       }
     ];
+    
+    // Adicionar produtos específicos à lista
+    products.push(...specificProducts);
     
     // Prepared statements para inserção de produtos
     const insertProduct = db.prepare(`
