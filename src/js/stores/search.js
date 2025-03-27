@@ -693,6 +693,9 @@ document.addEventListener('alpine:init', () => {
         }
       });
       
+      // Preservar versões originais (com acentuação) dos candidatos
+      const originalCandidates = candidates.slice();
+      
       // Limpar e normalizar candidatos
       candidates = candidates
         .map(term => term.trim())
@@ -700,9 +703,18 @@ document.addEventListener('alpine:init', () => {
       
       // Agrupar termos similares e contar ocorrências
       const termCounts = {};
+      const originalTerms = {}; // Mapear versões normalizadas para originais
+      
       candidates.forEach(term => {
         const normalizedTerm = term.toLowerCase();
+        
+        // Incrementar contagem
         termCounts[normalizedTerm] = (termCounts[normalizedTerm] || 0) + 1;
+        
+        // Guardar versão original com acentuação
+        if (!originalTerms[normalizedTerm] || term.length < originalTerms[normalizedTerm].length) {
+          originalTerms[normalizedTerm] = term;
+        }
       });
       
       // Ordenar por contagem e depois por comprimento (preferindo mais curtos)
@@ -721,8 +733,21 @@ document.addEventListener('alpine:init', () => {
         .filter(term => term !== searchTerm.toLowerCase())
         .slice(0, 3)
         .map(term => {
-          // Capitalizar primeira letra de cada palavra
-          return term.replace(/\b\w/g, c => c.toUpperCase());
+          // Usar a versão original (com acentuação) que guardamos
+          const originalTerm = originalTerms[term] || term;
+          
+          // Se não temos versão original preservada, capitalizar a primeira letra
+          if (originalTerm === term) {
+            return term.split(/\s+/).map(word => {
+              // Capitalizar preservando acentos - pegando primeiro caractere e resto da string
+              if (word.length > 0) {
+                return word.charAt(0).toUpperCase() + word.slice(1);
+              }
+              return word;
+            }).join(' ');
+          }
+          
+          return originalTerm;
         });
     },
     
