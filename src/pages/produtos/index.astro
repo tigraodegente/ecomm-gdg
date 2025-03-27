@@ -494,10 +494,53 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                     const nextPageBtn = doc.getElementById('load-more-btn');
                     hasNextPage = !!nextPageBtn;
                     
+                    // Verificar se precisamos atualizar a contagem nas categorias
+                    // Observação: não substituímos filtros, apenas atualizamos os valores
+                    const filtersContainer = document.querySelector('#filtersContainer');
+                    if (filtersContainer) {
+                      // Atualizar os contadores de categorias encontrando pelo nome da categoria
+                      const categoryItems = filtersContainer.querySelectorAll('h3, li, ul, span'); 
+                      
+                      // Para cada item de categoria atual
+                      categoryItems.forEach(item => {
+                        const categoryName = item.textContent?.trim();
+                        if (categoryName?.includes('Categorias') || 
+                            categoryName?.includes('(') && categoryName?.includes(')')) {
+                            
+                          // Encontre a contagem do produto entre parênteses e atualize
+                          if (categoryName.includes('(') && categoryName.includes(')')) {
+                            // Extrai apenas o nome da categoria sem a contagem
+                            const nameOnly = categoryName.split('(')[0].trim();
+                            
+                            // Procurar o elemento correspondente no novo DOM
+                            const newItem = Array.from(doc.querySelectorAll('h3, li, ul, span')).find(el => {
+                              const newText = el.textContent?.trim() || '';
+                              return newText.startsWith(nameOnly) && newText.includes('(') && newText.includes(')');
+                            });
+                            
+                            if (newItem) {
+                              // Extrair a contagem do novo item
+                              const countMatch = newItem.textContent?.match(/\((\d+)\)/);
+                              if (countMatch && countMatch[1]) {
+                                // Atualizar apenas a contagem, mantendo o nome
+                                const newCount = `(${countMatch[1]})`;
+                                item.textContent = item.textContent.replace(/\(\d+\)/, newCount);
+                              }
+                            }
+                          }
+                        }
+                      });
+                    }
+                    
                     if (productCards.length > 0) {
-                      // Adicionar os novos produtos ao grid
+                      // Adicionar os novos produtos ao grid sem duplicar
                       productCards.forEach(card => {
-                        productsGrid.appendChild(card.cloneNode(true));
+                        // Verificamos se o produto já está no grid (para evitar duplicações)
+                        const productUrl = card.getAttribute('href');
+                        const existingCard = productsGrid.querySelector(`a[href="${productUrl}"]`);
+                        if (!existingCard) {
+                          productsGrid.appendChild(card.cloneNode(true));
+                        }
                       });
                       
                       // Atualizar contador de produtos mostrados
