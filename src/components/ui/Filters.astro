@@ -241,16 +241,39 @@ function getFilterUrl(params = {}) {
   if ('category' in params) {
     const categoryToToggle = params.category;
     
-    // Simplificar o comportamento: se recebemos uma categoria, usamos apenas ela
-    currentParams.category = categoryToToggle;
+    // Obter categorias atuais da URL
+    let currentCategories = [];
+    const categoryParams = url.searchParams.getAll('category');
+    if (categoryParams && categoryParams.length > 0) {
+      currentCategories = categoryParams;
+    }
     
-    // Remover o parâmetro 'category' pois já processamos
+    // Verificar se a categoria está sendo selecionada ou deselecionada
+    const categoryIndex = currentCategories.indexOf(categoryToToggle);
+    
+    if (categoryIndex === -1) {
+      // Categoria não selecionada, adicionar
+      currentCategories.push(categoryToToggle);
+    } else {
+      // Categoria já selecionada, remover
+      currentCategories.splice(categoryIndex, 1);
+    }
+    
+    // Atualizar parâmetro de categoria
+    delete currentParams.category; // Limpar parâmetros antigos
+    
+    // Adicionar categorias se houver
+    if (currentCategories.length > 0) {
+      currentParams.category = currentCategories;
+    }
+    
+    // Remover o parâmetro 'category' dos novos parâmetros pois já processamos
     delete params.category;
   } else if ('categories' in params) {
     // Se já temos um array de categorias, usar diretamente
     currentParams.categories = params.categories;
     delete params.categories;
-  } else if (selectedCategory && !('categories' in currentParams)) {
+  } else if (selectedCategory && !('categories' in currentParams) && !('category' in currentParams)) {
     // Se não temos categorias mas existe uma selecionada, adicionar
     currentParams.categories = [selectedCategory];
   }
@@ -271,9 +294,17 @@ function getFilterUrl(params = {}) {
   Object.entries(currentParams).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       if (Array.isArray(value)) {
-        // Se for um array, adicionar como valores separados por vírgulas
+        // Se for um array, adicionar como múltiplos parâmetros com o mesmo nome
         if (value.length > 0) {
-          url.searchParams.set(key, value.join(','));
+          // Para attr_* ainda usamos separação por vírgula para compatibilidade
+          if (key.startsWith('attr_')) {
+            url.searchParams.set(key, value.join(','));
+          } else {
+            // Para outros parâmetros como category, adicionar múltiplos valores
+            value.forEach(val => {
+              url.searchParams.append(key, val);
+            });
+          }
         }
       } else {
         url.searchParams.set(key, value);
@@ -300,13 +331,16 @@ function getAttributeFilterUrl(typeId, value) {
     params.categories = [selectedCategory];
   }
   
-  // Manter parâmetros de ordenação
+  // Manter parâmetros de ordenação e paginação
   const sortParam = newUrl.searchParams.get('sort');
   if (sortParam) {
     params.sort = sortParam;
   } else if (selectedSort) {
     params.sort = selectedSort;
   }
+  
+  // Sempre resetar para página 1 quando mudar filtros
+  params.page = 1;
   
   // Manter parâmetros de preço
   const minPriceParam = newUrl.searchParams.get('minPrice');
@@ -363,9 +397,6 @@ function getAttributeFilterUrl(typeId, value) {
   Object.entries(newFilters).forEach(([id, vals]) => {
     params[`attr_${id}`] = vals;
   });
-  
-  // Resetar a página para 1 quando filtrar
-  params.page = 1;
   
   // Usar a função getFilterUrl para construir a URL final
   return getFilterUrl(params);

@@ -164,13 +164,11 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                 <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
                   <span>{category.name}</span>
                   <a 
-                    href={(() => {
-                      const url = new URL(Astro.url);
-                      const cats = url.searchParams.getAll('category').filter(c => c !== catSlug);
-                      url.searchParams.delete('category');
-                      cats.forEach(c => url.searchParams.append('category', c));
-                      return url.toString();
-                    })()}
+                    href={`/produtos?${new URLSearchParams(
+                      Array.from(searchParams.entries())
+                        .filter(([key, value]) => !(key === 'category' && value === catSlug))
+                        .filter(([key]) => key !== 'page')
+                    )}&page=1`}
                     class="ml-1.5 focus:outline-none text-[#39c7bb]"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
