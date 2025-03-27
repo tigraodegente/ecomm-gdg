@@ -459,34 +459,7 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
     )}
 
 
-    <!-- Ordenação -->
-    <div class="mb-6">
-      <h3 class="text-sm font-medium text-[#333333] mb-3">Ordenar por</h3>
-      <div class="grid grid-cols-2 gap-2">
-        <a
-          href={getFilterUrl({ sort: 'name_asc' })}
-          class:list={[
-            "text-center py-2 text-sm rounded-md border transition-colors",
-            selectedSort === 'name_asc' 
-              ? "border-[#40C1AC] bg-[#E0F7F4] text-[#40C1AC]" 
-              : "border-[#DDDDDD] text-[#777777] hover:bg-[#F9F9F9]"
-          ]}
-        >
-          Nome ↑
-        </a>
-        <a
-          href={getFilterUrl({ sort: 'price_asc' })}
-          class:list={[
-            "text-center py-2 text-sm rounded-md border transition-colors",
-            selectedSort === 'price_asc' 
-              ? "border-[#40C1AC] bg-[#E0F7F4] text-[#40C1AC]" 
-              : "border-[#DDDDDD] text-[#777777] hover:bg-[#F9F9F9]"
-          ]}
-        >
-          Preço ↑
-        </a>
-      </div>
-    </div>
+    <!-- Ordenação removida pois já existe na barra superior -->
 
     <!-- Categorias -->
     {dynamicCategories.length > 0 && (
