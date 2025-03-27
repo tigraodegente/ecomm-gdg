@@ -111,6 +111,22 @@ const priceRanges = productService.getPriceRangesForProducts(options);
 
 <MarketplaceLayout title={pageTitle}>
   <Fragment slot="navbar">
+    {/* Links estáticos */}
+    {categoryService.getMenuWithCategories().staticLinks.map(link => (
+      <li>
+        <a 
+          href={link.url} 
+          class={`hover:underline ${link.highlight ? 'font-medium text-[#FFEB3B]' : 'font-normal'}`}
+        >
+          {link.name}
+        </a>
+      </li>
+    ))}
+    
+    {/* Separador */}
+    <li class="text-gray-400">|</li>
+    
+    {/* Categorias */}
     <li><a href="/produtos" class="font-medium">Todos os Produtos</a></li>
     {activeCategories.map(category => (
       <li>

@@ -4,6 +4,35 @@ import Database from 'better-sqlite3';
 // Criar conexão com o banco de dados SQLite
 const db = new Database("./marketplace.db", { readonly: true });
 
+// Links estáticos do menu
+const STATIC_MENU_LINKS = [
+  {
+    name: "Home",
+    url: "/",
+    highlight: false
+  },
+  {
+    name: "Ofertas",
+    url: "/ofertas",
+    highlight: true
+  },
+  {
+    name: "Novidades",
+    url: "/novidades",
+    highlight: false
+  },
+  {
+    name: "Blog",
+    url: "/blog",
+    highlight: false
+  },
+  {
+    name: "Contato",
+    url: "/contato",
+    highlight: false
+  }
+];
+
 /**
  * Serviço de acesso a dados para categorias
  */
@@ -84,9 +113,7 @@ class CategoryService {
     // Transformar a árvore de categorias em formato adequado para menu
     return {
       categories: categoryTree,
-      // Aqui poderiam ser adicionados links estáticos ou promocionais
-      // a partir da tabela menu_links, quando for implementada
-      staticLinks: []
+      staticLinks: STATIC_MENU_LINKS
     };
   }
   
