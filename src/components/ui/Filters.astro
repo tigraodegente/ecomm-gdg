@@ -77,15 +77,29 @@ const filterOptions = {
 };
 
 try {
-  // Se não foram fornecidas categorias nos props, buscar do banco
-  if (categories.length === 0) {
+  // Sempre buscar categorias com contagem atualizada
+  try {
     const categoriesWithCount = productService.getCategoriesWithProductCount(filterOptions);
-    dynamicCategories = categoriesWithCount.map(cat => ({
-      name: cat.name,
-      count: cat.product_count,
-      cid: cat.cid,
-      selected: allSelectedCategories.includes(cat.cid)
-    }));
+    // Se não foram fornecidas categorias nos props ou se foram, mas as contagens precisam ser atualizadas
+    if (categories.length === 0 || categories.some(cat => typeof cat.count === 'undefined')) {
+      dynamicCategories = categoriesWithCount.map(cat => ({
+        name: cat.name,
+        count: cat.product_count,
+        cid: cat.cid,
+        selected: allSelectedCategories.includes(cat.cid)
+      }));
+    } else {
+      // Usa as categorias fornecidas nos props, mas atualiza as contagens
+      dynamicCategories = categories.map(cat => {
+        const foundCat = categoriesWithCount.find(c => c.cid === cat.cid);
+        return {
+          ...cat,
+          count: foundCat ? foundCat.product_count : 0
+        };
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar categorias:', error);
   }
   
   // Se não foram fornecidas cores nos props, buscar do banco
@@ -227,28 +241,8 @@ function getFilterUrl(params = {}) {
   if ('category' in params) {
     const categoryToToggle = params.category;
     
-    // Verificar se já temos categorias
-    if ('categories' in currentParams) {
-      // Se a categoria já está selecionada, remover
-      if (currentParams.categories.includes(categoryToToggle)) {
-        currentParams.categories = currentParams.categories.filter(c => c !== categoryToToggle);
-      } else {
-        // Senão, adicionar à lista
-        currentParams.categories.push(categoryToToggle);
-      }
-    } else if (selectedCategory === categoryToToggle) {
-      // Se é a mesma categoria que já está selecionada, remover
-      currentParams.categories = [];
-    } else {
-      // Senão, começar uma nova lista com a categoria atual (se houver) e a nova
-      currentParams.categories = selectedCategory ? 
-        [selectedCategory, categoryToToggle] : [categoryToToggle];
-    }
-    
-    // Se não sobrou nenhuma categoria, remover o parâmetro
-    if (currentParams.categories && currentParams.categories.length === 0) {
-      delete currentParams.categories;
-    }
+    // Simplificar o comportamento: se recebemos uma categoria, usamos apenas ela
+    currentParams.category = categoryToToggle;
     
     // Remover o parâmetro 'category' pois já processamos
     delete params.category;
@@ -432,6 +426,28 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
         </div>
       </div>
     )}
+
+    <!-- Categorias -->
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-[#333333] mb-3">Categorias</h3>
+      <ul class="space-y-2">
+        {dynamicCategories.map(category => (
+          <li>
+            <a 
+              href={getFilterUrl({ category: category.cid })}
+              class="flex items-center text-sm"
+            >
+              <div class="flex-1 flex items-center">
+                <span class={`${category.selected ? 'text-[#40C1AC] font-medium' : 'text-[#333333]'}`}>
+                  {category.name}
+                </span>
+                <span class="ml-1 text-xs text-[#777777] category-count">({category.count})</span>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
 
     <!-- Ordenação -->
     <div class="mb-6">

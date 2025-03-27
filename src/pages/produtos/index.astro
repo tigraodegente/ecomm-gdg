@@ -110,6 +110,19 @@ const priceRanges = productService.getPriceRangesForProducts(options);
 ---
 
 <MarketplaceLayout title={pageTitle}>
+  <Fragment slot="navbar">
+    <li><a href="/produtos" class="font-medium">Todos os Produtos</a></li>
+    {activeCategories.map(category => (
+      <li>
+        <a 
+          href={`/produtos?category=${category.cid}`} 
+          class="hover:underline font-normal"
+        >
+          {category.name}
+        </a>
+      </li>
+    ))}
+  </Fragment>
   <div class="min-h-screen bg-gray-100 py-12">
     <div class="container mx-auto px-4">
       <!-- Filtros aplicados e controles superiores -->
