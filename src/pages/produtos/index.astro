@@ -420,23 +420,32 @@ const priceRanges = productService.getPriceRangesForProducts(options);
             )}
           </div>
           
-          <!-- Script para scroll infinito (com fallback para botão) -->
+          <!-- Script para scroll infinito com AJAX (com fallback para botão) -->
           <script>
             document.addEventListener('DOMContentLoaded', function() {
               // Elementos necessários
               const loadMoreBtn = document.getElementById('load-more-btn');
               const loadingIndicator = document.getElementById('loading-indicator');
               const productsShownEl = document.getElementById('products-shown');
+              const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
               
               // Se não tiver botão de carregar mais, não precisamos fazer nada
-              if (!loadMoreBtn) return;
+              if (!loadMoreBtn || !productsGrid) return;
               
               // Variáveis para controle de estado
               let isLoading = false;
+              let currentPage = parseInt(new URL(window.location.href).searchParams.get('page') || '1');
+              let hasNextPage = true;
+              
+              // Adicionar evento de clique ao botão de carregar mais
+              loadMoreBtn.addEventListener('click', function(e) {
+                e.preventDefault(); // Impedir comportamento padrão de navegação
+                loadMoreItems();
+              });
               
               // Função que detecta quando o usuário está próximo do final da página
               function checkScrollPosition() {
-                if (isLoading || !loadMoreBtn) return;
+                if (isLoading || !hasNextPage) return;
                 
                 const scrollPosition = window.scrollY + window.innerHeight;
                 const documentHeight = document.documentElement.scrollHeight;
@@ -448,24 +457,101 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                 }
               }
               
-              // Função para carregar mais itens
+              // Função para carregar mais itens via AJAX
               function loadMoreItems() {
-                if (isLoading) return;
+                if (isLoading || !hasNextPage) return;
                 
                 // Marcamos como carregando
                 isLoading = true;
                 
                 // Mostrar indicador de carregamento
                 if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+                loadingIndicator.style.display = 'flex';
                 
                 // Ocultar botão enquanto carrega
                 if (loadMoreBtn) loadMoreBtn.style.display = 'none';
                 
-                // Simular um pequeno atraso para mostrar o loading
-                setTimeout(() => {
-                  // Clique no botão para carregar a próxima página
-                  if (loadMoreBtn) loadMoreBtn.click();
-                }, 500);
+                // Próxima página a carregar
+                const nextPage = currentPage + 1;
+                
+                // Construir URL com todos os parâmetros atuais, apenas alterando a página
+                const url = new URL(window.location.href);
+                url.searchParams.set('page', nextPage.toString());
+                
+                // Fazer requisição AJAX
+                fetch(url.toString())
+                  .then(response => response.text())
+                  .then(html => {
+                    // Criar um DOM temporário para extrair os produtos
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Obter os produtos da nova página
+                    const newProductsGrid = doc.querySelector('.grid-cols-1.md\\:grid-cols-3');
+                    const productCards = newProductsGrid ? newProductsGrid.querySelectorAll('a[href^="/produto/"]') : [];
+                    
+                    // Verificar se a próxima página tem o botão de carregar mais
+                    const nextPageBtn = doc.getElementById('load-more-btn');
+                    hasNextPage = !!nextPageBtn;
+                    
+                    if (productCards.length > 0) {
+                      // Adicionar os novos produtos ao grid
+                      productCards.forEach(card => {
+                        productsGrid.appendChild(card.cloneNode(true));
+                      });
+                      
+                      // Atualizar contador de produtos mostrados
+                      if (productsShownEl) {
+                        const totalEl = doc.querySelector('#products-shown');
+                        if (totalEl) {
+                          productsShownEl.textContent = totalEl.textContent;
+                        }
+                      }
+                      
+                      // Atualizar URL sem recarregar a página
+                      window.history.replaceState({}, '', url.toString());
+                      
+                      // Atualizar página atual
+                      currentPage = nextPage;
+                    } else {
+                      hasNextPage = false;
+                    }
+                    
+                    // Esconder indicador de carregamento
+                    if (loadingIndicator) {
+                      loadingIndicator.style.display = 'none';
+                    }
+                    
+                    // Mostrar ou esconder botão de carregar mais
+                    if (loadMoreBtn) {
+                      if (hasNextPage) {
+                        loadMoreBtn.style.display = 'inline-flex';
+                      } else {
+                        loadMoreBtn.style.display = 'none';
+                        
+                        // Mostrar indicador de fim de resultados
+                        const endOfResults = document.getElementById('end-of-results');
+                        if (endOfResults) {
+                          endOfResults.classList.remove('hidden');
+                        }
+                      }
+                    }
+                    
+                    // Finalizar carregamento
+                    isLoading = false;
+                  })
+                  .catch(error => {
+                    console.error('Erro ao carregar mais produtos:', error);
+                    
+                    // Em caso de erro, mostrar botão novamente
+                    if (loadMoreBtn) loadMoreBtn.style.display = 'inline-flex';
+                    
+                    // Esconder indicador de carregamento
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    
+                    // Finalizar carregamento
+                    isLoading = false;
+                  });
               }
               
               // Adicionamos o evento de scroll
