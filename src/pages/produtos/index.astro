@@ -448,15 +448,22 @@ const totalItems = pagination.total;
           productsShown: Math.min(products.length, pagination.page * pagination.limit)
         }}>
           // Código que será executado quando a página estiver completamente carregada
-          window.onload = function() {
+          window.addEventListener('DOMContentLoaded', function() {
             console.log('Script de scroll infinito iniciado');
             
             // Variáveis para controlar o estado da paginação
             let page = initialPage;
-            const itemsPerPage = 8;
-            const totalItems = totalItems; // Valor definido no servidor
+            const itemsPerPage = itemsPerPage; // Valor definido no servidor
             let loading = false;
             let allItemsLoaded = page >= totalPages;
+            
+            console.log('Estado inicial:', { 
+              page, 
+              totalPages, 
+              itemsPerPage, 
+              totalItems,
+              allItemsLoaded 
+            });
             
             // Elementos do DOM
             const loadingIndicator = document.getElementById('loading-indicator');
@@ -472,30 +479,59 @@ const totalItems = pagination.total;
             const loadMoreBtn = document.getElementById('load-more-btn');
             if (!loadMoreBtn && !allItemsLoaded) console.error('Elemento load-more-btn não encontrado');
             
-            const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
+            // Tentativa de encontrar o grid de produtos com diferentes seletores
+            let productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3.gap-x-4');
+            
+            // Se não encontrou com o seletor atualizado, tenta o seletor original
             if (!productsGrid) {
-              console.error('Grid de produtos não encontrado!');
-              return;
+              console.warn('Grid de produtos com gap-x-4 não encontrado, tentando seletor alternativo');
+              productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
+              
+              if (!productsGrid) {
+                console.error('Nenhum grid de produtos encontrado');
+                return;
+              }
+              console.log('Grid encontrado com seletor alternativo');
             }
             
             // Função para verificar se o usuário chegou perto do final da página
             function handleScroll() {
-              if (loading || allItemsLoaded || !loadMoreBtn) return;
+              if (loading || allItemsLoaded || !loadMoreBtn) {
+                console.log('Ignorando scroll: carregando=', loading, 'todos carregados=', allItemsLoaded, 'botão existe=', !!loadMoreBtn);
+                return;
+              }
               
               // Detecta scroll
               const windowHeight = window.innerHeight;
               const documentHeight = document.documentElement.scrollHeight;
               const scrollPosition = window.scrollY;
               
-              // Se estiver próximo do fim (200px antes do final)
-              if (windowHeight + scrollPosition >= documentHeight - 200) {
+              console.log('Posição scroll:', {
+                windowHeight,
+                documentHeight,
+                scrollPosition,
+                distanceToBottom: documentHeight - (windowHeight + scrollPosition)
+              });
+              
+              // Se estiver próximo do fim (300px antes do final)
+              if (windowHeight + scrollPosition >= documentHeight - 300) {
                 console.log('Próximo do final da página - carregando mais produtos');
+                loading = true; // Marca como carregando para evitar múltiplos cliques
                 loadMoreBtn.click();
               }
             }
             
             // Adiciona os event listeners
             window.addEventListener('scroll', handleScroll);
+            
+            // Adiciona o evento de click ao botão
+            if (loadMoreBtn) {
+              loadMoreBtn.addEventListener('click', function() {
+                console.log('Botão de carregar mais clicado');
+                // O navegador já vai lidar com o carregamento da próxima página
+                loading = true;
+              });
+            }
             
             // Verifica imediatamente após o carregamento completo
             console.log('Verificação inicial');
