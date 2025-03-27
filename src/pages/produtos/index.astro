@@ -299,10 +299,110 @@ const priceRanges = productService.getPriceRangesForProducts(options);
           
           <div class="w-full md:w-auto mt-3 md:mt-0 flex items-center gap-2">
             <span class="text-sm text-gray-700 font-medium">Ordenar por:</span>
-            <div class="relative">
+            <div class="relative" x-data="{ open: false, selected: '{sort === 'newest' ? 'Mais recentes' : sort === 'price_asc' ? 'Menor preço' : sort === 'price_desc' ? 'Maior preço' : sort === 'name_asc' ? 'A-Z' : sort === 'name_desc' ? 'Z-A' : sort === 'featured' ? 'Destaque' : 'Mais recentes'}' }">
+              <!-- Dropdown estilizado no padrão do site -->
+              <div 
+                @click="open = !open" 
+                class="text-sm min-w-[130px] bg-white border border-[#39c7bb] rounded-md px-3 py-2 flex items-center justify-between cursor-pointer text-[#39c7bb] font-medium"
+              >
+                <span x-text="selected"></span>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  class="h-4 w-4 transform transition-transform" 
+                  :class="open ? 'rotate-180' : ''"
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              <!-- Menu de opções -->
+              <div 
+                x-show="open" 
+                @click.away="open = false"
+                x-transition:enter="transition ease-out duration-100" 
+                x-transition:enter-start="transform opacity-0 scale-95" 
+                x-transition:enter-end="transform opacity-100 scale-100" 
+                x-transition:leave="transition ease-in duration-75" 
+                x-transition:leave-start="transform opacity-100 scale-100" 
+                x-transition:leave-end="transform opacity-0 scale-95"
+                class="absolute left-0 mt-1 w-[200px] bg-white border border-[#39c7bb] rounded-md shadow-lg z-50"
+                x-cloak
+              >
+                <a 
+                  @click="selected = 'Mais recentes'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=newest`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center" 
+                  :class="{'text-[#39c7bb] font-medium': selected === 'Mais recentes'}"
+                >
+                  <span>Mais recentes</span>
+                  <svg x-show="selected === 'Mais recentes'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+                <a 
+                  @click="selected = 'Menor preço'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_asc`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
+                  :class="{'text-[#39c7bb] font-medium': selected === 'Menor preço'}"
+                >
+                  <span>Menor preço</span>
+                  <svg x-show="selected === 'Menor preço'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+                <a 
+                  @click="selected = 'Maior preço'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_desc`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
+                  :class="{'text-[#39c7bb] font-medium': selected === 'Maior preço'}"
+                >
+                  <span>Maior preço</span>
+                  <svg x-show="selected === 'Maior preço'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+                <a 
+                  @click="selected = 'A-Z'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_asc`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
+                  :class="{'text-[#39c7bb] font-medium': selected === 'A-Z'}"
+                >
+                  <span>A-Z</span>
+                  <svg x-show="selected === 'A-Z'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+                <a 
+                  @click="selected = 'Z-A'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_desc`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
+                  :class="{'text-[#39c7bb] font-medium': selected === 'Z-A'}"
+                >
+                  <span>Z-A</span>
+                  <svg x-show="selected === 'Z-A'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+                <a 
+                  @click="selected = 'Destaque'; open = false" 
+                  href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=featured`}
+                  class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
+                  :class="{'text-[#39c7bb] font-medium': selected === 'Destaque'}"
+                >
+                  <span>Destaque</span>
+                  <svg x-show="selected === 'Destaque'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </a>
+              </div>
+              
+              <!-- Select oculto para navegadores sem JavaScript -->
               <select 
                 id="sort-select"
-                class="text-sm min-w-[130px] appearance-none bg-white border border-[#39c7bb] rounded-md px-3 py-2 pr-8 text-[#39c7bb] font-medium focus:outline-none focus:ring-1 focus:ring-[#39c7bb]"
+                class="sr-only"
                 onchange="window.location.href = new URL(`?${new URLSearchParams([...new URLSearchParams(window.location.search)].filter(([k]) => k !== 'sort'))}&sort=${this.value}`, window.location.href).toString()"
               >
                 <option value="newest" selected={sort === 'newest'}>Mais recentes</option>
@@ -312,11 +412,6 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                 <option value="name_desc" selected={sort === 'name_desc'}>Z-A</option>
                 <option value="featured" selected={sort === 'featured'}>Destaque</option>
               </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#39c7bb]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
             </div>
             
             <!-- Botão para exibir filtros no mobile -->
