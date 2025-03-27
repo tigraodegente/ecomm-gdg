@@ -299,7 +299,15 @@ const priceRanges = productService.getPriceRangesForProducts(options);
           
           <div class="w-full md:w-auto mt-3 md:mt-0 flex items-center gap-2">
             <span class="text-sm text-gray-700 font-medium">Ordenar por:</span>
-            <div class="relative" x-data="{ open: false, selected: '{sort === 'newest' ? 'Mais recentes' : sort === 'price_asc' ? 'Menor preço' : sort === 'price_desc' ? 'Maior preço' : sort === 'name_asc' ? 'A-Z' : sort === 'name_desc' ? 'Z-A' : sort === 'featured' ? 'Destaque' : 'Mais recentes'}' }">
+            <div class="relative" x-data="{ 
+                open: false, 
+                selected: `${sort === 'newest' ? 'Mais recentes' : 
+                           sort === 'price_asc' ? 'Menor preço' : 
+                           sort === 'price_desc' ? 'Maior preço' : 
+                           sort === 'name_asc' ? 'A-Z' : 
+                           sort === 'name_desc' ? 'Z-A' : 
+                           sort === 'featured' ? 'Destaque' : 'Mais recentes'}`
+              }">
               <!-- Dropdown estilizado no padrão do site -->
               <div 
                 @click="open = !open" 
@@ -332,7 +340,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                 x-cloak
               >
                 <a 
-                  @click="selected = 'Mais recentes'; open = false" 
+                  @click.prevent="selected = 'Mais recentes'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=newest`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=newest`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center" 
                   :class="{'text-[#39c7bb] font-medium': selected === 'Mais recentes'}"
@@ -343,7 +351,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   </svg>
                 </a>
                 <a 
-                  @click="selected = 'Menor preço'; open = false" 
+                  @click.prevent="selected = 'Menor preço'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_asc`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_asc`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
                   :class="{'text-[#39c7bb] font-medium': selected === 'Menor preço'}"
@@ -354,7 +362,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   </svg>
                 </a>
                 <a 
-                  @click="selected = 'Maior preço'; open = false" 
+                  @click.prevent="selected = 'Maior preço'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_desc`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=price_desc`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
                   :class="{'text-[#39c7bb] font-medium': selected === 'Maior preço'}"
@@ -365,7 +373,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   </svg>
                 </a>
                 <a 
-                  @click="selected = 'A-Z'; open = false" 
+                  @click.prevent="selected = 'A-Z'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_asc`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_asc`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
                   :class="{'text-[#39c7bb] font-medium': selected === 'A-Z'}"
@@ -376,7 +384,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   </svg>
                 </a>
                 <a 
-                  @click="selected = 'Z-A'; open = false" 
+                  @click.prevent="selected = 'Z-A'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_desc`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=name_desc`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
                   :class="{'text-[#39c7bb] font-medium': selected === 'Z-A'}"
@@ -387,7 +395,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   </svg>
                 </a>
                 <a 
-                  @click="selected = 'Destaque'; open = false" 
+                  @click.prevent="selected = 'Destaque'; open = false; window.location.href=`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=featured`" 
                   href={`?${new URLSearchParams([...Array.from(params.entries())].filter(([k]) => k !== 'sort'))}&sort=featured`}
                   class="block px-4 py-2 text-sm hover:bg-[#E0F7F4] flex justify-between items-center"
                   :class="{'text-[#39c7bb] font-medium': selected === 'Destaque'}"
