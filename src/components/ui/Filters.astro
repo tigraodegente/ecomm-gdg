@@ -473,7 +473,7 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
                 "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 allSelectedCategories.includes(category.cid) 
                   ? "bg-[#40C1AC] text-white font-medium" 
-                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
+                  : "bg-white text-[#333333] hover:bg-gray-50 border border-[#DDDDDD]"
               ]}
             >
               {allSelectedCategories.includes(category.cid) && <span class="mr-1">✓</span>}
@@ -550,7 +550,7 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
                 "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 color.selected 
                   ? "bg-[#40C1AC] text-white font-medium" 
-                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
+                  : "bg-white text-[#333333] hover:bg-gray-50 border border-[#DDDDDD]"
               ]}
             >
               {color.selected && <span class="mr-1">✓</span>}
@@ -578,7 +578,7 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
                 "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 size.selected 
                   ? "bg-[#40C1AC] text-white font-medium" 
-                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
+                  : "bg-white text-[#333333] hover:bg-gray-50 border border-[#DDDDDD]"
               ]}
             >
               {size.selected && <span class="mr-1">✓</span>}
@@ -602,7 +602,7 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
                 "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
                 material.selected 
                   ? "bg-[#40C1AC] text-white font-medium" 
-                  : "bg-[#E0F7F4] text-[#40C1AC] hover:bg-[#D0F0ED]"
+                  : "bg-white text-[#333333] hover:bg-gray-50 border border-[#DDDDDD]"
               ]}
             >
               {material.selected && <span class="mr-1">✓</span>}

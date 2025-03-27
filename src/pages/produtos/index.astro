@@ -52,7 +52,18 @@ if (selectedCategories.length > 0) {
 
 // Se tiver pesquisa, mostrar no título
 if (search) {
-  pageTitle = `Resultados para "${search}"`;
+  if (selectedCategories.length > 0) {
+    // Busca + categoria
+    const firstCategory = categoryService.getCategoryByCid(selectedCategories[0]);
+    if (firstCategory) {
+      pageTitle = `"${search}" em ${firstCategory.name}`;
+    } else {
+      pageTitle = `Resultados para "${search}"`;
+    }
+  } else {
+    // Apenas busca
+    pageTitle = `Resultados para "${search}"`;
+  }
 }
 
 // Opções para listar produtos
@@ -84,7 +95,10 @@ if (selectedCategories.length > 0) {
 }
 
 // Buscar produtos com os filtros aplicados
-const { products, pagination } = productService.listProducts(options);
+// Se tiver busca, usar searchProducts, caso contrário usar listProducts normal
+const { products, pagination } = search 
+  ? productService.searchProducts(search, options) 
+  : productService.listProducts(options);
 
 // Total de itens para exibição
 const totalItems = pagination.total;
@@ -190,8 +204,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
               if (!category) return null;
               
               return (
-                <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                  <span>{category.name}</span>
+                <div class="inline-flex items-center px-3 py-1.5 text-xs bg-white text-[#333333] border border-[#DDDDDD] rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#40C1AC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  <span class="font-medium">{category.name}</span>
                   <a 
                     href={`/produtos?${new URLSearchParams(
                       Array.from(searchParams.entries())
@@ -210,8 +227,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
             })}
             
             {search && (
-              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                <span>Busca: {search}</span>
+              <div class="inline-flex items-center px-3 py-1.5 text-xs bg-white text-[#333333] border border-[#DDDDDD] rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#40C1AC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span class="font-medium">Busca: {search}</span>
                 <a 
                   href={(() => {
                     const url = new URL(Astro.url);
@@ -229,8 +249,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
             )}
             
             {minPrice && (
-              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                <span>Preço Min: R$ {minPrice}</span>
+              <div class="inline-flex items-center px-3 py-1.5 text-xs bg-white text-[#333333] border border-[#DDDDDD] rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#40C1AC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="font-medium">Min: R$ {minPrice}</span>
                 <a 
                   href={(() => {
                     const url = new URL(Astro.url);
@@ -248,8 +271,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
             )}
             
             {maxPrice && (
-              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                <span>Preço Max: R$ {maxPrice}</span>
+              <div class="inline-flex items-center px-3 py-1.5 text-xs bg-white text-[#333333] border border-[#DDDDDD] rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#40C1AC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="font-medium">Max: R$ {maxPrice}</span>
                 <a 
                   href={(() => {
                     const url = new URL(Astro.url);
@@ -290,8 +316,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
                 }
                 
                 return (
-                  <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                    <span>{attributeType.display_name}: {displayValue}</span>
+                  <div class="inline-flex items-center px-3 py-1.5 text-xs bg-white text-[#333333] border border-[#DDDDDD] rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-[#40C1AC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span><span class="font-medium">{attributeType.display_name}:</span> {displayValue}</span>
                     <a 
                       href={(() => {
                         const url = new URL(Astro.url);
@@ -317,8 +346,11 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
             {(selectedCategories.length > 0 || search || minPrice || maxPrice || Object.keys(attributeFilters).length > 0) && (
               <a 
                 href="/produtos" 
-                class="ml-auto text-xs text-[#39c7bb] hover:underline"
+                class="ml-auto text-xs font-medium px-3 py-1.5 bg-white border border-[#DDDDDD] text-[#333333] rounded-full hover:bg-gray-50 transition-colors flex items-center"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
                 Limpar todos os filtros
               </a>
             )}
@@ -332,7 +364,7 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
               <button 
                 type="button" 
                 id="sort-button"
-                class="text-sm min-w-[130px] appearance-none bg-white border border-[#39c7bb] rounded-md px-3 py-2 pr-8 text-[#39c7bb] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#39c7bb] flex justify-between items-center"
+                class="text-sm min-w-[130px] appearance-none bg-white border border-[#DDDDDD] rounded-md px-3 py-2 pr-8 text-[#333333] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#DDDDDD] flex justify-between items-center"
                 onclick="document.getElementById('sort-menu').classList.toggle('hidden')"
               >
                 {/* Texto do botão baseado na seleção atual */}
@@ -345,7 +377,7 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
                   {sort === 'featured' && 'Destaque'}
                   {!['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc', 'featured'].includes(sort) && 'Ordenar'}
                 </span>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#39c7bb]">
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#333333]">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -354,41 +386,41 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
               
               <div 
                 id="sort-menu" 
-                class="absolute mt-1 w-full min-w-[160px] bg-white border border-gray-200 rounded-md shadow-lg py-1 z-30 hidden"
+                class="absolute mt-1 w-full min-w-[160px] bg-white border border-[#DDDDDD] rounded-md shadow-lg py-1 z-30 hidden"
               >
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=newest&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'newest' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'newest' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   Mais recentes
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=price_asc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'price_asc' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   Menor preço
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=price_desc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'price_desc' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   Maior preço
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=name_asc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'name_asc' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   A-Z
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=name_desc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'name_desc' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   Z-A
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=featured&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-[#E0F7F4] cursor-pointer ${sort === 'featured' ? 'bg-[#E0F7F4] text-[#39c7bb] font-medium' : 'text-gray-700'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'featured' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
                 >
                   Destaque
                 </a>
@@ -411,7 +443,7 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
             <!-- Botão para exibir filtros no mobile -->
             <button 
               id="toggleFilters" 
-              class="md:hidden flex items-center text-sm appearance-none bg-white border border-[#39c7bb] rounded-md px-3 py-2 text-[#39c7bb] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#39c7bb]"
+              class="md:hidden flex items-center text-sm appearance-none bg-white border border-[#DDDDDD] rounded-md px-3 py-2 text-[#333333] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#DDDDDD]"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
