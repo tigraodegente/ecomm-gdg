@@ -337,14 +337,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
         </div>
       </div>
       
-      <!-- Filtros Simplificados para Mobile -->
-      <div class="mb-6 md:hidden">
-        <SimplifiedFilters
-          categories={activeCategories}
-          selectedCategories={selectedCategories}
-          search={search}
-        />
-      </div>
+      <!-- Removido filtro simplificado para usar apenas o lateral no mobile -->
       
       <!-- Conteúdo Principal - Layout de 2 colunas no desktop -->
       <div class="flex flex-col md:flex-row gap-8">
