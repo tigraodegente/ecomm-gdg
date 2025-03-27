@@ -380,8 +380,8 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                     name: product.name,
                     price: product.price,
                     pricePromotional: product.compare_at_price,
-                    discountPercent: product.compare_at_price ? 
-                      Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : null,
+                    discountPercent: product.compare_at_price && (product.compare_at_price > product.price) ? 
+                      Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : 0,
                     pieces: product.pieces || 0,
                     material: product.material || '',
                     image: product.mainImage || null,

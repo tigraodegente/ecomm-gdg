@@ -29,7 +29,14 @@ const formatPrice = (price: number): string => {
 
 // Calcular valor da parcela
 const installmentValue = (product.pricePromotional || product.price) / 12;
-const hasDiscount = product.discountPercent && product.discountPercent > 0;
+
+// Verificação explícita para garantir que o desconto existe e é maior que zero
+let hasDiscount = false;
+if (product.discountPercent !== undefined && 
+    product.discountPercent !== null && 
+    product.discountPercent > 0) {
+  hasDiscount = true;
+}
 ---
 
 <div class="group relative bg-white w-full max-w-[380px] mx-auto">
