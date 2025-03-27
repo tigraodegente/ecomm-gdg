@@ -89,6 +89,25 @@ class CategoryService {
       staticLinks: []
     };
   }
+  
+  /**
+   * Retorna todas as categorias ativas (que têm produtos)
+   * @returns {Array} Lista de categorias ativas
+   */
+  getActiveCategories() {
+    const stmt = db.prepare(`
+      SELECT c.*, ci.cid, COUNT(p.id) as product_count 
+      FROM categories c
+      LEFT JOIN category_identifiers ci ON c.id = ci.category_id
+      JOIN products p ON c.id = p.category_id
+      WHERE c.is_active = 1 AND p.is_active = 1
+      GROUP BY c.id
+      HAVING product_count > 0
+      ORDER BY c.display_order ASC, c.name ASC
+    `);
+    
+    return stmt.all();
+  }
 }
 
 // Exportar uma instância do serviço para uso em toda a aplicação
