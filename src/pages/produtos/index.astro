@@ -317,7 +317,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
             <!-- Dropdown custom com Alpine.js -->
             <div x-data="{ 
               open: false, 
-              selected: '${sort}',
+              selected: 'newest',
               options: [
                 {value: 'newest', label: 'Mais recentes'},
                 {value: 'price_asc', label: 'Menor preço'},
@@ -335,9 +335,12 @@ const priceRanges = productService.getPriceRangesForProducts(options);
               },
               // Método para obter o label da opção selecionada
               getSelectedLabel() {
-                return this.options.find(o => o.value === this.selected)?.label || 'Ordenar';
+                const option = this.options.find(o => o.value === this.selected);
+                return option ? option.label : 'Ordenar';
               }
-            }" class="relative">
+            }" 
+            x-init="selected = '${sort || 'newest'}'"
+            class="relative">
               <!-- Botão do dropdown estilizado como o select original -->
               <button 
                 @click="open = !open" 
