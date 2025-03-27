@@ -377,7 +377,7 @@ const totalItems = pagination.total;
       <!-- Produtos - Área principal -->
       <div class="w-full md:flex-1">
         <!-- Produtos Grid - 3 por linha no desktop, 1 no mobile com espaçamento vertical aumentado -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-10 bg-white p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-10 bg-white p-4">
           {products.length > 0 ? products.map((product) => (
             <a href={`/produto/${product.slug || product.id}`} class="block pt-7">
               <ProductCard 
