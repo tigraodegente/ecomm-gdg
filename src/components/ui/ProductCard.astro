@@ -34,10 +34,10 @@ const hasDiscount = product.discountPercent && product.discountPercent > 0;
 
 <div class="group relative bg-white w-full max-w-[380px] mx-auto">
   <!-- Imagem do produto -->
-  <div class="relative h-[380px]">
+  <div class="relative">
     <!-- Badge de desconto posicionado no canto superior direito -->
     {hasDiscount && (
-      <div class="absolute right-2 top-0 py-[2px] text-[14px] font-bold z-10">
+      <div class="absolute right-2 -top-8 py-[2px] text-[14px] font-bold z-10">
         <span class="text-gray-800">{product.discountPercent}% </span><span class="text-[#39c7bb]">OFF</span>
       </div>
     )}
