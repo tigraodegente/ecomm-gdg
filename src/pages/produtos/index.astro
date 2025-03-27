@@ -1,42 +1,61 @@
 ---
-/**
- * Página de Listagem de Produtos
- * 
- * Apresenta os produtos de forma paginada com opções de filtro e ordenação.
- */
-import MarketplaceLayout from '@/layouts/MarketplaceLayout.astro';
-import ProductCard from '@/components/ui/ProductCard.astro';
-import Filters from '@/components/ui/Filters.astro';
-import productService from '@/services/productService';
-import categoryService from '@/services/categoryService';
+import Layout from '../../layouts/Layout.astro';
+import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
+import ProductCard from '../../components/ui/ProductCard.astro';
+import Rating from '../../components/ui/Rating.astro';
+import Filters from '../../components/ui/Filters.astro';
+import SimplifiedFilters from '../../components/ui/SimplifiedFilters.astro';
+import categoryService from '../../services/categoryService';
+import productService from '../../services/productService';
 
-// Obter parâmetros da URL para filtros
-const { url } = Astro;
-const params = url.searchParams;
+// Pegar parâmetros da URL
+const { searchParams } = Astro.url;
+const params = Astro.url.searchParams;
 
-// Obter parâmetros específicos
-const search = params.get('search') || '';
+// Extrair parâmetros específicos da URL
+const search = params.get('q') || '';
 const minPrice = params.get('minPrice') || '';
 const maxPrice = params.get('maxPrice') || '';
-const categoriesParam = params.get('categories') || '';
-const categorySlug = params.get('categoria') || params.get('category') || '';
 const sort = params.get('sort') || 'newest';
-const page = parseInt(params.get('page') || '1', 10);
-const limit = parseInt(params.get('limit') || '8', 10);
+const page = parseInt(params.get('page') || '1');
+const limit = parseInt(params.get('limit') || '12');
 
-// Processar múltiplas categorias
-const selectedCategories = categoriesParam ? categoriesParam.split(',') : (categorySlug ? [categorySlug] : []);
+// Parâmetros para filtros de categorias
+const selectedCategories = params.getAll('category') || [];
 
-// Construir filtros de atributos a partir dos parâmetros attr_*
+// Parâmetros para filtros de atributos
 const attributeFilters = {};
+
+// Encontrar todos os parâmetros de atributos (formato: attr_ID=VALOR)
 for (const [key, value] of params.entries()) {
   if (key.startsWith('attr_')) {
-    const typeId = key.replace('attr_', '');
-    attributeFilters[typeId] = value.split(',');
+    const attrId = key.replace('attr_', '');
+    
+    if (!attributeFilters[attrId]) {
+      attributeFilters[attrId] = [];
+    }
+    
+    attributeFilters[attrId].push(value);
   }
 }
 
-// Preparar opções para a busca
+// Página atual
+let pageTitle = 'Todos os Produtos';
+
+// Se tiver categorias selecionadas, usar a primeira para o título
+if (selectedCategories.length > 0) {
+  const firstCategory = categoryService.getCategoryByCid(selectedCategories[0]);
+  if (firstCategory) {
+    pageTitle = firstCategory.name;
+  }
+}
+
+// Se tiver pesquisa, mostrar no título
+if (search) {
+  pageTitle = `Resultados para "${search}"`;
+}
+
+// Opções para listar produtos
 const options = {
   search,
   minPrice: minPrice ? parseFloat(minPrice) : undefined,
@@ -67,477 +86,396 @@ if (selectedCategories.length > 0) {
 // Buscar produtos com os filtros aplicados
 const { products, pagination } = productService.listProducts(options);
 
-// Título da página com base nas categorias selecionadas
-let pageTitle = "Produtos";
-if (selectedCategories.length === 1) {
-  const category = categoryService.getCategoryByCid(selectedCategories[0]);
-  if (category) {
-    pageTitle = category.name;
-  }
-} else if (selectedCategories.length > 1) {
-  pageTitle = "Múltiplas Categorias";
-}
-
-// Formatar preço
-function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2
-  }).format(value);
-}
-
-// Número total de itens para exibir no contador
+// Total de itens para exibição
 const totalItems = pagination.total;
+
+// Lista de categorias ativas (apenas as que têm produtos)
+const activeCategories = categoryService.getActiveCategories();
+
+// Obter os tipos de atributos disponíveis
+const attributeTypes = productService.getAttributeTypesForFilters();
+
+// Obter os valores disponíveis para cada tipo de atributo (considerando filtros aplicados)
+const attributeValues = {};
+for (const attributeType of attributeTypes) {
+  attributeValues[attributeType.id] = productService.getAttributeValuesForType(
+    attributeType.id, 
+    // Passar mesmas opções para manter consistência nos filtros
+    options
+  );
+}
+
+// Obter filtro de preço
+const priceRanges = productService.getPriceRangesForProducts(options);
 ---
 
 <MarketplaceLayout title={pageTitle}>
-  <Fragment slot="navbar">
-    <li>
-      <a href="/produtos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Todas as categorias</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=meninos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Meninos</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=meninas" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Meninas</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=kits-berco" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Kits Berço</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=ninho" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Ninho</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=bolsas-maternidade" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Bolsas Maternidade</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=almofada-amamentacao" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Almofada Amamentação</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=infantil" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Infantil</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=lencol" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Lençol</a>
-    </li>
-    <li>
-      <a href="/produtos?promo=75" class="text-pink300 hover:opacity-80 font-bold text-[13px] leading-[19.5px] flex items-center justify-center">75% OFF</a>
-    </li>
-    <li>
-      <a href="/produtos?categoria=quarto-famosos" class="hover:opacity-80 font-semibold text-[13px] leading-[19.5px] flex items-center justify-center">Quarto dos famosos</a>
-    </li>
-  </Fragment>
-<style>
-  body {
-    background-color: #F5F5F5;
-    font-family: 'Lato', sans-serif;
-  }
-</style>
-  <div class="max-w-[1400px] mx-auto px-4 py-4">
-    <!-- Breadcrumbs com contador de produtos -->
-    <div class="flex justify-between items-center mb-4">
-      <nav aria-label="Breadcrumb">
-        <ol class="flex items-center text-[13px]">
-          <li>
-            <a href="/" class="text-gray-500 hover:text-gray-700 transition-colors">Home</a>
-          </li>
-          <li class="flex items-center">
-            <span class="mx-1 text-gray-400">/</span>
-            <a href="/produtos" class="text-gray-500 hover:text-gray-700 transition-colors">Produtos</a>
-          </li>
-          <li class="flex items-center">
-            <span class="mx-1 text-gray-400">/</span>
-            <span class="text-[#39c7bb] font-medium">{pageTitle}</span>
-          </li>
-        </ol>
-      </nav>
-      
-      <p class="text-sm text-gray-500">
-        <span class="font-medium">{totalItems}</span> produtos encontrados
-      </p>
-    </div>
-    
-    <!-- Seção de filtros ativos com fundo branco -->
-    <div class="bg-white p-3 mb-5 flex flex-wrap justify-between items-center">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-gray-800 font-medium">Filtros:</span>
-        
-        {/* Categorias selecionadas */}
-        {selectedCategories.map(catSlug => {
-          const category = categoryService.getCategoryByCid(catSlug);
-          if (!category) return null;
+  <div class="min-h-screen bg-gray-100 py-12">
+    <div class="container mx-auto px-4">
+      <!-- Filtros aplicados e controles superiores -->
+      <div class="mb-6">
+        <!-- Navegação e contador de produtos -->
+        <div class="flex flex-wrap justify-between items-center mb-3">
+          <nav class="mb-4 w-full md:mb-0 md:w-auto">
+            <ol class="flex items-center text-[13px]">
+              <li>
+                <a href="/" class="text-gray-500 hover:text-gray-700 transition-colors">Home</a>
+              </li>
+              <li class="flex items-center">
+                <span class="mx-1 text-gray-400">/</span>
+                <a href="/produtos" class="text-gray-500 hover:text-gray-700 transition-colors">Produtos</a>
+              </li>
+              <li class="flex items-center">
+                <span class="mx-1 text-gray-400">/</span>
+                <span class="text-[#39c7bb] font-medium">{pageTitle}</span>
+              </li>
+            </ol>
+          </nav>
           
-          // Criar URL para remover esta categoria
-          const url = new URL(Astro.url);
-          const newCategories = selectedCategories.filter(c => c !== catSlug);
-          
-          url.searchParams.delete('categories');
-          if (newCategories.length > 0) {
-            url.searchParams.set('categories', newCategories.join(','));
-          }
-          
-          return (
-            <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-              <span>{category.name}</span>
-              <a href={url.toString()} class="ml-1.5 focus:outline-none text-[#39c7bb]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </a>
-            </div>
-          );
-        })}
+          <p class="text-sm text-gray-500">
+            <span class="font-medium">{totalItems}</span> produtos encontrados
+          </p>
+        </div>
         
-        {/* Filtros de preço */}
-        {minPrice && (
-          <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-            <span>Preço Min: R$ {minPrice}</span>
-            <a 
-              href={(() => {
-                const url = new URL(Astro.url);
-                url.searchParams.delete('minPrice');
-                return url.toString();
-              })()}
-              class="ml-1.5 focus:outline-none text-[#39c7bb]"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </a>
-          </div>
-        )}
-        
-        {maxPrice && (
-          <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-            <span>Preço Max: R$ {maxPrice}</span>
-            <a 
-              href={(() => {
-                const url = new URL(Astro.url);
-                url.searchParams.delete('maxPrice');
-                return url.toString();
-              })()}
-              class="ml-1.5 focus:outline-none text-[#39c7bb]"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </a>
-          </div>
-        )}
-        
-        {/* Filtros de atributos ativos */}
-        {Object.entries(attributeFilters).map(([typeId, values]) => {
-          const attributeType = productService.getAttributeTypesForFilters().find(t => t.id.toString() === typeId);
-          if (!attributeType) return null;
-          
-          return values.map(value => {
-            // Buscar o valor de exibição para este atributo
-            let displayValue = value;
-            let attrValues = [];
+        <!-- Seção de filtros ativos com fundo branco -->
+        <div class="bg-white p-3 mb-5 flex flex-wrap justify-between items-center">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm text-gray-800 font-medium">Filtros:</span>
             
-            if (attributeType.name.toLowerCase().includes('material')) {
-              attrValues = productService.getMaterialsForFilter(options);
-            } else if (attributeType.name.toLowerCase().includes('cor') || attributeType.name.toLowerCase().includes('color')) {
-              attrValues = productService.getColorsForFilter(options);
-            } else if (attributeType.name.toLowerCase().includes('tamanho') || attributeType.name.toLowerCase().includes('size')) {
-              attrValues = productService.getSizesForFilter(options);
-            }
+            {/* Categorias selecionadas */}
+            {selectedCategories.map(catSlug => {
+              const category = categoryService.getCategoryByCid(catSlug);
+              if (!category) return null;
+              
+              return (
+                <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+                  <span>{category.name}</span>
+                  <a 
+                    href={(() => {
+                      const url = new URL(Astro.url);
+                      const cats = url.searchParams.getAll('category').filter(c => c !== catSlug);
+                      url.searchParams.delete('category');
+                      cats.forEach(c => url.searchParams.append('category', c));
+                      return url.toString();
+                    })()}
+                    class="ml-1.5 focus:outline-none text-[#39c7bb]"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </a>
+                </div>
+              );
+            })}
             
-            const foundValue = attrValues.find(v => v.value === value);
-            if (foundValue) {
-              displayValue = foundValue.display_value || foundValue.value;
-            }
-            
-            // Construir URL para remover este filtro
-            const newFilters = { ...attributeFilters };
-            newFilters[typeId] = newFilters[typeId].filter(v => v !== value);
-            if (newFilters[typeId].length === 0) {
-              delete newFilters[typeId];
-            }
-            
-            // Construir a URL completa
-            const url = new URL(Astro.url);
-            url.searchParams.delete(`attr_${typeId}`);
-            if (newFilters[typeId] && newFilters[typeId].length > 0) {
-              url.searchParams.set(`attr_${typeId}`, newFilters[typeId].join(','));
-            }
-            
-            return (
+            {search && (
               <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
-                <span>{attributeType.display_name}: {displayValue}</span>
-                <a href={url.toString()} class="ml-1.5 focus:outline-none text-[#39c7bb]">
+                <span>Busca: {search}</span>
+                <a 
+                  href={(() => {
+                    const url = new URL(Astro.url);
+                    url.searchParams.delete('q');
+                    return url.toString();
+                  })()}
+                  class="ml-1.5 focus:outline-none text-[#39c7bb]"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
                 </a>
               </div>
-            );
-          });
-        })}
-        
-        {/* Link para limpar todos os filtros se houver algum ativo */}
-        {(Object.keys(attributeFilters).length > 0 || search || minPrice || maxPrice || categorySlug) && (
-          <a href="/produtos" class="text-xs text-[#39c7bb] hover:underline">
-            Limpar todos
-          </a>
-        )}
-        
-        {/* Mensagem quando não há filtros ativos */}
-        {Object.keys(attributeFilters).length === 0 && !search && !minPrice && !maxPrice && !categorySlug && (
-          <span class="text-xs text-gray-500">Nenhum filtro aplicado</span>
-        )}
-      </div>
-      
-      <!-- Ordenação e visualização -->
-      <div class="flex items-center gap-4">
-        <div class="flex items-center">
-          <span class="text-sm text-gray-600 mr-2 hidden sm:inline">Ordenar por:</span>
-          <div class="relative">
+            )}
+            
+            {minPrice && (
+              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+                <span>Preço Min: R$ {minPrice}</span>
+                <a 
+                  href={(() => {
+                    const url = new URL(Astro.url);
+                    url.searchParams.delete('minPrice');
+                    return url.toString();
+                  })()}
+                  class="ml-1.5 focus:outline-none text-[#39c7bb]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </a>
+              </div>
+            )}
+            
+            {maxPrice && (
+              <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+                <span>Preço Max: R$ {maxPrice}</span>
+                <a 
+                  href={(() => {
+                    const url = new URL(Astro.url);
+                    url.searchParams.delete('maxPrice');
+                    return url.toString();
+                  })()}
+                  class="ml-1.5 focus:outline-none text-[#39c7bb]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </a>
+              </div>
+            )}
+            
+            {/* Filtros de atributos ativos */}
+            {Object.entries(attributeFilters).map(([typeId, values]) => {
+              const attributeType = productService.getAttributeTypesForFilters().find(t => t.id.toString() === typeId);
+              if (!attributeType) return null;
+              
+              return values.map(value => {
+                // Buscar o valor de exibição para este atributo
+                let displayValue = value;
+                let attrValues = [];
+                
+                if (attributeType.name.toLowerCase().includes('material')) {
+                  attrValues = productService.getMaterialsForFilter(options);
+                } else if (attributeType.name.toLowerCase().includes('cor') || attributeType.name.toLowerCase().includes('color')) {
+                  attrValues = productService.getColorsForFilter(options);
+                } else if (attributeType.name.toLowerCase().includes('tamanho') || attributeType.name.toLowerCase().includes('size')) {
+                  attrValues = productService.getSizesForFilter(options);
+                }
+                
+                const foundValue = attrValues.find(v => v.value === value);
+                if (foundValue && foundValue.display_value) {
+                  displayValue = foundValue.display_value;
+                }
+                
+                return (
+                  <div class="inline-flex items-center px-3 py-1 text-xs bg-[#E0F7F4] text-[#39c7bb]">
+                    <span>{attributeType.display_name}: {displayValue}</span>
+                    <a 
+                      href={(() => {
+                        const url = new URL(Astro.url);
+                        const currentValues = url.searchParams.getAll(`attr_${typeId}`);
+                        url.searchParams.delete(`attr_${typeId}`);
+                        currentValues.filter(v => v !== value).forEach(v => {
+                          url.searchParams.append(`attr_${typeId}`, v);
+                        });
+                        return url.toString();
+                      })()}
+                      class="ml-1.5 focus:outline-none text-[#39c7bb]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </a>
+                  </div>
+                );
+              });
+            })}
+            
+            {(selectedCategories.length > 0 || search || minPrice || maxPrice || Object.keys(attributeFilters).length > 0) && (
+              <a 
+                href="/produtos" 
+                class="ml-auto text-xs text-[#39c7bb] hover:underline"
+              >
+                Limpar todos os filtros
+              </a>
+            )}
+          </div>
+          
+          <div class="w-full md:w-auto mt-3 md:mt-0 flex gap-2">
             <select 
-              class="text-sm border border-[#E0F7F4] bg-white text-[#40C1AC] px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-[#40C1AC] focus:border-[#40C1AC] cursor-pointer pr-7 appearance-none"
-              onchange="window.location.href = this.value"
+              id="sort-select"
+              class="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#39c7bb]"
+              onchange="window.location.href = new URL(`?${new URLSearchParams([...new URLSearchParams(window.location.search)].filter(([k]) => k !== 'sort'))}&sort=${this.value}`, window.location.href).toString()"
             >
-              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'newest' })}`, Astro.url)}
-                      selected={sort === 'newest'}>Relevância</option>
-              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'price_asc' })}`, Astro.url)}
-                      selected={sort === 'price_asc'}>Menor preço</option>
-              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'price_desc' })}`, Astro.url)}
-                      selected={sort === 'price_desc'}>Maior preço</option>
-              <option value={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), sort: 'name_asc' })}`, Astro.url)}
-                      selected={sort === 'name_asc'}>Nome (A-Z)</option>
+              <option value="newest" selected={sort === 'newest'}>Mais recentes</option>
+              <option value="price_asc" selected={sort === 'price_asc'}>Menor preço</option>
+              <option value="price_desc" selected={sort === 'price_desc'}>Maior preço</option>
+              <option value="name_asc" selected={sort === 'name_asc'}>A-Z</option>
+              <option value="name_desc" selected={sort === 'name_desc'}>Z-A</option>
+              <option value="featured" selected={sort === 'featured'}>Destaque</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[#40C1AC]">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div class="flex border border-gray-200">
-          <button class="p-2 bg-[#39c7bb] text-white w-8 h-8 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-            </svg>
-          </button>
-          <button class="p-2 text-gray-400 bg-white w-8 h-8 flex items-center justify-center border-l border-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-            </svg>
-          </button>
-        </div>
-        
-        <!-- Botão para mostrar/ocultar filtros no mobile -->
-        <button 
-          id="toggleFilters" 
-          class="md:hidden flex items-center justify-center bg-[#39c7bb] hover:bg-[#2ba090] active:bg-[#218a7a] focus:ring-2 focus:ring-[#39c7bb] focus:ring-opacity-50 text-white px-2 py-1 rounded-md text-sm transition-colors duration-150"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filtros
-        </button>
-      </div>
-    </div>
-    
-    <!-- Conteúdo principal com filtros e produtos -->
-    <div class="flex flex-col md:flex-row gap-5">
-      <!-- Sidebar de filtros - Coluna esquerda (escondida no mobile por padrão) -->
-      <div id="filtersContainer" class="hidden md:block w-full md:w-[260px] md:sticky md:top-4 md:self-start">
-        <div class="mb-4 relative">
-          <!-- Botão fechar visível apenas no mobile -->
-          <button 
-            id="closeFilters" 
-            class="absolute top-2 right-2 md:hidden bg-white rounded-full p-1 shadow-sm z-10"
-            aria-label="Fechar filtros"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          
-          <Filters 
-            search={search}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            selectedCategories={selectedCategories}
-            selectedSort={sort}
-            attributeFilters={attributeFilters}
-          />
-        </div>
-      </div>
-      
-      <!-- Overlay para mobile quando filtros estão abertos -->
-      <div id="filtersOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
-      
-      <!-- Produtos - Área principal -->
-      <div class="w-full md:flex-1">
-        <!-- Produtos Grid - 3 por linha no desktop, 1 no mobile com espaçamento vertical aumentado -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-10 bg-white p-4">
-          {products.length > 0 ? products.map((product) => (
-            <a href={`/produto/${product.slug || product.id}`} class="block pt-7">
-              <ProductCard 
-                product={{
-                  id: product.id,
-                  name: product.name,
-                  price: product.price,
-                  pricePromotional: product.compare_at_price,
-                  discountPercent: product.compare_at_price ? 
-                    Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : null,
-                  pieces: product.pieces || 0,
-                  material: product.material || '',
-                  image: product.mainImage || null,
-                  ref: product.sku || product.id.toString()
-                }}
-                showBadges={true}
-              />
-            </a>
-          )) : (
-            <div class="col-span-3 py-8 text-center">
-              <p class="text-gray-500">Nenhum produto encontrado com os filtros selecionados.</p>
-              <a href="/produtos" class="mt-4 inline-block text-[#39c7bb] hover:underline">Limpar filtros</a>
-            </div>
-          )}
-        </div>
-        
-        <!-- Botão e indicador de carregamento para scroll infinito -->
-        <div class="py-4 text-center">
-          <!-- Contador de produtos -->
-          <span class="text-sm text-gray-500 block mb-4">
-            Mostrando <span class="font-medium" id="products-shown">{Math.min(products.length, pagination.page * pagination.limit)}</span> de <span class="font-medium">{pagination.total}</span> produtos
-          </span>
-          
-          <!-- Botão carregar mais para caso o scroll não seja detectado -->
-          {pagination.hasNextPage && (
-            <a 
-              href={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), page: (page + 1).toString() })}`, Astro.url)} 
-              id="load-more-btn" 
-              class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2"
+            
+            <!-- Botão para exibir filtros no mobile -->
+            <button 
+              id="toggleFilters" 
+              class="md:hidden flex items-center text-sm bg-white border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#39c7bb]"
             >
-              <span>Carregar mais produtos</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-            </a>
-          )}
-          
-          <!-- Loading indicator -->
-          <div id="loading-indicator" class="py-4 flex-col items-center hidden">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
-            <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
+              Filtros
+            </button>
           </div>
-          
-          <!-- Fim da lista quando todos os produtos forem carregados -->
-          {!pagination.hasNextPage && products.length > 0 && (
-            <div id="end-of-results" class="py-4">
-              <p class="text-gray-500 text-sm">Todos os produtos foram carregados</p>
-            </div>
-          )}
+        </div>
+      </div>
+      
+      <!-- Filtros Simplificados para Mobile -->
+      <div class="mb-6 md:hidden">
+        <SimplifiedFilters
+          categories={activeCategories}
+          selectedCategories={selectedCategories}
+          search={search}
+        />
+      </div>
+      
+      <!-- Conteúdo Principal - Layout de 2 colunas no desktop -->
+      <div class="flex flex-col md:flex-row gap-8">
+        <!-- Overlay para mobile (visível apenas quando os filtros estiverem abertos) -->
+        <div id="filtersOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"></div>
+        
+        <!-- Filtros - Sidebar no desktop, escondida inicialmente no mobile -->
+        <div id="filtersContainer" class="hidden md:block w-full md:w-[260px] md:sticky md:top-4 md:self-start">
+          <div class="mb-4 relative">
+            <!-- Botão fechar visível apenas no mobile -->
+            <button 
+              id="closeFilters" 
+              class="absolute top-2 right-2 md:hidden bg-white rounded-full p-1 shadow-sm z-10"
+              aria-label="Fechar filtros"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <Filters 
+              search={search}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              selectedCategories={selectedCategories}
+              selectedSort={sort}
+              attributeFilters={attributeFilters}
+              attributeTypes={attributeTypes}
+              attributeValues={attributeValues}
+              categories={activeCategories}
+              priceRanges={priceRanges}
+            />
+          </div>
         </div>
         
-        <!-- Script para scroll infinito (com fallback para botão) -->
-        <script define:vars={{ 
-          initialPage: page,
-          totalPages: pagination.totalPages,
-          itemsPerPage: pagination.limit,
-          totalItems: pagination.total,
-          productsShown: Math.min(products.length, pagination.page * pagination.limit)
-        }}>
-          // Código que será executado quando a página estiver completamente carregada
-          window.addEventListener('DOMContentLoaded', function() {
-            console.log('Script de scroll infinito iniciado');
+        <!-- Produtos - Área principal -->
+        <div class="w-full md:flex-1">
+          <!-- Produtos Grid - 3 por linha no desktop, 1 no mobile com espaçamento vertical aumentado -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-10 bg-white p-4">
+            {products.length > 0 ? products.map((product) => (
+              <a href={`/produto/${product.slug || product.id}`} class="block pt-7">
+                <ProductCard 
+                  product={{
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    pricePromotional: product.compare_at_price,
+                    discountPercent: product.compare_at_price ? 
+                      Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : null,
+                    pieces: product.pieces || 0,
+                    material: product.material || '',
+                    image: product.mainImage || null,
+                    ref: product.sku || product.id.toString()
+                  }}
+                  showBadges={true}
+                />
+              </a>
+            )) : (
+              <div class="col-span-3 py-8 text-center">
+                <p class="text-gray-500">Nenhum produto encontrado com os filtros selecionados.</p>
+                <a href="/produtos" class="mt-4 inline-block text-[#39c7bb] hover:underline">Limpar filtros</a>
+              </div>
+            )}
+          </div>
+          
+          <!-- Botão e indicador de carregamento para scroll infinito -->
+          <div class="py-4 text-center">
+            <!-- Contador de produtos -->
+            <span class="text-sm text-gray-500 block mb-4">
+              Mostrando <span class="font-medium" id="products-shown">{Math.min(products.length, pagination.page * pagination.limit)}</span> de <span class="font-medium">{pagination.total}</span> produtos
+            </span>
             
-            // Variáveis para controlar o estado da paginação
-            let page = initialPage;
-            const itemsPerPage = itemsPerPage; // Valor definido no servidor
-            let loading = false;
-            let allItemsLoaded = page >= totalPages;
+            <!-- Botão carregar mais para caso o scroll não seja detectado -->
+            {pagination.hasNextPage && (
+              <a 
+                href={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), page: (page + 1).toString() })}`, Astro.url)} 
+                id="load-more-btn" 
+                class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2"
+              >
+                <span>Carregar mais produtos</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </a>
+            )}
             
-            console.log('Estado inicial:', { 
-              page, 
-              totalPages, 
-              itemsPerPage, 
-              totalItems,
-              allItemsLoaded 
+            <!-- Loading indicator -->
+            <div id="loading-indicator" class="py-4 flex-col items-center hidden">
+              <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#39c7bb] mb-2"></div>
+              <p class="text-gray-500 text-sm">Carregando mais produtos...</p>
+            </div>
+            
+            <!-- Fim da lista quando todos os produtos forem carregados -->
+            {!pagination.hasNextPage && products.length > 0 && (
+              <div id="end-of-results" class="py-4">
+                <p class="text-gray-500 text-sm">Todos os produtos foram carregados</p>
+              </div>
+            )}
+          </div>
+          
+          <!-- Script para scroll infinito (com fallback para botão) -->
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              // Elementos necessários
+              const loadMoreBtn = document.getElementById('load-more-btn');
+              const loadingIndicator = document.getElementById('loading-indicator');
+              const productsShownEl = document.getElementById('products-shown');
+              
+              // Se não tiver botão de carregar mais, não precisamos fazer nada
+              if (!loadMoreBtn) return;
+              
+              // Variáveis para controle de estado
+              let isLoading = false;
+              
+              // Função que detecta quando o usuário está próximo do final da página
+              function checkScrollPosition() {
+                if (isLoading || !loadMoreBtn) return;
+                
+                const scrollPosition = window.scrollY + window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight;
+                
+                // Se estiver a 300px do final da página
+                if (scrollPosition >= documentHeight - 300) {
+                  console.log("Próximo ao final da página, carregando mais produtos...");
+                  loadMoreItems();
+                }
+              }
+              
+              // Função para carregar mais itens
+              function loadMoreItems() {
+                if (isLoading) return;
+                
+                // Marcamos como carregando
+                isLoading = true;
+                
+                // Mostrar indicador de carregamento
+                if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+                
+                // Ocultar botão enquanto carrega
+                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                
+                // Simular um pequeno atraso para mostrar o loading
+                setTimeout(() => {
+                  // Clique no botão para carregar a próxima página
+                  if (loadMoreBtn) loadMoreBtn.click();
+                }, 500);
+              }
+              
+              // Adicionamos o evento de scroll
+              window.addEventListener('scroll', checkScrollPosition);
+              
+              // Verificamos uma vez depois que a página carrega
+              setTimeout(checkScrollPosition, 1000);
             });
-            
-            // Elementos do DOM
-            const loadingIndicator = document.getElementById('loading-indicator');
-            if (!loadingIndicator) console.error('Elemento loading-indicator não encontrado');
-            
-            const endOfResults = document.getElementById('end-of-results');
-            if (!endOfResults) console.error('Elemento end-of-results não encontrado');
-            
-            const productsShown = document.getElementById('products-shown');
-            if (!productsShown) console.error('Elemento products-shown não encontrado');
-            if (productsShown) productsShown.textContent = productsShown;
-            
-            const loadMoreBtn = document.getElementById('load-more-btn');
-            if (!loadMoreBtn && !allItemsLoaded) console.error('Elemento load-more-btn não encontrado');
-            
-            // Tentativa de encontrar o grid de produtos com diferentes seletores
-            let productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3.gap-x-4');
-            
-            // Se não encontrou com o seletor atualizado, tenta o seletor original
-            if (!productsGrid) {
-              console.warn('Grid de produtos com gap-x-4 não encontrado, tentando seletor alternativo');
-              productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
-              
-              if (!productsGrid) {
-                console.error('Nenhum grid de produtos encontrado');
-                return;
-              }
-              console.log('Grid encontrado com seletor alternativo');
-            }
-            
-            // Função para verificar se o usuário chegou perto do final da página
-            function handleScroll() {
-              if (loading || allItemsLoaded || !loadMoreBtn) {
-                console.log('Ignorando scroll: carregando=', loading, 'todos carregados=', allItemsLoaded, 'botão existe=', !!loadMoreBtn);
-                return;
-              }
-              
-              // Detecta scroll
-              const windowHeight = window.innerHeight;
-              const documentHeight = document.documentElement.scrollHeight;
-              const scrollPosition = window.scrollY;
-              
-              console.log('Posição scroll:', {
-                windowHeight,
-                documentHeight,
-                scrollPosition,
-                distanceToBottom: documentHeight - (windowHeight + scrollPosition)
-              });
-              
-              // Se estiver próximo do fim (300px antes do final)
-              if (windowHeight + scrollPosition >= documentHeight - 300) {
-                console.log('Próximo do final da página - carregando mais produtos');
-                loading = true; // Marca como carregando para evitar múltiplos cliques
-                loadMoreBtn.click();
-              }
-            }
-            
-            // Adiciona os event listeners
-            window.addEventListener('scroll', handleScroll);
-            
-            // Adiciona o evento de click ao botão
-            if (loadMoreBtn) {
-              loadMoreBtn.addEventListener('click', function() {
-                console.log('Botão de carregar mais clicado');
-                // O navegador já vai lidar com o carregamento da próxima página
-                loading = true;
-              });
-            }
-            
-            // Verifica imediatamente após o carregamento completo
-            console.log('Verificação inicial');
-            setTimeout(handleScroll, 1000);
-          };
-        </script>
+          </script>
+        </div>
       </div>
     </div>
   </div>
@@ -592,42 +530,12 @@ const totalItems = pagination.total;
       if (overlay) {
         overlay.addEventListener('click', hideFilters);
       }
-
-      // Adicionar comportamento aos botões de filtro
-      // Os botões que já estão ativos devem ter a classe 'bg-[#40C1AC] text-white font-medium'
-      // Vamos adicionar uma classe CSS extra e listeners para melhorar UX
-      const filterButtons = document.querySelectorAll('.filter-button');
       
-      filterButtons.forEach(button => {
-        // Adicionar a classe de base para estilos de botão
-        button.classList.add('filter-btn');
-        
-        // Verificar se o botão tem classe indicando que está selecionado
-        if (button.classList.contains('bg-[#40C1AC]')) {
-          button.classList.add('filter-btn-active');
-        }
-        
-        // Adicionar efeito de clique
-        button.addEventListener('click', function(e) {
-          // Não aplicar imediatamente se houver uma classe ativa
-          // isso será resolvido no recarregamento da página
-          if (!button.classList.contains('filter-btn-active')) {
-            // Efeito visual temporário durante o clique
-            button.classList.add('filter-btn-active');
-            setTimeout(() => {
-              if (!button.classList.contains('bg-[#40C1AC]')) {
-                button.classList.remove('filter-btn-active');
-              }
-            }, 300);
-          }
-        });
-      });
-      
-      // Verificar tamanho da tela quando a janela é redimensionada
+      // Lidar com redimensionamento de tela
       window.addEventListener('resize', handleResize);
       
-      // Inicializar
-      handleResize();
+      // Também consideramos a rotação do dispositivo
+      window.addEventListener('orientationchange', handleResize);
     });
   </script>
 </MarketplaceLayout>
