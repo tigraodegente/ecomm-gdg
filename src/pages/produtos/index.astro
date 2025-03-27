@@ -303,7 +303,13 @@ const priceRanges = productService.getPriceRangesForProducts(options);
               <select 
                 id="sort-select"
                 class="text-sm min-w-[130px] appearance-none bg-white border border-[#39c7bb] rounded-md px-3 py-2 pr-8 text-[#39c7bb] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#39c7bb]"
-                onchange="window.location.href = new URL(`?${new URLSearchParams([...new URLSearchParams(window.location.search)].filter(([k]) => k !== 'sort'))}&sort=${this.value}`, window.location.href).toString()"
+                onchange="(function() {
+                  const newUrl = new URL(window.location.href);
+                  newUrl.searchParams.set('sort', this.value);
+                  // Reset to page 1 when sorting changes
+                  newUrl.searchParams.set('page', '1');
+                  window.location.href = newUrl.toString();
+                }).call(this)"
               >
                 <option value="newest" selected={sort === 'newest'}>Mais recentes</option>
                 <option value="price_asc" selected={sort === 'price_asc'}>Menor preço</option>
@@ -389,7 +395,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                     price: product.price,
                     pricePromotional: product.compare_at_price,
                     discountPercent: product.compare_at_price && (product.compare_at_price > product.price) ? 
-                      Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : 0,
+                      Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) : null,
                     pieces: product.pieces || 0,
                     material: product.material || '',
                     image: product.mainImage || null,
@@ -415,16 +421,17 @@ const priceRanges = productService.getPriceRangesForProducts(options);
             
             <!-- Botão carregar mais para caso o scroll não seja detectado -->
             {pagination.hasNextPage && (
-              <a 
-                href={new URL(`?${new URLSearchParams({ ...Object.fromEntries(params), page: (page + 1).toString() })}`, Astro.url)} 
+              <button 
+                type="button"
                 id="load-more-btn" 
                 class="mx-auto mb-4 bg-[#39c7bb] hover:bg-[#2ba090] text-white py-2 px-6 rounded-full inline-flex items-center gap-2"
+                data-next-page={(page + 1).toString()}
               >
                 <span>Carregar mais produtos</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
-              </a>
+              </button>
             )}
             
             <!-- Loading indicator -->
@@ -450,30 +457,96 @@ const priceRanges = productService.getPriceRangesForProducts(options);
               const productsShownEl = document.getElementById('products-shown');
               const productsGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-3');
               
-              // Se não tiver botão de carregar mais, não precisamos fazer nada
-              if (!loadMoreBtn || !productsGrid) return;
+              // Se não tiver produtos, não precisamos fazer nada
+              if (!productsGrid) return;
               
               // Variáveis para controle de estado
               let isLoading = false;
               let currentPage = parseInt(new URL(window.location.href).searchParams.get('page') || '1');
-              let hasNextPage = true;
+              let hasNextPage = !!loadMoreBtn;
               
-              // Adicionar evento de clique ao botão de carregar mais
-              loadMoreBtn.addEventListener('click', function(e) {
-                e.preventDefault(); // Impedir comportamento padrão de navegação
-                loadMoreItems();
-              });
+              // Para gerenciar a posição de scroll
+              let initialScrollRestored = false;
               
-              // Função que detecta quando o usuário está próximo do final da página
+              // Adicionar evento de clique ao botão de carregar mais (se existir)
+              if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function(e) {
+                  e.preventDefault(); // Impedir comportamento padrão de navegação
+                  loadMoreItems();
+                });
+              }
+              
+              // Variáveis para controle de scroll
+              let lastScrollY = window.scrollY;
+              let lastPageInView = currentPage;
+              
+              // Função que detecta a posição de scroll e atualiza a página atual na URL
               function checkScrollPosition() {
-                if (isLoading || !hasNextPage) return;
-                
+                // Verificar rolagem para carregar mais produtos independentemente da condição de hasNextPage
                 const scrollPosition = window.scrollY + window.innerHeight;
                 const documentHeight = document.documentElement.scrollHeight;
                 
-                // Se estiver a 300px do final da página
-                if (scrollPosition >= documentHeight - 300) {
-                  console.log("Próximo ao final da página, carregando mais produtos...");
+                // Determinar a direção do scroll
+                const scrollingDown = window.scrollY > lastScrollY;
+                lastScrollY = window.scrollY;
+                
+                // Verificar direção do scroll para lógica específica
+                
+                // SEMPRE calcular qual página está visível, mesmo quando carregando ou não tendo next page
+                const productCards = document.querySelectorAll('.grid-cols-1.md\\:grid-cols-3 > a');
+                if (productCards.length > 0) {
+                  const limit = parseInt(new URL(window.location.href).searchParams.get('limit') || '12');
+                  
+                  // Identificar qual produto está mais próximo do topo da tela
+                  let bestTopDistance = Infinity;
+                  let topProduct = null;
+                  
+                  // Para encontrar o primeiro produto visível (ideal para rolar para cima)
+                  for (const card of productCards) {
+                    const rect = card.getBoundingClientRect();
+                    // Para produtos acima do topo da janela, rect.top será negativo
+                    // Para produtos abaixo do topo da janela, rect.top será positivo
+                    // Quanto mais próximo de zero, mais próximo do topo da janela
+                    
+                    // Considerar apenas produtos que estão no topo ou ligeiramente acima
+                    // +200px permite um pouco de margem para produtos quase visíveis no topo
+                    if (rect.top <= 200) {
+                      const distance = Math.abs(rect.top);
+                      if (distance < bestTopDistance) {
+                        bestTopDistance = distance;
+                        topProduct = card;
+                      }
+                    }
+                  }
+                  
+                  if (topProduct) {
+                    // Determinar o índice do produto mais próximo do topo
+                    const productIndex = Array.from(productCards).indexOf(topProduct);
+                    
+                    // Calcular em qual página este produto estaria
+                    // Usamos Math.floor pois queremos a página que COMEÇA com este produto 
+                    // (ou um produto anterior)
+                    const pageInView = Math.max(1, Math.floor(productIndex / limit) + 1);
+                    
+                    // Determinar se a página mudou
+                    
+                    // Atualizar a URL apenas se a página mudou
+                    if (pageInView !== lastPageInView) {
+                      lastPageInView = pageInView;
+                      
+                      // Atualizar a URL sem recarregar a página
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('page', pageInView.toString());
+                      window.history.replaceState({}, '', url.toString());
+                      
+                      // URL atualizada para a nova página
+                    }
+                  }
+                }
+                
+                // Carregar mais produtos quando próximo ao final da página (apenas scroll para baixo)
+                if (!isLoading && hasNextPage && scrollingDown && scrollPosition >= documentHeight - 300) {
+                  // Chegou próximo ao final da página, carregando mais produtos
                   loadMoreItems();
                 }
               }
@@ -493,7 +566,7 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                 if (loadMoreBtn) loadMoreBtn.style.display = 'none';
                 
                 // Próxima página a carregar
-                const nextPage = currentPage + 1;
+                const nextPage = loadMoreBtn ? parseInt(loadMoreBtn.getAttribute('data-next-page') || (currentPage + 1).toString()) : currentPage + 1;
                 
                 // Construir URL com todos os parâmetros atuais, apenas alterando a página
                 const url = new URL(window.location.href);
@@ -514,6 +587,14 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                     // Verificar se a próxima página tem o botão de carregar mais
                     const nextPageBtn = doc.getElementById('load-more-btn');
                     hasNextPage = !!nextPageBtn;
+                    
+                    // Atualizar o data-next-page se o botão existir
+                    if (hasNextPage && loadMoreBtn && nextPageBtn) {
+                      const nextPageNumber = nextPageBtn.getAttribute('data-next-page');
+                      if (nextPageNumber) {
+                        loadMoreBtn.setAttribute('data-next-page', nextPageNumber);
+                      }
+                    }
                     
                     // Verificar se precisamos atualizar a contagem nas categorias
                     // Observação: não substituímos filtros, apenas atualizamos os valores
@@ -572,7 +653,11 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                         }
                       }
                       
-                      // Atualizar URL sem recarregar a página
+                      // Atualizar URL sem recarregar a página, mas mantendo o valor de ordenação atual
+                      const currentSort = new URL(window.location.href).searchParams.get('sort');
+                      if (currentSort && !url.searchParams.has('sort')) {
+                        url.searchParams.set('sort', currentSort);
+                      }
                       window.history.replaceState({}, '', url.toString());
                       
                       // Atualizar página atual
@@ -618,8 +703,19 @@ const priceRanges = productService.getPriceRangesForProducts(options);
                   });
               }
               
-              // Adicionamos o evento de scroll
-              window.addEventListener('scroll', checkScrollPosition);
+              // Adicionar um throttle para não executar a função de scroll muitas vezes
+              let scrollTimeout;
+              function throttledScroll() {
+                if (!scrollTimeout) {
+                  scrollTimeout = setTimeout(function() {
+                    checkScrollPosition();
+                    scrollTimeout = null;
+                  }, 200); // Executar no máximo a cada 200ms
+                }
+              }
+              
+              // Adicionamos o evento de scroll com throttle
+              window.addEventListener('scroll', throttledScroll);
               
               // Verificamos uma vez depois que a página carrega
               setTimeout(checkScrollPosition, 1000);
