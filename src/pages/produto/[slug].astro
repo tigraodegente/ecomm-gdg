@@ -15,7 +15,8 @@ let product;
 
 // Produto para o caso especial "cadeira-de-alimentacao-multifuncional"
 if (slug === 'cadeira-de-alimentacao-multifuncional') {
-  // Dados estáticos diretos
+  console.log('[HARDCODED] Retornando dados hardcoded para cadeira de alimentação');
+  // Dados estáticos diretos - única fonte de verdade para este produto específico
   product = {
     id: '1',
     slug: 'cadeira-de-alimentacao-multifuncional',
@@ -38,14 +39,66 @@ if (slug === 'cadeira-de-alimentacao-multifuncional') {
       { type_display_name: 'Material', value: 'Plástico e metal' },
       { type_display_name: 'Peso máximo', value: '20kg' },
     ],
-    isFallback: false
+    // Campo para controle interno, não relacionado a fallback
+    vendor_name: 'Loja Grão de Gente'
   };
-  
-  console.log(`[produto] Usando dados estáticos diretos para cadeira-de-alimentacao-multifuncional`);
+} else if (slug === 'berco-3-em-1-convertivel') {
+  // Outro produto estático para demonstração
+  console.log('[HARDCODED] Retornando dados hardcoded para berço');
+  product = {
+    id: '2',
+    slug: 'berco-3-em-1-convertivel',
+    name: 'Berço 3 em 1 Convertível',
+    price: 1299.90,
+    compare_at_price: 1599.90,
+    stock: 5,
+    sku: 'BER-3EM1-001',
+    category_id: 1,
+    category_name: 'Berços e Camas',
+    category_cid: 'bercos',
+    short_description: 'Berço que se converte em cama à medida que o bebê cresce',
+    description: `<p>Berço versátil que acompanha as fases de crescimento do seu bebê.</p>
+    <p>Converte-se de berço para mini-cama e depois para cama infantil.</p>`,
+    images: [
+      { image_url: 'https://placehold.co/600x400?text=Berco-1', alt: 'Berço vista 1', is_default: 1 },
+      { image_url: 'https://placehold.co/600x400?text=Berco-2', alt: 'Berço vista 2', is_default: 0 },
+    ],
+    attributes: [
+      { type_display_name: 'Material', value: 'MDF' },
+      { type_display_name: 'Dimensões', value: '70 x 130 x 90 cm' },
+    ],
+    vendor_name: 'Loja Grão de Gente'
+  };
+} else if (slug === 'grade-de-protecao') {
+  // Outro produto estático para demonstração
+  console.log('[HARDCODED] Retornando dados hardcoded para grade de proteção');
+  product = {
+    id: '3',
+    slug: 'grade-de-protecao',
+    name: 'Grade de Proteção',
+    price: 249.90,
+    compare_at_price: 299.90,
+    stock: 15,
+    sku: 'GRD-PROT-001',
+    category_id: 1,
+    category_name: 'Berços e Camas',
+    category_cid: 'bercos',
+    short_description: 'Grade de proteção para cama infantil',
+    description: `<p>Grade de proteção para garantir a segurança do seu filho durante o sono.</p>
+    <p>Fácil instalação e remoção, ideal para transição do berço para a cama.</p>`,
+    images: [
+      { image_url: 'https://placehold.co/600x400?text=Grade-1', alt: 'Grade vista 1', is_default: 1 },
+    ],
+    attributes: [
+      { type_display_name: 'Material', value: 'Metal e tecido' },
+      { type_display_name: 'Comprimento', value: '90 cm' },
+    ],
+    vendor_name: 'Loja Grão de Gente'
+  };
 } else {
-  // Para outros slugs, consultar normalmente o serviço
+  // Para slugs não hardcoded, tentar consultar normalmente o serviço
   try {
-    console.log(`[produto] Buscando produto com slug "${slug}" no serviço`);
+    console.log(`[produto] Buscando produto com slug "${slug}" no banco de dados`);
     product = productService.getProductById(slug, true);
   } catch (error) {
     console.error(`[produto] Erro ao buscar produto: ${error.message}`);
@@ -55,8 +108,16 @@ if (slug === 'cadeira-de-alimentacao-multifuncional') {
 
 // Se o produto não existir, redirecionar para a página de produtos
 if (!product) {
+  console.log('[produto] Produto não encontrado, redirecionando para /produtos');
   return Astro.redirect('/produtos');
 }
+
+// Garantir consistência de campos para evitar erros no template
+product.variants = product.variants || [];
+product.is_variable = product.is_variable || false;
+product.images = product.images || [];
+product.attributes = product.attributes || [];
+if (!product.vendor_name) product.vendor_name = 'Loja Grão de Gente';
 
 // Flag para indicar se estamos mostrando um produto substituto (fallback)
 const isShowingFallback = product.isFallback === true;
