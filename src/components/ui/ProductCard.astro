@@ -16,11 +16,13 @@ interface Props {
     image?: string;
     ref?: string;
     material?: string;
+    slug?: string;
   };
   showBadges?: boolean;
+  href?: string;
 }
 
-const { product, showBadges = true } = Astro.props;
+const { product, showBadges = true, href = `/produto/${product.slug || product.id}` } = Astro.props;
 
 // Format price to Brazilian currency
 const formatPrice = (price: number): string => {
@@ -39,87 +41,89 @@ if (product.discountPercent !== undefined &&
 }
 ---
 
-<div class="group relative bg-white w-full md:max-w-[380px] md:mx-auto mx-0 cursor-pointer hover:shadow-md transition-shadow">
-  <!-- Imagem do produto -->
-  <div class="relative">
-    <!-- Badge de desconto posicionado no canto superior direito -->
-    {hasDiscount && (
-      <div class="absolute right-2 -top-8 py-[2px] text-[14px] font-bold z-10">
-        <span class="text-gray-800">{product.discountPercent}% </span><span class="text-[#39c7bb]">OFF</span>
-      </div>
-    )}
-    
-    <!-- Imagem principal -->
-    <div class="relative aspect-square bg-white overflow-hidden w-full px-1">
-      <img 
-        src={product.image || "https://picsum.photos/400?random=999"}
-        alt={product.name}
-        class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-        loading="lazy"
-      />
-      
-      <!-- Botão de favorito -->
-      <button 
-        class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm z-20"
-        onclick="event.stopPropagation(); event.preventDefault();"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none" class="w-[15px] h-[15px] text-[#E91E63]">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-        </svg>
-      </button>
-      
-      <!-- Badge de material -->
-      {product.material && (
-        <div class="absolute top-[6px] left-[6px] py-[3px] px-[10px] flex items-center justify-center rounded-[16px] text-[11px] font-medium text-white bg-[#39c7bb] z-10 uppercase">
-          {product.material}
+<a href={href} class="block no-underline text-inherit">
+  <div class="group relative bg-white w-full md:max-w-[380px] md:mx-auto mx-0 cursor-pointer hover:shadow-md transition-shadow">
+    <!-- Imagem do produto -->
+    <div class="relative">
+      <!-- Badge de desconto posicionado no canto superior direito -->
+      {hasDiscount && (
+        <div class="absolute right-2 -top-8 py-[2px] text-[14px] font-bold z-10">
+          <span class="text-gray-800">{product.discountPercent}% </span><span class="text-[#39c7bb]">OFF</span>
         </div>
       )}
+      
+      <!-- Imagem principal -->
+      <div class="relative aspect-square bg-white overflow-hidden w-full px-1">
+        <img 
+          src={product.image || "https://picsum.photos/400?random=999"}
+          alt={product.name}
+          class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+        />
+        
+        <!-- Botão de favorito -->
+        <button 
+          class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm z-20"
+          onclick="event.stopPropagation(); event.preventDefault();"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none" class="w-[15px] h-[15px] text-[#E91E63]">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+          </svg>
+        </button>
+        
+        <!-- Badge de material -->
+        {product.material && (
+          <div class="absolute top-[6px] left-[6px] py-[3px] px-[10px] flex items-center justify-center rounded-[16px] text-[11px] font-medium text-white bg-[#39c7bb] z-10 uppercase">
+            {product.material}
+          </div>
+        )}
+      </div>
     </div>
-  </div>
 
-  <!-- Informações do produto -->
-  <div class="text-left pt-2">
-    <!-- Quantidade de peças -->
-    <p class="text-[14px] text-gray-600 mb-0.5">
-      {product.pieces ? `${product.pieces} peças` : '9 peças'}
-    </p>
-
-    <!-- Nome do produto -->
-    <h2 class="font-medium text-[14px] text-gray-800 mb-0.5 uppercase tracking-tight leading-tight group-hover:text-[#39c7bb] transition-colors">
-      {product.name}
-    </h2>
-    
-    <!-- Referência -->
-    <p class="text-[14px] text-gray-500 mb-1">
-      Ref: {product.ref || product.id}
-    </p>
-    
-    <!-- Preços -->
-    <div class="space-y-0.5">
-      <!-- Preço original -->
-      <p class="text-[14px] text-gray-500 line-through flex items-center">
-        de R$ {formatPrice(product.price)} <span class="ml-1 normal-case">por</span>
+    <!-- Informações do produto -->
+    <div class="text-left pt-2">
+      <!-- Quantidade de peças -->
+      <p class="text-[14px] text-gray-600 mb-0.5">
+        {product.pieces ? `${product.pieces} peças` : '9 peças'}
       </p>
 
-      <!-- Preço parcelado -->
-      <p class="text-[16px] font-semibold text-gray-800">
-        12x de R$ {formatPrice(installmentValue)}
+      <!-- Nome do produto -->
+      <h2 class="font-medium text-[14px] text-gray-800 mb-0.5 uppercase tracking-tight leading-tight group-hover:text-[#39c7bb] transition-colors">
+        {product.name}
+      </h2>
+      
+      <!-- Referência -->
+      <p class="text-[14px] text-gray-500 mb-1">
+        Ref: {product.ref || product.id}
       </p>
+      
+      <!-- Preços -->
+      <div class="space-y-0.5">
+        <!-- Preço original -->
+        <p class="text-[14px] text-gray-500 line-through flex items-center">
+          de R$ {formatPrice(product.price)} <span class="ml-1 normal-case">por</span>
+        </p>
 
-      <!-- Preço à vista -->
-      <p class="text-[14px] text-gray-600">
-        R$ {formatPrice(product.pricePromotional || product.price)} no pix
-      </p>
+        <!-- Preço parcelado -->
+        <p class="text-[16px] font-semibold text-gray-800">
+          12x de R$ {formatPrice(installmentValue)}
+        </p>
 
-      <!-- Aviso de entrega rápida -->
-      <div class="flex items-center gap-1 mt-1 text-[#FF9800]">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-          <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
-        </svg>
-        <span class="text-xs font-medium text-[#FF9800]">
-          Chega rapidinho
-        </span>
+        <!-- Preço à vista -->
+        <p class="text-[14px] text-gray-600">
+          R$ {formatPrice(product.pricePromotional || product.price)} no pix
+        </p>
+
+        <!-- Aviso de entrega rápida -->
+        <div class="flex items-center gap-1 mt-1 text-[#FF9800]">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
+          </svg>
+          <span class="text-xs font-medium text-[#FF9800]">
+            Chega rapidinho
+          </span>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</a>
