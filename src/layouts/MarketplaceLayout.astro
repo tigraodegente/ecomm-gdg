@@ -7,6 +7,8 @@
  */
 import { SEO } from "astro-seo";
 import "@/global.css";
+import SearchBox from "../components/ui/SearchBox.astro";
+import CategoryMenu from "../components/navigation/CategoryMenu.astro";
 
 interface Props {
   title: string;
@@ -122,32 +124,9 @@ const {
             </a>
           </div>
 
-          <!-- Busca desktop -->
+          <!-- Busca desktop com FlexSearch -->
           <div class="hidden lg:block lg:w-[60%]">
-            <form role="search" class="flex w-full">
-              <input
-                type="search"
-                placeholder="O que você está procurando?"
-                class="h-[40px] w-full px-[12px] text-[16px] font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none"
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-                maxlength="512"
-              >
-              <button 
-                type="submit"
-                id="search-input-desktop-button"
-                class="block static flex-initial m-0 py-2 px-3 w-[40px] h-[40px] max-w-[40px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-center text-black bg-white border-0 rounded-r-[8px] opacity-100 transition-all"
-                aria-label="Buscar"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" class="mx-auto">
-                  <rect width="256" height="256" fill="none"></rect>
-                  <circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></circle>
-                  <line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line>
-                </svg>
-              </button>
-            </form>
+            <SearchBox />
           </div>
 
           <!-- Links da direita -->
@@ -186,37 +165,18 @@ const {
           </div>
         </div>
 
-        <!-- Barra de busca mobile (posicionada abaixo) -->
+        <!-- Barra de busca mobile (posicionada abaixo) com FlexSearch -->
         <div class="block lg:hidden w-full mt-4">
-          <form role="search" class="flex w-full">
-            <input
-              type="search"
-              placeholder="O que você está procurando?"
-              class="h-[40px] w-full px-[12px] text-[14px] font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              spellcheck="false"
-              maxlength="512"
-            >
-            <button 
-              type="submit"
-              class="block static flex-initial m-0 py-2 px-3 w-[40px] h-[40px] max-w-[40px] min-w-auto min-h-auto font-lato text-[10px] font-normal leading-[15px] text-center text-black bg-white border-0 rounded-r-[8px] opacity-100 transition-all"
-              aria-label="Buscar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" class="mx-auto">
-                <rect width="256" height="256" fill="none"></rect>
-                <circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></circle>
-                <line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line>
-              </svg>
-            </button>
-          </form>
+          <SearchBox isMobile={true} />
         </div>
 
         <!-- Menu de categorias -->
         <nav class="hidden lg:block mt-4">
           <ul class="flex static flex-initial items-center justify-between m-0 py-4 px-0 w-full h-[52px] min-w-0 min-h-0 font-lato text-sm font-normal leading-5 text-start text-white bg-transparent border-0 border-white rounded-0 opacity-100 transition-all">
-            <slot name="navbar" />
+            <slot name="navbar">
+              <!-- Importar CategoryMenu por padrão se não for fornecido na slot -->
+              <CategoryMenu position="main" />
+            </slot>
           </ul>
         </nav>
       </div>
