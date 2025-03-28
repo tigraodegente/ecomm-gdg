@@ -2,6 +2,7 @@
 import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
 import CategoryMenu from '../../components/navigation/CategoryMenu.astro';
 import productService from '../../services/productService';
+import categoryService from '../../services/categoryService';
 
 // Obter o slug do produto da URL
 const { slug } = Astro.params;
@@ -194,8 +195,33 @@ if (!isShowingFallback) {
   canonicalUrl={`${Astro.url.origin}/produto/${product.slug}`}
   ogImage={product.images && product.images.length > 0 ? product.images[0].image_url : '/og-image.png'}
 >
-  <!-- Usar o mesmo menu de categorias do layout do marketplace -->
-  <CategoryMenu position="main" slot="navbar" />
+  <Fragment slot="navbar">
+    {/* Links distribuídos uniformemente - IGUAL à página de produtos */}
+    <li class="w-full flex justify-between">
+      {/* Todos os produtos + categorias ordenadas + links estáticos em uma única linha */}
+      <a href="/produtos" class="font-medium hover:underline whitespace-nowrap">Todos os Produtos</a>
+      
+      {categoryService.getActiveCategories()
+        .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+        .map(category => (
+          <a 
+            href={`/produtos?category=${category.cid}`} 
+            class="hover:underline font-normal whitespace-nowrap"
+          >
+            {category.name}
+          </a>
+      ))}
+      
+      {categoryService.getMenuWithCategories().staticLinks.map(link => (
+        <a 
+          href={link.url} 
+          class={`hover:underline whitespace-nowrap ${link.highlight ? 'font-medium text-[#FFEB3B]' : 'font-normal'}`}
+        >
+          {link.name}
+        </a>
+      ))}
+    </li>
+  </Fragment>
   <Fragment slot="head">
     {/* Schema.org JSON-LD para SEO */}
     <script type="application/ld+json" set:html={JSON.stringify({

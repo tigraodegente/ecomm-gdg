@@ -6,9 +6,37 @@
  * remover itens e iniciar o processo de checkout.
  */
 import MarketplaceLayout from "@/layouts/MarketplaceLayout.astro";
+import categoryService from '../services/categoryService';
 ---
 
 <MarketplaceLayout title="Carrinho de Compras">
+  <Fragment slot="navbar">
+    {/* Links distribuídos uniformemente - IGUAL à página de produtos */}
+    <li class="w-full flex justify-between">
+      {/* Todos os produtos + categorias ordenadas + links estáticos em uma única linha */}
+      <a href="/produtos" class="font-medium hover:underline whitespace-nowrap">Todos os Produtos</a>
+      
+      {categoryService.getActiveCategories()
+        .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+        .map(category => (
+          <a 
+            href={`/produtos?category=${category.cid}`} 
+            class="hover:underline font-normal whitespace-nowrap"
+          >
+            {category.name}
+          </a>
+      ))}
+      
+      {categoryService.getMenuWithCategories().staticLinks.map(link => (
+        <a 
+          href={link.url} 
+          class={`hover:underline whitespace-nowrap ${link.highlight ? 'font-medium text-[#FFEB3B]' : 'font-normal'}`}
+        >
+          {link.name}
+        </a>
+      ))}
+    </li>
+  </Fragment>
   <div class="container mx-auto px-4 py-6">
     <!-- Breadcrumb -->
     <div class="mb-4">
