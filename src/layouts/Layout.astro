@@ -3,6 +3,9 @@ import "trix/dist/trix.css";
 import { SEO } from "astro-seo";
 import Icon from "astro-iconify";
 import "@/global.css";
+import ServiceWorkerScript from '@/components/ServiceWorkerScript.astro';
+import { extractCriticalCSS, generateAsyncCSSLoader } from '../lib/performance/critical-css.js';
+import { generateOptimizedFontHtml } from '../lib/performance/font-loader.js';
 
 interface Props {
   title: string;
@@ -14,6 +17,54 @@ interface Props {
 }
 
 const { title, description = "", bodyClasses, canonicalUrl, faviconUrl, ogImageUrl = "/og-image.png" } = Astro.props;
+
+// Definir as fontes otimizadas para o site
+const optimizedFonts = [
+  {
+    family: 'Inter',
+    weight: '400',
+    style: 'normal',
+    display: 'swap',
+    url: '/fonts/inter-v12-latin-regular.{format}',
+    formats: ['woff2', 'woff'],
+    unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    sizeAdjust: 100,
+    critical: true
+  },
+  {
+    family: 'Inter',
+    weight: '700',
+    style: 'normal',
+    display: 'swap',
+    url: '/fonts/inter-v12-latin-700.{format}',
+    formats: ['woff2', 'woff'],
+    unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    sizeAdjust: 100,
+    critical: true
+  }
+];
+
+// Gerar HTML para fontes otimizadas
+const fontHtml = generateOptimizedFontHtml(optimizedFonts);
+
+// Definir DNS preconnect para recursos externos importantes
+const preconnectDomains = [
+  'https://imagedelivery.net',
+  'https://assets.onedollarstats.com',
+  'https://unpkg.com'
+];
+
+// Determinar se a página atual é uma página crítica para precarregamento
+const isHomePage = Astro.url.pathname === '/';
+const isProductPage = Astro.url.pathname.includes('/produto/');
+const isProductListPage = Astro.url.pathname.includes('/produtos');
+const isCriticalPage = isHomePage || isProductPage || isProductListPage;
+
+// Recursos críticos a serem pré-carregados
+const criticalResources = [];
+if (isHomePage) {
+  criticalResources.push('/images/logo.svg');
+}
 ---
 
 <!doctype html>
@@ -35,6 +86,30 @@ const { title, description = "", bodyClasses, canonicalUrl, faviconUrl, ogImageU
     />
     <meta name="generator" content={Astro.generator} />
     <link rel="sitemap" href="/sitemap.xml" />
+
+    {/* 
+      DNS Preconnect para domínios externos críticos
+      Isso inicia a conexão DNS antes mesmo de requisitar recursos,
+      acelerando o carregamento dos primeiros recursos de cada domínio
+    */}
+    {preconnectDomains.map(domain => (
+      <link rel="preconnect" href={domain} crossorigin />
+      <link rel="dns-prefetch" href={domain} />
+    ))}
+    
+    {/* Preload de recursos críticos específicos de cada página */}
+    {criticalResources.map(resource => (
+      <link rel="preload" href={resource} as={resource.endsWith('.svg') ? 'image' : 'image'} fetchpriority="high" />
+    ))}
+
+    {/* Fontes otimizadas */}
+    <Fragment set:html={fontHtml} />
+
+    {/* Critical CSS inline para renderização rápida inicial */}
+    <style is:inline>
+      /* Estilos críticos para renderização inicial */
+      html{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;scroll-behavior:smooth}body{margin:0;padding:0;min-height:100vh;background-color:#f8fafc}img{max-width:100%;height:auto}.container{width:100%;max-width:1280px;margin:0 auto;padding:0 1rem}.hidden{display:none}.header{position:sticky;top:0;z-index:50;background-color:#fff}.product-card{display:grid;grid-template-rows:max-content auto}.prose{max-width:unset}.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;visibility:hidden;opacity:0;transition:opacity .3s ease,visibility .3s ease}.backdrop.active{visibility:visible;opacity:1}
+    </style>
 
     <slot name="head" />
 
@@ -62,16 +137,30 @@ const { title, description = "", bodyClasses, canonicalUrl, faviconUrl, ogImageU
         imageAlt: description
       }}
       extend={{
+        // Metadados para mobile e performance
+        meta: [
+          { name: "theme-color", content: "#ffffff" },
+          { name: "color-scheme", content: "light" },
+          { name: "mobile-web-app-capable", content: "yes" },
+          { name: "apple-mobile-web-app-capable", content: "yes" },
+          { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+          { name: "format-detection", content: "telephone=no" }
+        ],
         link: [
           {
             rel: "icon",
             href: faviconUrl || "/favicon.svg",
             type: faviconUrl ? "image/png" : "image/svg+xml"
+          },
+          {
+            rel: "apple-touch-icon",
+            href: "/apple-touch-icon.png"
+          },
+          // Manifest para PWA
+          {
+            rel: "manifest",
+            href: "/manifest.json"
           }
-          // {
-          //   rel: "apple-touch-icon",
-          //   href: "/apple-touch-icon.png"
-          // }
         ]
       }}
     />
@@ -146,12 +235,75 @@ const { title, description = "", bodyClasses, canonicalUrl, faviconUrl, ogImageU
     {/* One Dollar Stats, by Drizzle */}
     <script is:inline defer data-site-id="freedom.faith.tools" src="https://assets.onedollarstats.com/tracker.js"
     ></script>
+    
+    <!-- Service Worker para cache offline e melhor performance -->
+    <ServiceWorkerScript />
   </body>
 </html>
 
-<script>
-  // @ts-ignore
-  import * as htmx from "htmx.org";
+<script is:inline src="https://unpkg.com/htmx.org@1.9.5"></script>
+<script is:inline>
+  // Garantir que htmx esteja disponível globalmente
+  window.htmx = window.htmx || { on: () => {}, off: () => {}, trigger: () => {} };
+</script>
 
-  window.htmx = htmx;
+<script is:inline>
+  // Inicializar sistemas de performance
+  document.addEventListener('DOMContentLoaded', () => {
+    // Carregar gerenciadores de performance apenas quando o DOM estiver pronto
+    import('/lib/performance/font-loader.js').then(module => {
+      module.initFontLoader({
+        criticalFonts: ['Inter']
+      });
+    }).catch(err => console.warn('Erro ao carregar font-loader:', err));
+
+    // Inicializar gerenciador de prefetch inteligente
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        import('/lib/performance/prefetch-manager.js').then(module => {
+          module.initPrefetchManager();
+        }).catch(err => console.warn('Erro ao carregar prefetch-manager:', err));
+      });
+    } else {
+      setTimeout(() => {
+        import('/lib/performance/prefetch-manager.js').then(module => {
+          module.initPrefetchManager();
+        }).catch(err => console.warn('Erro ao carregar prefetch-manager:', err));
+      }, 2000);
+    }
+
+    // Iniciar cache adaptativo após carregamento completo da página
+    window.addEventListener('load', () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          import('/lib/performance/adaptive-cache.js').then(module => {
+            module.initAdaptiveCache();
+          }).catch(err => console.warn('Erro ao carregar adaptive-cache:', err));
+        });
+      }
+    });
+  });
+
+  // Inicializar suporte para Core Web Vitals
+  (function() {
+    // Reportar Web Vitals para analytics
+    const reportWebVitals = ({ name, delta, id }) => {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/metrics/web-vitals', JSON.stringify({
+          name,
+          value: delta,
+          id,
+          page: location.pathname
+        }));
+      }
+    };
+    
+    // Se supportado, inicializar medição de Web Vitals
+    if ('onLCP' in window) {
+      window.onLCP(reportWebVitals);
+      window.onFID(reportWebVitals);
+      window.onCLS(reportWebVitals);
+      window.onINP && window.onINP(reportWebVitals);
+    }
+  })();
 </script>
