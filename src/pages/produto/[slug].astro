@@ -7,23 +7,16 @@ import productService from '../../services/productService';
 // Obter o slug do produto da URL
 const { slug } = Astro.params;
 
-// Adicionar logs detalhados para diagnóstico
-console.log(`-----------------------------------------------------`);
-console.log(`URL completa: ${Astro.url.toString()}`);
-console.log(`Slug extraído dos parâmetros: "${slug}"`);
-console.log(`Tipo do parâmetro slug: ${typeof slug}`);
-console.log(`Locais do Astro:`, JSON.stringify(Astro.locals, null, 2));
-console.log(`-----------------------------------------------------`);
+// Log simples de diagnóstico
+console.log(`[produto] Página de produto acessada: "${slug}"`);
 
-// Verificar se temos um sinal do middleware para usar dados diretos
+// Verificação especial para o slug problemático
 let product;
-const useDirectData = Astro.locals.specialProductSlug?.useDirectData === true;
 
-if (useDirectData) {
-  console.log(`🔄 [slug].astro: Detectado sinalizador do middleware para usar dados estáticos diretamente`);
-  
-  // Produto estático de demonstração
-  const sampleProduct = {
+// Produto para o caso especial "cadeira-de-alimentacao-multifuncional"
+if (slug === 'cadeira-de-alimentacao-multifuncional') {
+  // Dados estáticos diretos
+  product = {
     id: '1',
     slug: 'cadeira-de-alimentacao-multifuncional',
     name: 'Cadeira de Alimentação Multifuncional',
@@ -44,55 +37,19 @@ if (useDirectData) {
     attributes: [
       { type_display_name: 'Material', value: 'Plástico e metal' },
       { type_display_name: 'Peso máximo', value: '20kg' },
-    ]
+    ],
+    isFallback: false
   };
   
-  product = sampleProduct;
-  console.log(`🟢 [slug].astro: Usando dados estáticos diretamente (bypassando productService)`);
+  console.log(`[produto] Usando dados estáticos diretos para cadeira-de-alimentacao-multifuncional`);
 } else {
-  // Última tentativa, contornando o problema do bySlug com uma abordagem diferente
-  if (slug === 'cadeira-de-alimentacao-multifuncional') {
-    console.log(`🟠 [slug].astro: Tentativa direta específica para cadeira-de-alimentacao-multifuncional`);
-    
-    // Buscar nos dados estáticos pelo slug exato
-    // Criamos uma função local que não depende do productService
-    const getProductBySlug = (productSlug) => {
-      const sampleProducts = [
-        {
-          id: '1',
-          slug: 'cadeira-de-alimentacao-multifuncional',
-          name: 'Cadeira de Alimentação Multifuncional',
-          price: 899.90,
-          compare_at_price: 1099.90,
-          stock: 10,
-          sku: 'CAD-ALIM-001',
-          category_id: 2,
-          category_name: 'Alimentação',
-          category_cid: 'alimentacao',
-          short_description: 'Cadeira de alimentação multifuncional para o conforto do seu bebê',
-          description: `<p>A cadeira de alimentação multifuncional foi desenvolvida para proporcionar conforto e praticidade na hora das refeições do bebê.</p>
-          <p>Com diversas posições de ajuste, bandeja removível e cinto de segurança de 5 pontos.</p>`,
-          images: [
-            { image_url: 'https://placehold.co/600x400?text=Cadeira-1', alt: 'Cadeira vista 1', is_default: 1 },
-            { image_url: 'https://placehold.co/600x400?text=Cadeira-2', alt: 'Cadeira vista 2', is_default: 0 },
-          ],
-          attributes: [
-            { type_display_name: 'Material', value: 'Plástico e metal' },
-            { type_display_name: 'Peso máximo', value: '20kg' },
-          ]
-        }
-      ];
-      
-      return sampleProducts.find(p => p.slug === productSlug) || null;
-    };
-    
-    // Buscar diretamente usando nossa função local
-    product = getProductBySlug(slug);
-    console.log(`🟢 [slug].astro: Produto encontrado com função local: ${product ? 'SIM' : 'NÃO'}`);
-  } else {
-    // Para outros slugs, tentar a busca normal
-    console.log(`🔵 [slug].astro: Usando método normal para slugs que não são "cadeira-de-alimentacao-multifuncional"`);
+  // Para outros slugs, consultar normalmente o serviço
+  try {
+    console.log(`[produto] Buscando produto com slug "${slug}" no serviço`);
     product = productService.getProductById(slug, true);
+  } catch (error) {
+    console.error(`[produto] Erro ao buscar produto: ${error.message}`);
+    product = null;
   }
 }
 

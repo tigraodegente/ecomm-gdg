@@ -8,15 +8,27 @@ import productService from "../../../services/productService";
 // Obter o ID do produto da URL
 const { id } = Astro.params;
 
-// Buscar o produto pelo ID para obter o slug
-// Certifique-se de usar false para bySlug, pois estamos buscando por ID
-const product = productService.getProductById(id, false);
+console.log(`[produto/id] Redirecionamento de ID: ${id}`);
 
-// Se o produto existir e tiver slug, redirecionar para a versão com slug
-// Caso contrário, redirecionar para a página de produtos
-if (product && product.slug) {
-  return Astro.redirect(`/produto/${product.slug}`, 301); // 301 = redirecionamento permanente
-} else {
-  return Astro.redirect('/produtos', 302); // 302 = redirecionamento temporário
+// Verificar se o ID parece ser um ID numérico
+const isNumericId = /^\d+$/.test(id);
+
+if (isNumericId) {
+  // Apenas buscar no banco se parece ser um ID numérico
+  try {
+    // Explicitamente passar o segundo parâmetro como false para buscar por ID
+    const product = productService.getProductById(id, false);
+    
+    if (product && product.slug) {
+      console.log(`[produto/id] Redirecionando ID ${id} para slug: ${product.slug}`);
+      return Astro.redirect(`/produto/${product.slug}`, 301); // 301 = redirecionamento permanente
+    }
+  } catch (error) {
+    console.error(`[produto/id] Erro ao buscar produto por ID: ${error.message}`);
+  }
 }
+
+// Em todos os outros casos, redirecionar para a página de produtos
+console.log(`[produto/id] Redirecionando para página de produtos`);
+return Astro.redirect('/produtos', 302); // 302 = redirecionamento temporário
 ---
