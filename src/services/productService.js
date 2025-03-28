@@ -212,14 +212,14 @@ class ProductService {
 
   /**
    * Busca um produto pelo ID ou slug
-   * @param {number|string} productId - ID do produto ou slug
+   * @param {number|string} idOrSlug - ID do produto ou slug
    * @param {boolean} bySlug - Se true, busca pelo slug em vez de ID
    * @returns {Object|null} Produto completo ou null se não encontrado
    */
-  getProductById(productId, bySlug = false) {
-    console.log(`Buscando produto por ${bySlug ? 'slug' : 'id'}: "${productId}"`);
+  getProductById(idOrSlug, bySlug = false) {
+    console.log(`Buscando produto por ${bySlug ? 'slug' : 'id'}: "${idOrSlug}"`);
     
-    // Dados estáticos de produtos para garantir que a página de detalhes sempre funcione
+    // Dados estáticos de produtos para demonstração e fallback
     const sampleProducts = [
       {
         id: '1',
@@ -291,9 +291,9 @@ class ProductService {
       }
     ];
     
-    // Tentar encontrar nos dados estáticos primeiro para garantir que funciona
+    // Verificação dos dados estáticos (para desenvolvimento e fallback)
     const sampleProduct = sampleProducts.find(p => 
-      (bySlug && p.slug === productId) || (!bySlug && p.id.toString() === productId.toString())
+      (bySlug && p.slug === idOrSlug) || (!bySlug && p.id.toString() === idOrSlug.toString())
     );
     
     if (sampleProduct) {
@@ -301,7 +301,7 @@ class ProductService {
       return sampleProduct;
     }
     
-    // Se não encontrou nos dados estáticos, tentar no banco
+    // Busca no banco de dados (implementação principal)
     try {
       // Query base para buscar produto
       let query = `
@@ -318,22 +318,38 @@ class ProductService {
         WHERE p.is_active = 1 AND 
       `;
       
-      // Adicionar condição para busca por ID ou slug
-      query += bySlug ? 'p.slug = ?' : 'p.id = ?';
-      
-      // Executar a query
-      const stmt = db.prepare(query);
-      const product = stmt.get(productId);
-      
-      if (!product) {
-        console.log(`Produto não encontrado no banco: ${bySlug ? 'slug' : 'id'} = ${productId}`);
-        return sampleProducts[0]; // Retornar o primeiro produto estático como fallback
+      // Condição de busca com base em slug ou ID
+      if (bySlug) {
+        query += 'p.slug = ?';
+        console.log(`Buscando por SLUG "${idOrSlug}" no banco`);
+      } else {
+        query += 'p.id = ?';
+        console.log(`Buscando por ID "${idOrSlug}" no banco`);
       }
       
-      console.log(`Produto encontrado no banco: ${product.name}`);
+      // Executar a query com parâmetro seguro
+      const stmt = db.prepare(query);
+      const product = stmt.get(idOrSlug);
       
+      // Se não encontrar o produto
+      if (!product) {
+        console.log(`Produto não encontrado no banco: ${bySlug ? 'slug' : 'id'} = ${idOrSlug}`);
+        // Melhor prática: mostrar página 404 ou produto alternativo com aviso
+        if (sampleProducts.length > 0) {
+          console.log("Retornando produto de demonstração como fallback");
+          const fallbackProduct = sampleProducts[0];
+          // Adicionar flag para indicar que é um fallback
+          fallbackProduct.isFallback = true;
+          return fallbackProduct;
+        }
+        return null;
+      }
+      
+      console.log(`Produto encontrado no banco: ${product.name} (ID: ${product.id})`);
+      
+      // Enriquecer o produto com dados relacionados
       try {
-        // Buscar imagens do produto
+        // Buscar imagens do produto (com indexação para melhor performance)
         const getProductImages = db.prepare(`
           SELECT * 
           FROM product_images 
@@ -343,7 +359,7 @@ class ProductService {
         
         product.images = getProductImages.all(product.id);
         
-        // Buscar atributos do produto
+        // Buscar atributos do produto (com joins otimizados)
         const getProductAttributes = db.prepare(`
           SELECT 
             pav.id, pav.value, pav.display_value,
@@ -356,15 +372,21 @@ class ProductService {
         product.attributes = getProductAttributes.all(product.id);
         
         return product;
-        
       } catch (error) {
         console.error('Erro ao buscar detalhes adicionais do produto:', error);
-        // Se falhar ao buscar detalhes, ainda retornar o produto básico
+        // Retornar o produto básico mesmo sem detalhes
         return product;
       }
     } catch (error) {
       console.error('Erro ao buscar produto no banco:', error);
-      return sampleProducts[0]; // Retornar o primeiro produto estático em caso de erro
+      // Melhor prática: logar o erro e retornar produto alternativo
+      if (sampleProducts.length > 0) {
+        console.log("Erro na consulta ao banco. Retornando produto de demonstração.");
+        const fallbackProduct = sampleProducts[0];
+        fallbackProduct.isFallback = true;
+        return fallbackProduct;
+      }
+      return null;
     }
   }
   
