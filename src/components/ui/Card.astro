@@ -2,30 +2,121 @@
 /**
  * Card Component
  * 
- * A general-purpose card container component.
+ * Um componente flexível de card que pode ser usado para vários propósitos.
+ * Suporta vários layouts, efeitos de hover e slots nomeados para personalização.
  */
 interface Props {
+  /** URL para navegação, se fornecido o card será renderizado como anchor tag */
   href?: string;
+  /** Habilita efeito de hover (sombra e elevação) */
   hoverEffect?: boolean;
+  /** Adiciona borda ao card */
+  bordered?: boolean;
+  /** Adiciona classes CSS personalizadas */
   class?: string;
+  /** Define o padding do card */
+  padding?: 'none' | 'small' | 'medium' | 'large';
+  /** Define o background do card */
+  background?: 'white' | 'gray' | 'transparent';
+  /** Animação de escala na imagem ao passar o mouse */
+  imageHoverEffect?: boolean;
+  /** Alinhamento do conteúdo do card */
+  align?: 'left' | 'center' | 'right';
+  /** Comportamento de onClick (para impedir propagação) */
+  preventDefaultClick?: boolean;
+  /** Valor para data-testid para testes */
+  testId?: string;
 }
 
 const { 
   href,
   hoverEffect = true,
+  bordered = false,
   class: className = '',
+  padding = 'medium',
+  background = 'white',
+  imageHoverEffect = false,
+  align = 'left',
+  preventDefaultClick = false,
+  testId,
 } = Astro.props;
 
+// Determinar a tag a ser usada
 const Tag = href ? 'a' : 'div';
+
+// Configurar a classe de padding
+const paddingClass = {
+  'none': 'p-0',
+  'small': 'p-2',
+  'medium': 'p-4',
+  'large': 'p-6'
+}[padding];
+
+// Configurar a classe de background
+const backgroundClass = {
+  'white': 'bg-white',
+  'gray': 'bg-gray-100',
+  'transparent': 'bg-transparent'
+}[background];
+
+// Configurar a classe de alinhamento
+const alignClass = {
+  'left': 'text-left',
+  'center': 'text-center',
+  'right': 'text-right'
+}[align];
+
+// Montar as classes do card
 const cardClasses = [
-  'card',
-  hoverEffect ? 'hover:shadow-md hover:-translate-y-1' : '',
+  'relative',
+  backgroundClass,
+  paddingClass,
+  alignClass,
+  bordered ? 'border border-gray-200 rounded-md' : '',
+  hoverEffect ? 'hover:shadow-md transition-shadow duration-300' : '',
   className
 ].filter(Boolean).join(' ');
 
-const props = href ? { href } : {};
+// Configurar os props adicionais
+const additionalProps: Record<string, any> = {};
+if (href) additionalProps.href = href;
+if (testId) additionalProps['data-testid'] = testId;
+if (preventDefaultClick) additionalProps.onclick = "event.preventDefault(); event.stopPropagation();";
 ---
 
-<Tag class={cardClasses} {...props}>
-  <slot />
+<Tag class={cardClasses} {...additionalProps}>
+  <!-- Header do Card (opcional) -->
+  {Astro.slots.has('header') && (
+    <div class="card-header mb-3">
+      <slot name="header" />
+    </div>
+  )}
+  
+  <!-- Imagem do Card (opcional) -->
+  {Astro.slots.has('image') && (
+    <div class="card-image relative overflow-hidden">
+      <div class={`${imageHoverEffect ? 'group' : ''}`}>
+        <slot name="image" />
+      </div>
+    </div>
+  )}
+  
+  <!-- Badge/etiqueta posicionado no canto (opcional) -->
+  {Astro.slots.has('badge') && (
+    <div class="card-badge absolute top-2 right-2 z-10">
+      <slot name="badge" />
+    </div>
+  )}
+  
+  <!-- Corpo principal do Card -->
+  <div class="card-body">
+    <slot />
+  </div>
+  
+  <!-- Rodapé do Card (opcional) -->
+  {Astro.slots.has('footer') && (
+    <div class="card-footer mt-3">
+      <slot name="footer" />
+    </div>
+  )}
 </Tag>

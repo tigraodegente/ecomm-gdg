@@ -1,8 +1,10 @@
 ---
 /**
- * Componente de Filtros
+ * Componente de Filtros Unificado
  * 
- * Design original da Grão de Gente com dados dinâmicos.
+ * Um componente de filtro flexível que pode ser exibido em dois modos:
+ * - Modo completo: Design original da Grão de Gente com dados dinâmicos
+ * - Modo simplificado: Versão compacta para uso em telas menores
  */
 import productService from '../../services/productService';
 import categoryService from '../../services/categoryService';
@@ -22,14 +24,27 @@ interface ColorInfo {
   value?: string;
 }
 
+interface PriceRange {
+  min: number;
+  max: number | null;
+  label: string;
+}
+
 interface Props {
+  // Conteúdo dos filtros
   categories?: FilterCount[];
   colors?: ColorInfo[];
   sizes?: FilterCount[];
   materials?: FilterCount[];
+  priceRanges?: PriceRange[];
   hasImmediateDelivery?: boolean;
   deliveryCount?: number;
+  
+  // Controle de estilo e comportamento
+  simplified?: boolean;
   showClearFilters?: boolean;
+  
+  // Estado atual dos filtros
   search?: string;
   minPrice?: string | number;
   maxPrice?: string | number;
@@ -40,13 +55,26 @@ interface Props {
 }
 
 const { 
+  // Conteúdo dos filtros
   categories = [],
   colors = [],
   sizes = [],
   materials = [],
+  priceRanges = [
+    { min: 0, max: 50, label: 'Até R$ 50' },
+    { min: 50, max: 100, label: 'R$ 50 - R$ 100' },
+    { min: 100, max: 200, label: 'R$ 100 - R$ 200' },
+    { min: 200, max: 500, label: 'R$ 200 - R$ 500' },
+    { min: 500, max: null, label: 'Acima de R$ 500' }
+  ],
   hasImmediateDelivery = false,
   deliveryCount = 0,
+  
+  // Controle de estilo e comportamento
+  simplified = false,
   showClearFilters = true,
+  
+  // Estado atual dos filtros
   search = '',
   minPrice = '',
   maxPrice = '',
@@ -398,213 +426,357 @@ const sizeTypeId = attributeTypes.find(
 const materialTypeId = attributeTypes.find(
   t => t.name.toLowerCase().includes('material')
 )?.id || 3; // Fallback para ID 3 (material);
+
+// Formatar preço para exibição
+function formatCurrency(value) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  }).format(value);
+}
+
+// Verificar qual faixa de preço está selecionada
+function isPriceRangeSelected(min, max) {
+  const currentMin = minPrice ? Number(minPrice) : null;
+  const currentMax = maxPrice ? Number(maxPrice) : null;
+  
+  return currentMin === min && currentMax === max;
+}
 ---
 
-<div class="shadow-none bg-[#F5F5F5] w-[100%] h-full">
-  <div class="bg-white rounded-none shadow-none p-6">
-    <!-- Cabeçalho com título e botão limpar -->
-    <div class="flex items-center justify-between w-full pb-4">
-      <h2 class="text-lg font-semibold text-[#777777] m-0 p-0">Filtros</h2>
-      {showClearFilters && (
-        <a href="/produtos" class="text-sm text-[#40C1AC] font-medium border-0 bg-transparent">
-          Limpar filtros
-        </a>
+{/* Modo completo - Design Original da Grão de Gente */}
+{!simplified && (
+  <div class="shadow-none bg-[#F5F5F5] w-[100%] h-full">
+    <div class="bg-white rounded-none shadow-none p-6">
+      {/* Cabeçalho com título e botão limpar */}
+      <div class="flex items-center justify-between w-full pb-4">
+        <h2 class="text-lg font-semibold text-[#777777] m-0 p-0">Filtros</h2>
+        {showClearFilters && (
+          <a href="/produtos" class="text-sm text-[#40C1AC] font-medium border-0 bg-transparent">
+            Limpar filtros
+          </a>
+        )}
+      </div>
+
+      {/* Filtro de entrega imediata em destaque */}
+      {deliveryCount > 0 && (
+        <div class="mb-6">
+          <div class="w-full flex items-center px-4 py-3 rounded-md bg-[#EEEEEE] mb-4">
+            <div class="flex items-center flex-1 min-w-0">
+              <span class="text-sm font-medium text-[#333333] truncate">Entrega imediata</span>
+              <span class="ml-1 text-xs text-[#777777] whitespace-nowrap">({deliveryCount})</span>
+            </div>
+            
+            {/* Switch toggle */}
+            <div class="relative flex items-center ml-3">
+              <a 
+                href={getFilterUrl({ hasImmediateDelivery: !hasImmediateDelivery })}
+                class="block"
+              >
+                <div class:list={[
+                  "w-12 h-6 rounded-full flex items-center p-0.5 transition-colors", 
+                  hasImmediateDelivery ? "bg-[#40C1AC]" : "bg-[#CCCCCC]"
+                ]}>
+                  <div class:list={[
+                    "w-5 h-5 bg-white rounded-full shadow absolute transition-transform",
+                    hasImmediateDelivery ? "translate-x-6" : "translate-x-0.5"
+                  ]}></div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Categorias */}
+      {dynamicCategories.length > 0 && (
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-[#777777] mb-3">Categorias</h3>
+          <div class="flex flex-wrap gap-2">
+            {dynamicCategories.map(category => (
+              <a
+                href={getFilterUrl({ category: category.cid, page: 1 })}
+                class:list={[
+                  "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                  allSelectedCategories.includes(category.cid) 
+                    ? "bg-[#6EDAC8] text-white font-medium" 
+                    : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD]"
+                ]}
+              >
+                {allSelectedCategories.includes(category.cid) && <span class="mr-1">✓</span>}
+                <span>{category.name}</span>
+                <span class="ml-1.5 text-xs text-[#666666] font-medium">({category.count})</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Preço */}
+      <div class="mb-6">
+        <h3 class="text-sm font-semibold text-[#777777] mb-3">Preço</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#777777] mb-1">Mínimo</label>
+            <form action="" method="get" id="minPriceForm" class="flex">
+              {/* Manter parâmetros existentes em campos ocultos */}
+              {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+              {search && <input type="hidden" name="search" value={search} />}
+              {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
+              {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
+              {Object.entries(attributeFilters).map(([typeId, values]) => (
+                values.map(value => (
+                  <input type="hidden" name={`attr_${typeId}`} value={value} />
+                ))
+              ))}
+              <input
+                type="text"
+                name="minPrice"
+                class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
+                placeholder="R$ Min"
+                value={minPrice || ''}
+                onchange="document.getElementById('minPriceForm').submit()"
+              />
+            </form>
+          </div>
+          <div>
+            <label class="block text-xs text-[#777777] mb-1">Máximo</label>
+            <form action="" method="get" id="maxPriceForm" class="flex">
+              {/* Manter parâmetros existentes em campos ocultos */}
+              {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+              {search && <input type="hidden" name="search" value={search} />}
+              {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
+              {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
+              {Object.entries(attributeFilters).map(([typeId, values]) => (
+                values.map(value => (
+                  <input type="hidden" name={`attr_${typeId}`} value={value} />
+                ))
+              ))}
+              <input
+                type="text"
+                name="maxPrice"
+                class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
+                placeholder="R$ Max"
+                value={maxPrice || ''}
+                onchange="document.getElementById('maxPriceForm').submit()"
+              />
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Cores */}
+      {dynamicColors.length > 0 && (
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-[#777777] mb-3">Cores</h3>
+          <div class="flex flex-wrap gap-2">
+            {dynamicColors.map(color => (
+              <a
+                href={getAttributeFilterUrl(colorTypeId, color.value)}
+                class:list={[
+                  "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
+                  color.selected 
+                    ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                    : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
+                ]}
+                aria-pressed={color.selected ? "true" : "false"}
+                role="button"
+              >
+                {color.selected && <span class="mr-1">✓</span>}
+                <span 
+                  class="w-4 h-4 rounded-full mr-2 border border-gray-200" 
+                  style={`background-color: ${color.hex}`}
+                ></span>
+                <span>{color.name}</span>
+                <span class="ml-1.5 text-xs text-[#666666] font-medium">({color.count})</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Tamanhos */}
+      {dynamicSizes.length > 0 && (
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-[#777777] mb-3">Tamanho</h3>
+          <div class="flex flex-wrap gap-2">
+            {dynamicSizes.map(size => (
+              <a
+                href={getAttributeFilterUrl(sizeTypeId, size.value)}
+                class:list={[
+                  "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
+                  size.selected 
+                    ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                    : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
+                ]}
+                aria-pressed={size.selected ? "true" : "false"}
+                role="button"
+              >
+                {size.selected && <span class="mr-1">✓</span>}
+                <span>{size.name}</span>
+                <span class="ml-1.5 text-xs text-[#666666] font-medium">({size.count})</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Materiais */}
+      {dynamicMaterials.length > 0 && (
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-[#777777] mb-3">Material</h3>
+          <div class="flex flex-wrap gap-2">
+            {dynamicMaterials.map(material => (
+              <a
+                href={getAttributeFilterUrl(materialTypeId, material.value)}
+                class:list={[
+                  "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
+                  material.selected 
+                    ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                    : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
+                ]}
+                aria-pressed={material.selected ? "true" : "false"}
+                role="button"
+              >
+                {material.selected && <span class="mr-1">✓</span>}
+                <span>{material.name}</span>
+                <span class="ml-1.5 text-xs text-[#666666] font-medium">({material.count})</span>
+              </a>
+            ))}
+          </div>
+        </div>
       )}
     </div>
+  </div>
+)}
 
-    <!-- Filtro de entrega imediata em destaque -->
-    {deliveryCount > 0 && (
-      <div class="mb-6">
-        <div class="w-full flex items-center px-4 py-3 rounded-md bg-[#EEEEEE] mb-4">
-          <div class="flex items-center flex-1 min-w-0">
-            <span class="text-sm font-medium text-[#333333] truncate">Entrega imediata</span>
-            <span class="ml-1 text-xs text-[#777777] whitespace-nowrap">({deliveryCount})</span>
-          </div>
-          
-          <!-- Switch toggle -->
-          <div class="relative flex items-center ml-3">
-            <a 
-              href={getFilterUrl({ hasImmediateDelivery: !hasImmediateDelivery })}
-              class="block"
-            >
-              <div class:list={[
-                "w-12 h-6 rounded-full flex items-center p-0.5 transition-colors", 
-                hasImmediateDelivery ? "bg-[#40C1AC]" : "bg-[#CCCCCC]"
-              ]}>
-                <div class:list={[
-                  "w-5 h-5 bg-white rounded-full shadow absolute transition-transform",
-                  hasImmediateDelivery ? "translate-x-6" : "translate-x-0.5"
-                ]}></div>
-              </div>
-            </a>
+{/* Modo simplificado */}
+{simplified && (
+  <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+    <h2 class="text-lg font-medium text-gray-400 mb-4">Filtros</h2>
+    
+    {/* Busca rápida */}
+    <div class="mb-6">
+      <label for="filter-search" class="block text-sm font-medium text-gray-700 mb-1">Busca</label>
+      <form action="/produtos" method="get" class="relative">
+        {/* Manter parâmetros existentes em campos ocultos */}
+        {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+        {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
+        {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
+        
+        <div class="relative rounded-md shadow-sm">
+          <input
+            type="text"
+            name="search"
+            id="filter-search"
+            class="block w-full rounded-md border-gray-300 pr-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            placeholder="Buscar produtos..."
+            value={search || ''}
+          />
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+            <button type="submit" class="text-gray-400 hover:text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
-    )}
-
-
-    <!-- Ordenação removida pois já existe na barra superior -->
-
-    <!-- Categorias -->
+      </form>
+    </div>
+    
+    {/* Categorias */}
     {dynamicCategories.length > 0 && (
       <div class="mb-6">
-        <h3 class="text-sm font-semibold text-[#777777] mb-3">Categorias</h3>
-        <div class="flex flex-wrap gap-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">Categorias</h3>
+        <div class="space-y-1 max-h-48 overflow-y-auto pr-2">
           {dynamicCategories.map(category => (
-            <a
+            <a 
               href={getFilterUrl({ category: category.cid, page: 1 })}
-              class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
-                allSelectedCategories.includes(category.cid) 
-                  ? "bg-[#6EDAC8] text-white font-medium" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD]"
-              ]}
+              class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${allSelectedCategories.includes(category.cid) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600'}`}
             >
-              {allSelectedCategories.includes(category.cid) && <span class="mr-1">✓</span>}
-              <span>{category.name}</span>
-              <span class="ml-1.5 text-xs text-[#666666] font-medium">({category.count})</span>
+              {category.name} 
+              {category.count && <span class="text-xs text-gray-600 font-medium ml-1">({category.count})</span>}
             </a>
           ))}
         </div>
       </div>
     )}
     
-    <!-- Preço -->
+    {/* Faixa de preço */}
     <div class="mb-6">
-      <h3 class="text-sm font-semibold text-[#777777] mb-3">Preço</h3>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs text-[#777777] mb-1">Mínimo</label>
-          <form action="" method="get" id="minPriceForm" class="flex">
-            {/* Manter parâmetros existentes em campos ocultos */}
-            {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
-            {search && <input type="hidden" name="search" value={search} />}
-            {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
-            {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
-            {Object.entries(attributeFilters).map(([typeId, values]) => (
-              values.map(value => (
-                <input type="hidden" name={`attr_${typeId}`} value={value} />
-              ))
-            ))}
-            <input
-              type="text"
-              name="minPrice"
-              class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
-              placeholder="R$ Min"
-              value={minPrice || ''}
-              onchange="document.getElementById('minPriceForm').submit()"
-            />
-          </form>
-        </div>
-        <div>
-          <label class="block text-xs text-[#777777] mb-1">Máximo</label>
-          <form action="" method="get" id="maxPriceForm" class="flex">
-            {/* Manter parâmetros existentes em campos ocultos */}
-            {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
-            {search && <input type="hidden" name="search" value={search} />}
-            {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
-            {selectedSort && <input type="hidden" name="sort" value={selectedSort} />}
-            {Object.entries(attributeFilters).map(([typeId, values]) => (
-              values.map(value => (
-                <input type="hidden" name={`attr_${typeId}`} value={value} />
-              ))
-            ))}
-            <input
-              type="text"
-              name="maxPrice"
-              class="w-full h-[40px] rounded-md border border-[#DDDDDD] outline-none px-3 text-[#333333]"
-              placeholder="R$ Max"
-              value={maxPrice || ''}
-              onchange="document.getElementById('maxPriceForm').submit()"
-            />
-          </form>
-        </div>
+      <h3 class="text-sm font-medium text-gray-400 mb-2">Faixa de Preço</h3>
+      <div class="space-y-1">
+        {priceRanges.map(range => (
+          <a 
+            href={getFilterUrl({ minPrice: range.min, maxPrice: range.max, page: 1 })}
+            class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${isPriceRangeSelected(range.min, range.max) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600'}`}
+          >
+            {range.label}
+          </a>
+        ))}
       </div>
     </div>
-
-    <!-- Cores -->
-    {dynamicColors.length > 0 && (
-      <div class="mb-6">
-        <h3 class="text-sm font-semibold text-[#777777] mb-3">Cores</h3>
-        <div class="flex flex-wrap gap-2">
-          {dynamicColors.map(color => (
-            <a
-              href={getAttributeFilterUrl(colorTypeId, color.value)}
-              class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
-                color.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
-              ]}
-              aria-pressed={color.selected ? "true" : "false"}
-              role="button"
-            >
-              {color.selected && <span class="mr-1">✓</span>}
-              <span 
-                class="w-4 h-4 rounded-full mr-2 border border-gray-200" 
-                style={`background-color: ${color.hex}`}
-              ></span>
-              <span>{color.name}</span>
-              <span class="ml-1.5 text-xs text-[#666666] font-medium">({color.count})</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    )}
     
-    <!-- Tamanhos -->
-    {dynamicSizes.length > 0 && (
-      <div class="mb-6">
-        <h3 class="text-sm font-semibold text-[#777777] mb-3">Tamanho</h3>
-        <div class="flex flex-wrap gap-2">
-          {dynamicSizes.map(size => (
-            <a
-              href={getAttributeFilterUrl(sizeTypeId, size.value)}
-              class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
-                size.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
-              ]}
-              aria-pressed={size.selected ? "true" : "false"}
-              role="button"
-            >
-              {size.selected && <span class="mr-1">✓</span>}
-              <span>{size.name}</span>
-              <span class="ml-1.5 text-xs text-[#666666] font-medium">({size.count})</span>
-            </a>
-          ))}
+    {/* Filtro de preço personalizado */}
+    <div class="mb-6">
+      <h3 class="text-sm font-medium text-gray-400 mb-2">Preço Personalizado</h3>
+      <form action="/produtos" method="get" class="space-y-3">
+        {/* Manter parâmetros existentes em campos ocultos */}
+        {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
+        {search && <input type="hidden" name="search" value={search} />}
+        
+        <div>
+          <label for="filter-price-from" class="block text-xs text-gray-500 mb-1">De</label>
+          <input
+            type="number"
+            name="minPrice"
+            id="filter-price-from"
+            min="0"
+            step="1"
+            class="block w-full rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            placeholder="Min"
+            value={minPrice || ''}
+          />
         </div>
-      </div>
-    )}
+        <div>
+          <label for="filter-price-to" class="block text-xs text-gray-500 mb-1">Até</label>
+          <input
+            type="number"
+            name="maxPrice"
+            id="filter-price-to"
+            min="0"
+            step="1"
+            class="block w-full rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            placeholder="Max"
+            value={maxPrice || ''}
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          Aplicar
+        </button>
+      </form>
+    </div>
     
-    <!-- Materiais -->
-    {dynamicMaterials.length > 0 && (
-      <div class="mb-6">
-        <h3 class="text-sm font-semibold text-[#777777] mb-3">Material</h3>
-        <div class="flex flex-wrap gap-2">
-          {dynamicMaterials.map(material => (
-            <a
-              href={getAttributeFilterUrl(materialTypeId, material.value)}
-              class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
-                material.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
-              ]}
-              aria-pressed={material.selected ? "true" : "false"}
-              role="button"
-            >
-              {material.selected && <span class="mr-1">✓</span>}
-              <span>{material.name}</span>
-              <span class="ml-1.5 text-xs text-[#666666] font-medium">({material.count})</span>
-            </a>
-          ))}
-        </div>
+    {/* Limpar filtros */}
+    {showClearFilters && (
+      <div class="pt-2 border-t border-gray-200">
+        <a
+          href="/produtos"
+          class="text-sm text-primary-600 hover:text-primary-800 font-medium flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Limpar todos os filtros
+        </a>
       </div>
     )}
   </div>
-</div>
+)}
 
 <style is:global>
   body {

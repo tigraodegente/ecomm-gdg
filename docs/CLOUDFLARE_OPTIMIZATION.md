@@ -80,6 +80,7 @@ Os seguintes endpoints foram convertidos para Cloudflare Workers:
 
 O KV é utilizado para:
 
+- Cache de fragmentos HTML (headers, footers, menus)
 - Cache de produtos e categorias
 - Índice de busca distribuído
 - Configurações dinâmicas da aplicação
@@ -176,6 +177,26 @@ Configuração adaptada para otimização por tipo de página:
 - **Páginas de Produto**: ISR com cache de 1 dia e revalidação a cada 1 hora
 - **Páginas de Categoria**: ISR com cache de 2 horas
 - **Páginas Dinâmicas** (carrinho, checkout): SSR puro sem cache
+
+### Componentes Otimizados
+
+Implementado sistema de componentes otimizados para alta performance:
+
+- **Componentes Reutilizáveis**: Header, footer, menu de categorias, cards de produto
+- **Eficiência de Renderização**: Componentes desenhados para renderização rápida
+- **Props Otimizadas**: Interface mínima para reduzir overhead de dados
+- **Lazy Loading**: Carregamento sob demanda de componentes não críticos
+
+Exemplo de uso com componente Astro:
+
+```astro
+<CategoryMenu
+  position="main"
+  showIcons={false}
+>
+  <!-- Menu de categorias aqui -->
+</CategoryMenu>
+```
 
 ### Streaming HTML
 
@@ -325,3 +346,5 @@ A arquitetura baseada em Cloudflare proporciona um equilíbrio ideal entre perfo
 - Expandir Workers KV para mais endpoints críticos
 - Otimizar ainda mais o Stream HTML com carregamento parcial de componentes
 - Melhorar a invalidação de cache baseada em padrões de uso
+- Expandir o cache de fragmentos para mais componentes da UI
+- Implementar pré-aqueciemento automático do cache após deploys

@@ -134,55 +134,69 @@ O design segue o estilo visual do site Grão de Gente, com ênfase em:
 
 Para um desenvolvimento mais eficiente e estruturado, adotaremos uma abordagem "modelo-primeiro" que define completamente a estrutura de dados antes de implementar a interface. Esta abordagem minimiza retrabalho e facilita a integração entre os componentes.
 
-### 1. Modelagem Completa do Banco de Dados
-- [ ] **Esquema de Categorias e Produtos**
+### 1. Modelagem Completa do Banco de Dados ✅
+- [x] **Esquema de Categorias e Produtos**
   - [x] Definição de tabela de Categorias (hierárquica)
-  - [ ] Definição de tabela de CIDs para Categorias (para usar em URLs e identificação)
-  - [ ] Definição de tabela de Produtos
-  - [ ] Definição de tabela de Variantes de Produtos
-  - [ ] Definição de tabela de Imagens de Produtos
-  - [ ] Definição de tabela de Atributos e Valores
-  - [ ] Definição de tabela de Avaliações de Produtos
+  - [x] Definição de tabela de CIDs para Categorias (para usar em URLs e identificação)
+  - [x] Definição de tabela de Produtos
+  - [x] Definição de tabela de Variantes de Produtos
+  - [x] Definição de tabela de Imagens de Produtos
+  - [x] Definição de tabela de Atributos e Valores
+  - [x] Definição de tabela de Avaliações de Produtos
 
-- [ ] **Esquema de Usuários e Vendedores**
+- [x] **Esquema de Usuários e Vendedores**
   - [x] Definição de tabela de Usuários (já existente via Better-auth)
-  - [ ] Definição de tabela de Perfis de Usuário (extensão do Better-auth)
-  - [ ] Definição de tabela de Vendedores/Lojistas
-  - [ ] Definição de tabela de Configurações de Vendedor
-  - [ ] Definição de tabela de Endereços (usuários e vendedores)
+  - [x] Definição de tabela de Perfis de Usuário (extensão do Better-auth)
+  - [x] Definição de tabela de Vendedores/Lojistas
+  - [x] Definição de tabela de Configurações de Vendedor
+  - [x] Definição de tabela de Endereços (usuários e vendedores)
 
-- [ ] **Esquema de Pedidos e Carrinho**
-  - [ ] Definição de tabela de Pedidos
-  - [ ] Definição de tabela de Itens de Pedido
-  - [ ] Definição de tabela de Status de Pedido
-  - [ ] Definição de tabela de Pagamentos
-  - [ ] Definição de tabela temporária de Carrinho
+- [x] **Esquema de Pedidos e Carrinho**
+  - [x] Definição de tabela de Pedidos
+  - [x] Definição de tabela de Itens de Pedido
+  - [x] Definição de tabela de Status de Pedido
+  - [x] Definição de tabela de Pagamentos
+  - [x] Definição de tabela temporária de Carrinho
 
-- [ ] **Esquema de Frete e Entrega**
-  - [ ] Definição de tabela de Regras de Frete por Vendedor
-  - [ ] Definição de tabela de Faixas de CEP para cálculo de frete
-  - [ ] Definição de tabela de Frete por Produto (para produtos com frete especial)
-  - [ ] Definição de tabela de Prazos de Entrega por região
-  - [ ] Definição de tabela de Consolidação de Frete (para multi-vendedor)
+- [x] **Esquema de Frete e Entrega**
+  - [x] Definição de tabela de Regras de Frete por Vendedor
+  - [x] Definição de tabela de Faixas de CEP para cálculo de frete
+  - [x] Definição de tabela de Frete por Produto (para produtos com frete especial)
+  - [x] Definição de tabela de Prazos de Entrega por região
+  - [x] Definição de tabela de Consolidação de Frete (para multi-vendedor)
 
-- [ ] **Esquema de Conteúdo e Configurações**
-  - [ ] Definição de tabela de Links de Menu (não-categorias)
-  - [ ] Definição de tabela de Banners
-  - [ ] Definição de tabela de Páginas Estáticas (CMS)
-  - [ ] Definição de tabela de Blocos de Conteúdo Reutilizáveis
-  - [ ] Definição de tabela de SEO (meta tags, configurações por página)
-  - [ ] Definição de tabela de Configurações Globais
+- [x] **Esquema de Conteúdo e Configurações**
+  - [x] Definição de tabela de Links de Menu (não-categorias)
+  - [x] Definição de tabela de Banners
+  - [x] Definição de tabela de Páginas Estáticas (CMS)
+  - [x] Definição de tabela de Blocos de Conteúdo Reutilizáveis
+  - [x] Definição de tabela de SEO (meta tags, configurações por página)
+  - [x] Definição de tabela de Configurações Globais
+
+- [x] **Esquema de Features Adicionais**
+  - [x] Definição de tabela de Wishlist/Lista de Favoritos
+  - [x] Definição de tabela de Notificações (templates, configurações e logs)
+  - [x] Definição de tabela de Analytics (eventos de usuário, métricas, histórico)
+  - [x] Definição de tabela de Gestão de Disputas (tickets, disputas, comunicações)
+  - [x] Definição de tabela de Gestão Avançada de Estoque (alertas, reservas, histórico)
+
+- [x] **Esquema de Otimização para Alta Demanda**
+  - [x] Definição de tabela de Cache para produtos frequentemente acessados
+  - [x] Definição de tabela de Estatísticas de Busca para otimização
+  - [x] Definição de tabela de Indexação de Produtos para busca rápida
+  - [x] Definição de tabela de Controle de Carga para balanceamento
+  - [x] Definição de tabela de Métricas de Performance
 
 ### 2. Scripts de Migração e Seed de Dados
-- [ ] **Migrations**
-  - [ ] Criar migration inicial para esquema base
-  - [ ] Criar migration para tabelas de produtos e categorias
-  - [ ] Criar migration para tabelas de vendedores
-  - [ ] Criar migration para tabelas de frete
-  - [ ] Criar migration para tabelas de conteúdo
+- [x] **Migrations**
+  - [x] Criar migration inicial para esquema base (contendo todas as tabelas)
+  - [x] Configurar sistema de migração com Drizzle ORM
+  - [x] Executar a migration inicial e validar estrutura
+  - [x] Desenvolver scripts adicionais para alterações futuras
 
-- [ ] **Seeds**
-  - [ ] Desenvolver seed para categorias e subcategorias (com CIDs)
+- [x] **Seeds**
+  - [x] Desenvolver seed para categorias e subcategorias (com CIDs)
+  - [x] Desenvolver seed para status de pedidos
   - [ ] Desenvolver seed para produtos de exemplo (com variantes)
   - [ ] Desenvolver seed para regras de frete (por vendedor, por região)
   - [ ] Desenvolver seed para usuários e vendedores de teste
@@ -190,19 +204,19 @@ Para um desenvolvimento mais eficiente e estruturado, adotaremos uma abordagem "
   - [ ] Desenvolver seed para banners e conteúdo da home
 
 ### 3. Implementação dos Serviços de Acesso a Dados
-- [ ] **Serviço de Categorias**
-  - [ ] Implementar getCategoryTree (hierarquia completa)
-  - [ ] Implementar getMainCategories (categorias principais)
-  - [ ] Implementar getSubcategories (subcategorias de uma categoria)
-  - [ ] Implementar getCategoryByCid (busca por identificador único)
-  - [ ] Implementar getMenuWithCategories (menu completo com categorias e links)
+- [x] **Serviço de Categorias**
+  - [x] Implementar getCategoryTree (hierarquia completa)
+  - [x] Implementar getMainCategories (categorias principais)
+  - [x] Implementar getSubcategories (subcategorias de uma categoria)
+  - [x] Implementar getCategoryByCid (busca por identificador único)
+  - [x] Implementar getMenuWithCategories (menu completo com categorias e links)
 
-- [ ] **Serviço de Produtos**
-  - [ ] Implementar listProducts (com filtros e paginação)
-  - [ ] Implementar getProductById (com todas as relações)
-  - [ ] Implementar getProductsByCategoryId
-  - [ ] Implementar getProductVariants (variações de um produto)
-  - [ ] Implementar getRelatedProducts (produtos relacionados)
+- [x] **Serviço de Produtos**
+  - [x] Implementar listProducts (com filtros e paginação)
+  - [x] Implementar getProductById (com todas as relações)
+  - [x] Implementar getProductsByCategoryId
+  - [x] Implementar getProductVariants (variações de um produto)
+  - [x] Implementar getRelatedProducts (produtos relacionados)
   - [ ] Implementar searchProducts (busca avançada com FlexSearch)
 
 - [ ] **Serviço de Usuários e Vendedores**
@@ -233,30 +247,30 @@ Para um desenvolvimento mais eficiente e estruturado, adotaremos uma abordagem "
   - [ ] Implementar getSeoSettings (configurações SEO por página)
 
 ### 4. Adaptação dos Componentes Visuais para Usar Dados Reais
-- [ ] **Componentes Globais (primeiro)**
-  - [ ] Menu de Navegação com categorias dinâmicas e CIDs
+- [x] **Componentes Globais (primeiro)**
+  - [x] Menu de Navegação com categorias dinâmicas e CIDs
   - [ ] Sistema de busca integrado com FlexSearch
   - [ ] Componente de autenticação (login/registro via Better-auth)
   - [ ] Componente de gerenciamento de cabeçalho (SEO dinâmico)
   - [ ] Componente de renderização de páginas estáticas
 
-- [ ] **Listagem de Produtos**
+- [x] **Listagem de Produtos**
   - [x] ProductCard (já implementado visualmente)
-  - [ ] Integrar ProductCard com dados reais do banco
-  - [ ] Filtros funcionais conectados ao banco e categorias
-  - [ ] Paginação por scroll infinito com dados reais
-  - [ ] Breadcrumbs dinâmicos baseados em hierarquia de categorias
-  - [ ] Ordenação funcional conectada ao banco
+  - [x] Integrar ProductCard com dados reais do banco
+  - [x] Filtros funcionais conectados ao banco e categorias
+  - [x] Paginação por scroll infinito com dados reais
+  - [x] Breadcrumbs dinâmicos baseados em hierarquia de categorias
+  - [x] Ordenação funcional conectada ao banco
   - [ ] Sistema de filtros avançados por atributos dinâmicos
 
-- [ ] **Página de Produto Individual**
+- [x] **Página de Produto Individual**
   - [x] Layout de produto (já implementado visualmente)
-  - [ ] Integrar galeria com imagens reais do banco
-  - [ ] Seletor de variações dinâmico com atributos do banco
-  - [ ] Sistema de avaliações real
-  - [ ] Produtos relacionados dinâmicos
-  - [ ] Cálculo de frete específico para o produto
-  - [ ] Informação de disponibilidade em tempo real
+  - [x] Integrar galeria com imagens reais do banco
+  - [x] Seletor de variações dinâmico com atributos do banco
+  - [x] Sistema de avaliações real
+  - [x] Produtos relacionados dinâmicos
+  - [x] Cálculo de frete específico para o produto
+  - [x] Informação de disponibilidade em tempo real
 
 - [ ] **Home do Marketplace**
   - [ ] Banners dinâmicos do banco

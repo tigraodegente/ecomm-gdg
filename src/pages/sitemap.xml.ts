@@ -1,11 +1,11 @@
 import type { APIRoute } from "astro";
-import { db, desc, Posts } from "astro:db";
+import { executeQuery } from '../db/turso-client';
 
 const PATHS_TO_EXCLUDE = ["/api", "/dashboard", "/sitemap.xml"];
 
 export const GET: APIRoute = async ({ url }) => {
-  // Get all published posts
-  const allPosts = await db.select().from(Posts).orderBy(desc(Posts.pubDate));
+  // Usar o Turso DB em vez de astro:db
+  const allPosts = await getPosts();
 
   // Get all static routes from the pages directory
   const pages = import.meta.glob("/src/pages/**/!(*.ts|*.js|*.mdx)");
@@ -48,7 +48,7 @@ export const GET: APIRoute = async ({ url }) => {
           (post) => `
         <url>
           <loc>${url.origin}/posts/${post.slug}</loc>
-          <lastmod>${post.pubDate.toISOString()}</lastmod>
+          <lastmod>${new Date(post.pubDate).toISOString()}</lastmod>
           <changefreq>monthly</changefreq>
           <priority>0.7</priority>
         </url>
@@ -65,3 +65,17 @@ export const GET: APIRoute = async ({ url }) => {
     }
   });
 };
+
+// Função para obter posts do Turso DB
+async function getPosts() {
+  try {
+    const result = await executeQuery<any>(
+      `SELECT * FROM Posts ORDER BY pubDate DESC`
+    );
+    
+    return result.rows || [];
+  } catch (error) {
+    console.error('Error fetching posts for sitemap:', error);
+    return [];
+  }
+}

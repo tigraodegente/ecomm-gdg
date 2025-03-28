@@ -1,15 +1,39 @@
 ---
+/**
+ * Feature Card Component
+ * 
+ * Um card para exibir uma feature ou recurso do produto/serviço.
+ * Usa o componente Card base.
+ */
+import Card from '../../ui/Card.astro';
+
 interface Props {
   title: string;
   description: string;
+  icon?: string;
+  href?: string;
 }
 
-const { title, description } = Astro.props as Props;
+const { title, description, icon, href } = Astro.props;
 ---
 
-<div class="card h-full bg-white border-2 border-slate-200">
-  <div class="card-body p-6 items-center text-center">
-    <h3 class="text-balance !m-0">{title}</h3>
-    <p class="m-0">{description}</p>
-  </div>
-</div>
+<Card 
+  bordered={true}
+  padding="large"
+  align="center"
+  background="white" 
+  hoverEffect={true}
+  href={href}
+  class="h-full"
+>
+  {icon && (
+    <div class="text-center mb-4">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan500">
+        <Fragment set:html={icon} />
+      </div>
+    </div>
+  )}
+  
+  <h3 class="text-balance !m-0 text-lg font-medium mb-2">{title}</h3>
+  <p class="m-0 text-gray-600">{description}</p>
+</Card>

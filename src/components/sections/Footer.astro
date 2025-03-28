@@ -4,6 +4,8 @@
  * 
  * Main footer for the marketplace.
  */
+import { getMenuWithCategories } from '../../services/categoryService';
+
 interface Props {
   customLinks?: {
     title: string;
@@ -12,9 +14,16 @@ interface Props {
       href: string;
     }[];
   }[];
+  /**
+   * Identifica a variante do rodapé (main, minimal, etc.)
+   */
+  variant?: string;
 }
 
-const { customLinks } = Astro.props;
+const { 
+  customLinks, 
+  variant = 'main'
+} = Astro.props;
 
 // Default footer links
 const defaultLinks = [
@@ -52,6 +61,9 @@ const defaultLinks = [
 
 // Use custom links if provided, otherwise use default
 const links = customLinks || defaultLinks;
+
+// Ano atual - gerado dinamicamente no cliente, não afeta cache
+const currentYear = new Date().getFullYear();
 ---
 
 <footer class="footer">
@@ -101,13 +113,122 @@ const links = customLinks || defaultLinks;
       }
     </div>
     
-    <!-- Bottom Footer -->
-    <div class="footer-bottom">
-      <p>&copy; {new Date().getFullYear()} Grão de Gente - CNPJ: 00.000.000/0000-00</p>
-      <p class="mt-xs">
-        <a href="/termos-de-uso" class="hover:text-primary">Termos de Uso</a> | 
-        <a href="/politica-de-privacidade" class="hover:text-primary">Política de Privacidade</a>
-      </p>
+    <!-- Payments and Trust -->
+    <div class="footer-trust mt-8 border-t border-gray-200 pt-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Payment Methods -->
+        <div>
+          <span class="text-sm font-medium block mb-3">Formas de Pagamento:</span>
+          <div class="flex flex-wrap gap-2">
+            <!-- Uso otimizado de imagens de pagamento com paths relativos -->
+            <img src="/images/payment/mastercard.webp" alt="Mastercard" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/visa.webp" alt="Visa" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/amex.webp" alt="American Express" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/diners.webp" alt="Dinners" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/elo.webp" alt="Elo" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/aurora.webp" alt="Aurora" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/hipercard.webp" alt="Hipercard" class="h-[26px]" loading="lazy">
+            <img src="/images/payment/sorocred.webp" alt="Sorocred" class="h-[26px]" loading="lazy">
+          </div>
+        </div>
+        
+        <!-- Security and Platform -->
+        <div>
+          <span class="text-sm font-medium block mb-3">Segurança:</span>
+          <img src="/images/security/comodo.webp" alt="Logo de segurança C.O.M.O.D.O." class="h-[40px]" loading="lazy">
+          
+          <span class="text-sm font-medium block mt-4 mb-3">Plataforma:</span>
+          <img src="/images/platform/konduza.webp" alt="Logo Konduza" class="h-[26px]" loading="lazy">
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Bottom footer with copyright -->
+  <div class="footer-bottom container">
+    <p>&copy; <span class="current-year">{currentYear}</span> Grão de Gente - CNPJ: 00.000.000/0000-00</p>
+    <p class="mt-xs">
+      <a href="/termos-de-uso" class="hover:text-primary">Termos de Uso</a> | 
+      <a href="/politica-de-privacidade" class="hover:text-primary">Política de Privacidade</a>
+    </p>
+  </div>
 </footer>
+
+<!-- Script para renderização dinâmica do ano atual -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const yearElements = document.querySelectorAll('.current-year');
+    const currentYear = new Date().getFullYear();
+    yearElements.forEach(el => el.textContent = currentYear);
+  });
+</script>
+
+<style>
+  .footer {
+    background-color: #f9f9f9;
+    padding: 3rem 0 1rem;
+    margin-top: 3rem;
+    color: #333;
+  }
+  
+  .footer-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: #444;
+  }
+  
+  .footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer-item {
+    margin-bottom: 0.75rem;
+  }
+  
+  .footer-link {
+    color: #666;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .footer-link:hover {
+    color: #40C1AC;
+  }
+  
+  .footer-bottom {
+    border-top: 1px solid #e5e5e5;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #777;
+    text-align: center;
+  }
+  
+  .gap-sm {
+    gap: 0.75rem;
+  }
+  
+  .gap-lg {
+    gap: 2rem;
+  }
+  
+  .mb-md {
+    margin-bottom: 1.25rem;
+  }
+  
+  .mt-xs {
+    margin-top: 0.5rem;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+</style>

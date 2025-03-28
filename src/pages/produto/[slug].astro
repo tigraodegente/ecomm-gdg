@@ -3,112 +3,22 @@ import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
 import CategoryMenu from '../../components/navigation/CategoryMenu.astro';
 import productService from '../../services/productService';
 import categoryService from '../../services/categoryService';
+import { formatPrice, calculateDiscount } from '../../services/internationalizationService';
 
 // Obter o slug do produto da URL
 const { slug } = Astro.params;
 
-// Log simples de diagnóstico
-console.log(`[produto] Página de produto acessada: "${slug}"`);
-
-// Verificação especial para o slug problemático
 let product;
 
-// Produto para o caso especial "cadeira-de-alimentacao-multifuncional"
-if (slug === 'cadeira-de-alimentacao-multifuncional') {
-  console.log('[HARDCODED] Retornando dados hardcoded para cadeira de alimentação');
-  // Dados estáticos diretos - única fonte de verdade para este produto específico
-  product = {
-    id: '1',
-    slug: 'cadeira-de-alimentacao-multifuncional',
-    name: 'Cadeira de Alimentação Multifuncional',
-    price: 899.90,
-    compare_at_price: 1099.90,
-    stock: 10,
-    sku: 'CAD-ALIM-001',
-    category_id: 2,
-    category_name: 'Alimentação',
-    category_cid: 'alimentacao',
-    short_description: 'Cadeira de alimentação multifuncional para o conforto do seu bebê',
-    description: `<p>A cadeira de alimentação multifuncional foi desenvolvida para proporcionar conforto e praticidade na hora das refeições do bebê.</p>
-    <p>Com diversas posições de ajuste, bandeja removível e cinto de segurança de 5 pontos.</p>`,
-    images: [
-      { image_url: 'https://placehold.co/600x400?text=Cadeira-1', alt: 'Cadeira vista 1', is_default: 1 },
-      { image_url: 'https://placehold.co/600x400?text=Cadeira-2', alt: 'Cadeira vista 2', is_default: 0 },
-    ],
-    attributes: [
-      { type_display_name: 'Material', value: 'Plástico e metal' },
-      { type_display_name: 'Peso máximo', value: '20kg' },
-    ],
-    // Campo para controle interno, não relacionado a fallback
-    vendor_name: 'Loja Grão de Gente'
-  };
-} else if (slug === 'berco-3-em-1-convertivel') {
-  // Outro produto estático para demonstração
-  console.log('[HARDCODED] Retornando dados hardcoded para berço');
-  product = {
-    id: '2',
-    slug: 'berco-3-em-1-convertivel',
-    name: 'Berço 3 em 1 Convertível',
-    price: 1299.90,
-    compare_at_price: 1599.90,
-    stock: 5,
-    sku: 'BER-3EM1-001',
-    category_id: 1,
-    category_name: 'Berços e Camas',
-    category_cid: 'bercos',
-    short_description: 'Berço que se converte em cama à medida que o bebê cresce',
-    description: `<p>Berço versátil que acompanha as fases de crescimento do seu bebê.</p>
-    <p>Converte-se de berço para mini-cama e depois para cama infantil.</p>`,
-    images: [
-      { image_url: 'https://placehold.co/600x400?text=Berco-1', alt: 'Berço vista 1', is_default: 1 },
-      { image_url: 'https://placehold.co/600x400?text=Berco-2', alt: 'Berço vista 2', is_default: 0 },
-    ],
-    attributes: [
-      { type_display_name: 'Material', value: 'MDF' },
-      { type_display_name: 'Dimensões', value: '70 x 130 x 90 cm' },
-    ],
-    vendor_name: 'Loja Grão de Gente'
-  };
-} else if (slug === 'grade-de-protecao') {
-  // Outro produto estático para demonstração
-  console.log('[HARDCODED] Retornando dados hardcoded para grade de proteção');
-  product = {
-    id: '3',
-    slug: 'grade-de-protecao',
-    name: 'Grade de Proteção',
-    price: 249.90,
-    compare_at_price: 299.90,
-    stock: 15,
-    sku: 'GRD-PROT-001',
-    category_id: 1,
-    category_name: 'Berços e Camas',
-    category_cid: 'bercos',
-    short_description: 'Grade de proteção para cama infantil',
-    description: `<p>Grade de proteção para garantir a segurança do seu filho durante o sono.</p>
-    <p>Fácil instalação e remoção, ideal para transição do berço para a cama.</p>`,
-    images: [
-      { image_url: 'https://placehold.co/600x400?text=Grade-1', alt: 'Grade vista 1', is_default: 1 },
-    ],
-    attributes: [
-      { type_display_name: 'Material', value: 'Metal e tecido' },
-      { type_display_name: 'Comprimento', value: '90 cm' },
-    ],
-    vendor_name: 'Loja Grão de Gente'
-  };
-} else {
-  // Para slugs não hardcoded, tentar consultar normalmente o serviço
-  try {
-    console.log(`[produto] Buscando produto com slug "${slug}" no banco de dados`);
-    product = productService.getProductById(slug, true);
-  } catch (error) {
-    console.error(`[produto] Erro ao buscar produto: ${error.message}`);
-    product = null;
-  }
+// Para slugs não hardcoded, consultar o serviço
+try {
+  product = productService.getProductById(slug, true);
+} catch (error) {
+  product = null;
 }
 
 // Se o produto não existir, redirecionar para a página de produtos
 if (!product) {
-  console.log('[produto] Produto não encontrado, redirecionando para /produtos');
   return Astro.redirect('/produtos');
 }
 
@@ -125,23 +35,7 @@ const isShowingFallback = product.isFallback === true;
 // Verificar se o produto tem variantes
 const hasVariants = product.is_variable && product.variants && product.variants.length > 0;
 
-// Formatar preço
-function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2
-  }).format(value);
-}
-
-// Calcular desconto em porcentagem
-function calculateDiscount(originalPrice, discountedPrice) {
-  if (!originalPrice || !discountedPrice || originalPrice <= discountedPrice) {
-    return 0;
-  }
-  
-  return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
-}
+// Usar as funções centralizadas do internationalizationService
 
 // Organizar atributos por tipo para as variantes
 const attributeTypes = {};
@@ -344,10 +238,10 @@ if (!isShowingFallback) {
             {product.compare_at_price && product.compare_at_price > product.price ? (
               <div class="flex items-center">
                 <span class="text-3xl font-bold text-cyan500 mr-2">
-                  {formatCurrency(product.price)}
+                  {formatPrice(product.price)}
                 </span>
                 <span class="text-lg text-gray-500 line-through">
-                  {formatCurrency(product.compare_at_price)}
+                  {formatPrice(product.compare_at_price)}
                 </span>
                 <span class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded">
                   -{calculateDiscount(product.compare_at_price, product.price)}% OFF
@@ -355,12 +249,12 @@ if (!isShowingFallback) {
               </div>
             ) : (
               <span class="text-3xl font-bold text-cyan500">
-                {formatCurrency(product.price)}
+                {formatPrice(product.price)}
               </span>
             )}
             
             <p class="text-sm text-gray-500 mt-1">
-              à vista ou em até 10x de {formatCurrency(product.price / 10)} sem juros
+              à vista ou em até 10x de {formatPrice(product.price / 10)} sem juros
             </p>
           </div>
           
@@ -594,7 +488,7 @@ if (!isShowingFallback) {
                       {relatedProduct.name}
                     </h3>
                     <p class="mt-1 text-lg font-bold text-primary-600">
-                      {formatCurrency(relatedProduct.price)}
+                      {formatPrice(relatedProduct.price)}
                     </p>
                   </div>
                 </div>

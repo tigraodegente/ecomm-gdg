@@ -2,7 +2,7 @@
  * adaptive-cache.js
  * 
  * Sistema avançado de cache com TTL adaptativo baseado em padrões de uso,
- * integrado com Fragment Cache, Service Worker e Cloudflare KV Storage.
+ * integrado com Service Worker e Cloudflare KV Storage.
  * 
  * Features:
  * - TTL dinâmico baseado na popularidade dos recursos
@@ -14,7 +14,29 @@
  * - Adaptação a características do dispositivo e conexão
  */
 
-import { calculateHitRatio, FRAGMENT_TYPES, DEFAULT_TTL } from '../fragment-cache.js';
+// Definições de tipos de cache e TTLs padrão
+const FRAGMENT_TYPES = {
+  GENERIC: 'generic',
+  PRODUCT: 'product',
+  CATEGORY: 'category',
+  MENU: 'menu',
+  SEARCH: 'search'
+};
+
+const DEFAULT_TTL = {
+  GENERIC: 3600,        // 1 hora
+  PRODUCT: 7200,        // 2 horas
+  CATEGORY: 21600,      // 6 horas
+  MENU: 43200,          // 12 horas
+  SEARCH: 1800          // 30 minutos
+};
+
+// Função para calcular taxa de acerto
+function calculateHitRatio(hits, misses) {
+  const total = hits + misses;
+  if (total === 0) return 0;
+  return Math.round((hits / total) * 100);
+}
 
 // Configurações padrão
 const DEFAULT_OPTIONS = {

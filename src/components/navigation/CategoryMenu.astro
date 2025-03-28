@@ -2,33 +2,20 @@
 /**
  * CategoryMenu.astro
  * 
- * Menu de navegação por categorias com suporte a cache de fragmentos.
- * Implementa o padrão stale-while-revalidate para manter o menu atualizado
- * sem impactar a performance.
+ * Menu de navegação por categorias para o marketplace.
  */
 import categoryService from '../../services/categoryService';
-import CachedFragment from '../CachedFragment.astro';
-import { FRAGMENT_TYPES } from '../../lib/fragment-cache';
 
 interface Props {
   /**
    * Posição do menu (main, sidebar, mobile, etc.)
    */
   position?: string;
-  /**
-   * Se true, força a renderização ignorando o cache
-   */
-  forceRefresh?: boolean;
 }
 
 const {
-  position = 'main',
-  forceRefresh = true // Forçar atualização ignorando o cache
+  position = 'main'
 } = Astro.props;
-
-// Configurar ID de fragmento e tipo para cache
-const fragmentId = `category-menu-${position}`;
-const fragmentType = FRAGMENT_TYPES.CATEGORY_MENU;
 
 // Buscar dados das categorias
 let menuData = categoryService.getMenuWithCategories();
@@ -39,59 +26,49 @@ menuData.categories.sort((a, b) => {
   const orderB = b.display_order !== undefined ? b.display_order : 999;
   return orderA - orderB;
 });
-
-// Log para verificar a ordem final
-console.log("MENU CATEGORIAS ORDEM FINAL no componente:", 
-  menuData.categories.map(c => `${c.name} (ordem: ${c.display_order !== undefined ? c.display_order : 'N/A'})`));
 ---
 
-<CachedFragment
-  fragmentId={fragmentId}
-  type={fragmentType}
-  forceRefresh={forceRefresh}
->
-  <nav class={`category-menu category-menu-${position}`}>
-    <div class="container mx-auto">
-      <ul class="flex flex-wrap space-x-2 md:space-x-4 py-2">
-        {menuData.categories
-          // Ordenar explicitamente por display_order para garantir a ordem correta
-          .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
-          .map((category) => (
-            <li class="relative group">
-              <a
-                href={`/produtos/${category.cid}`}
-                class="text-gray-700 hover:text-primary-600 font-medium px-2 py-1"
-                data-category-id={category.cid}
-              >
-                {category.name}
-                {category.subcategories && category.subcategories.length > 0 && (
-                  <span class="ml-1">▼</span>
-                )}
-              </a>
-              
+<nav class={`category-menu category-menu-${position}`}>
+  <div class="container mx-auto">
+    <ul class="flex flex-wrap space-x-2 md:space-x-4 py-2">
+      {menuData.categories
+        // Ordenar explicitamente por display_order para garantir a ordem correta
+        .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+        .map((category) => (
+          <li class="relative group">
+            <a
+              href={`/produtos/${category.cid}`}
+              class="text-gray-700 hover:text-primary-600 font-medium px-2 py-1"
+              data-category-id={category.cid}
+            >
+              {category.name}
               {category.subcategories && category.subcategories.length > 0 && (
-                <div class="absolute left-0 mt-1 w-48 bg-white shadow-lg rounded-md p-2 hidden group-hover:block z-10">
-                  <ul>
-                    {category.subcategories.map((subcategory) => (
-                      <li>
-                        <a
-                          href={`/produtos/${subcategory.cid}`}
-                          class="block px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
-                          data-subcategory-id={subcategory.cid}
-                        >
-                          {subcategory.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <span class="ml-1">▼</span>
               )}
-            </li>
-          ))}
-      </ul>
-    </div>
-  </nav>
-</CachedFragment>
+            </a>
+            
+            {category.subcategories && category.subcategories.length > 0 && (
+              <div class="absolute left-0 mt-1 w-48 bg-white shadow-lg rounded-md p-2 hidden group-hover:block z-10">
+                <ul>
+                  {category.subcategories.map((subcategory) => (
+                    <li>
+                      <a
+                        href={`/produtos/${subcategory.cid}`}
+                        class="block px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        data-subcategory-id={subcategory.cid}
+                      >
+                        {subcategory.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </li>
+        ))}
+    </ul>
+  </div>
+</nav>
 
 <style>
   .category-menu {

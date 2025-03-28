@@ -248,6 +248,20 @@ export function formatNumber(num: number, langCode: string = 'pt-BR', decimals: 
 }
 
 /**
+ * Calcula o percentual de desconto entre dois preços
+ * @param originalPrice Preço original (maior)
+ * @param discountedPrice Preço com desconto (menor)
+ * @returns Percentual de desconto ou 0 se não houver desconto
+ */
+export function calculateDiscount(originalPrice: number, discountedPrice: number): number {
+  if (!originalPrice || !discountedPrice || originalPrice <= discountedPrice) {
+    return 0;
+  }
+  
+  return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+}
+
+/**
  * Obtém a URL alternativa para um idioma específico
  * @param currentPath Caminho atual
  * @param targetLang Idioma alvo

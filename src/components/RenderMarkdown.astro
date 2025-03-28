@@ -1,20 +1,180 @@
 ---
+/**
+ * RenderMarkdown.astro
+ * 
+ * Componente para renderização de conteúdo Markdown com suporte a cache de fragmentos.
+ * Utiliza o sistema de cache de fragmentos para melhorar a performance.
+ * 
+ * Props:
+ * - content: O conteúdo markdown a ser renderizado
+ * - fragmentId: ID opcional para cache do fragmento. Se não fornecido, o conteúdo não será cacheado.
+ * - version: Versão do fragmento para controle de invalidação
+ * - ttl: Tempo de vida em segundos (opcional, padrão baseado no tipo inferido)
+ */
+
 import DOMPurify from "isomorphic-dompurify";
 import { marked } from "marked";
 
-interface Props {
+export interface Props {
   content: string;
+  fragmentId?: string;
+  version?: string;
+  ttl?: number;
 }
 
-const { content } = Astro.props;
+const { 
+  content, 
+  fragmentId, 
+  version = 'latest',
+  ttl
+} = Astro.props;
 
-const html = await marked.parse(content);
+// Flag para controlar se devemos usar o cache de fragmentos
+const ENABLE_FRAGMENT_CACHE = import.meta.env.PROD && !!fragmentId;
 
-// Convert markdown to HTML and sanitize
-const purifiedHTML = DOMPurify.sanitize(html, {
-  FORBID_TAGS: ["script", "style", "iframe", "form"],
-  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"]
-});
+let htmlContent = '';
+
+// Se temos um fragmentId e estamos em produção, tentar usar o cache de fragmentos
+if (ENABLE_FRAGMENT_CACHE) {
+  try {
+    // Gerar URL do fragmento com parâmetros
+    const fragmentUrl = `/api/fragment/${fragmentId}?v=${version}`;
+    
+    // Tentar obter do cache de fragmentos via fetch
+    const response = await fetch(fragmentUrl, {
+      headers: {
+        'Accept': 'text/html'
+      }
+    });
+    
+    if (response.ok) {
+      // Se tivermos resposta do cache, usar o conteúdo
+      htmlContent = await response.text();
+    } else {
+      // Se não encontrarmos no cache, renderizar e armazenar
+      const html = await marked.parse(content || '');
+      
+      // Sanitizar HTML
+      htmlContent = DOMPurify.sanitize(html, {
+        FORBID_TAGS: ["script", "style", "iframe", "form"],
+        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"]
+      });
+      
+      // Armazenar no cache para uso futuro
+      if (fragmentId) {
+        const cacheUrl = `/api/render-fragment/${fragmentId}?v=${version}`;
+        
+        // Iniciar requisição de armazenamento em cache, mas não aguardar
+        // para não bloquear a renderização
+        fetch(cacheUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            content: htmlContent,
+            ttl: ttl || undefined
+          })
+        }).catch(e => {
+          // Silenciar erros para não impactar a renderização
+          console.error('Erro ao cachear fragmento:', e);
+        });
+      }
+    }
+  } catch (error) {
+    // Em caso de erro, renderizar diretamente
+    console.error('Erro ao usar cache de fragmentos:', error);
+    const html = await marked.parse(content || '');
+    htmlContent = DOMPurify.sanitize(html, {
+      FORBID_TAGS: ["script", "style", "iframe", "form"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"]
+    });
+  }
+} else {
+  // Se não usar cache, renderizar diretamente
+  const html = await marked.parse(content || '');
+  htmlContent = DOMPurify.sanitize(html, {
+    FORBID_TAGS: ["script", "style", "iframe", "form"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"]
+  });
+}
 ---
 
-<div set:html={purifiedHTML} class="rendered-markdown" />
+<!-- Fragmento de Markdown com ID para possível reuso -->
+<div 
+  class="rendered-markdown" 
+  data-fragment-id={fragmentId || null}
+  set:html={htmlContent}
+/>
+
+<style>
+  .rendered-markdown {
+    line-height: 1.6;
+  }
+  
+  .rendered-markdown h1,
+  .rendered-markdown h2,
+  .rendered-markdown h3,
+  .rendered-markdown h4 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  
+  .rendered-markdown p {
+    margin-bottom: 1em;
+  }
+  
+  .rendered-markdown ul,
+  .rendered-markdown ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+  }
+  
+  .rendered-markdown pre {
+    background-color: #f5f5f5;
+    padding: 1em;
+    border-radius: 0.25em;
+    overflow-x: auto;
+    margin-bottom: 1em;
+  }
+  
+  .rendered-markdown code {
+    font-family: monospace;
+    padding: 0.2em 0.4em;
+    background-color: #f5f5f5;
+    border-radius: 0.25em;
+  }
+  
+  .rendered-markdown pre code {
+    padding: 0;
+    background-color: transparent;
+  }
+  
+  .rendered-markdown img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .rendered-markdown blockquote {
+    padding-left: 1em;
+    border-left: 4px solid #e0e0e0;
+    color: #666;
+    margin-bottom: 1em;
+  }
+  
+  .rendered-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+  }
+  
+  .rendered-markdown table th,
+  .rendered-markdown table td {
+    padding: 0.5em;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .rendered-markdown table th {
+    background-color: #f5f5f5;
+  }
+</style>

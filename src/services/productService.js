@@ -1,7 +1,14 @@
-// Serviço para acesso a dados de produtos
+/**
+ * Serviço unificado para acesso a dados de produtos
+ * 
+ * Este serviço implementa um padrão adaptador que permite
+ * funcionar com diferentes fontes de dados (SQLite local, Turso, etc)
+ * com uma interface única e consistente.
+ */
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import tursoClient from '../db/turso-client';
 
 // Obter o diretório atual para paths absolutos
 const __filename = fileURLToPath(import.meta.url);
@@ -14,15 +21,82 @@ console.log('Conectando ao banco de dados em:', dbPath);
 const db = new Database(dbPath, { readonly: true });
 
 /**
+ * Adapter Factory para criar clientes de banco de dados
+ */
+export class DatabaseAdapterFactory {
+  static create(type = 'sqlite') {
+    switch (type) {
+      case 'turso':
+        return new TursoAdapter();
+      case 'sqlite':
+      default:
+        return new SqliteAdapter(db);
+    }
+  }
+}
+
+/**
+ * Adapter para SQLite (acesso síncrono)
+ */
+class SqliteAdapter {
+  constructor(db) {
+    this.db = db;
+  }
+
+  execute(query, params = []) {
+    if (query.trim().toLowerCase().startsWith('select')) {
+      const stmt = this.db.prepare(query);
+      if (query.includes('count(') || query.includes('COUNT(')) {
+        return stmt.get(...params);
+      }
+      return stmt.all(...params);
+    } else {
+      const stmt = this.db.prepare(query);
+      return stmt.run(...params);
+    }
+  }
+
+  // Método para compatibilidade com a interface assíncrona
+  async executeAsync(query, params = []) {
+    return Promise.resolve(this.execute(query, params));
+  }
+}
+
+/**
+ * Adapter para Turso (acesso assíncrono)
+ */
+class TursoAdapter {
+  async executeAsync(query, params = []) {
+    const result = await tursoClient.executeQuery(query, params);
+    return result.rows || [];
+  }
+
+  // Método síncrono que lança erro (Turso é somente assíncrono)
+  execute() {
+    throw new Error('Turso adapter supports only async operations');
+  }
+}
+
+/**
  * Serviço de acesso a dados para produtos
  */
 class ProductService {
+  constructor(adapter) {
+    this.adapter = adapter;
+    
+    // Flag para indicar se estamos usando uma fonte de dados assíncrona
+    this.isAsync = adapter instanceof TursoAdapter;
+  }
   /**
    * Lista produtos com filtros e paginação
    * @param {Object} options - Opções de filtro e paginação
-   * @returns {Object} Produtos e metadados da paginação
+   * @returns {Object|Promise<Object>} Produtos e metadados da paginação (Promise se isAsync=true)
    */
   listProducts(options = {}) {
+    if (this.isAsync) {
+      return this.listProductsAsync(options);
+    }
+    
     const {
       categoryId,
       categoryIds,
@@ -147,8 +221,7 @@ class ProductService {
       // Remover a cláusula ORDER BY se presente
       countQuery = countQuery.replace(/ORDER BY.*$/s, '');
       
-      const countStmt = db.prepare(countQuery);
-      const countResult = countStmt.get(...params);
+      const countResult = this.adapter.execute(countQuery, params);
       const total = countResult ? countResult.total : 0;
       
       // Adicionar paginação à query original
@@ -156,8 +229,7 @@ class ProductService {
       params.push(limit, offset);
       
       // Executar a query principal
-      const productsStmt = db.prepare(query);
-      const products = productsStmt.all(...params);
+      const products = this.adapter.execute(query, params);
       
       // Buscar imagens principais para cada produto
       const productsWithImages = products.map(product => {
@@ -169,8 +241,7 @@ class ProductService {
           LIMIT 1
         `;
         
-        const imageStmt = db.prepare(imageQuery);
-        const image = imageStmt.get(product.id);
+        const image = this.adapter.execute(imageQuery, [product.id])[0];
         
         return {
           ...product,
@@ -209,137 +280,202 @@ class ProductService {
       };
     }
   }
+  
+  /**
+   * Versão assíncrona do método listProducts
+   * @param {Object} options - Opções de filtro e paginação
+   * @returns {Promise<Object>} Produtos e metadados da paginação
+   */
+  async listProductsAsync(options = {}) {
+    const {
+      categoryId,
+      categoryIds,
+      search,
+      minPrice,
+      maxPrice,
+      sort = 'newest',
+      page = 1,
+      limit = 12,
+      vendorId,
+      featured,
+      attributeFilters = {}
+    } = options;
+    
+    // Cálculo do offset para paginação
+    const offset = (page - 1) * limit;
+    
+    // Construir query base - idêntica à versão síncrona
+    let query = `
+      SELECT 
+        p.id, p.name, p.short_description, p.price, p.compare_at_price,
+        p.is_variable, p.slug, p.stock, p.sku, p.is_featured,
+        c.id as category_id, c.name as category_name,
+        ci.cid as category_cid
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      LEFT JOIN category_identifiers ci ON c.id = ci.category_id
+      WHERE p.is_active = 1
+    `;
+    
+    // Array para os parâmetros da query
+    const params = [];
+    
+    // Aplicar os mesmos filtros da versão síncrona
+    if (categoryId) {
+      query += ` AND p.category_id = ?`;
+      params.push(categoryId);
+    }
+    
+    if (categoryIds && categoryIds.length > 0) {
+      query += ` AND p.category_id IN (${categoryIds.map(() => '?').join(',')})`;
+      params.push(...categoryIds);
+    }
+    
+    if (minPrice) {
+      query += ` AND p.price >= ?`;
+      params.push(minPrice);
+    }
+    
+    if (maxPrice) {
+      query += ` AND p.price <= ?`;
+      params.push(maxPrice);
+    }
+    
+    if (vendorId) {
+      query += ` AND p.vendor_id = ?`;
+      params.push(vendorId);
+    }
+    
+    if (featured) {
+      query += ` AND p.is_featured = 1`;
+    }
+    
+    if (search && search.trim() !== '') {
+      query += ` AND (p.name LIKE ? OR p.description LIKE ? OR p.short_description LIKE ?)`;
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    // Filtros de atributos
+    if (attributeFilters && Object.keys(attributeFilters).length > 0) {
+      Object.entries(attributeFilters).forEach(([typeId, values]) => {
+        if (values && values.length > 0) {
+          query += ` AND p.id IN (
+            SELECT pav.product_id 
+            FROM product_attribute_values pav 
+            WHERE pav.attribute_type_id = ? AND pav.value IN (${values.map(() => '?').join(',')})
+          )`;
+          
+          params.push(typeId, ...values);
+        }
+      });
+    }
+    
+    // Ordenação
+    switch (sort) {
+      case 'price_asc':
+        query += ' ORDER BY p.price ASC';
+        break;
+      case 'price_desc':
+        query += ' ORDER BY p.price DESC';
+        break;
+      case 'name_asc':
+        query += ' ORDER BY p.name ASC';
+        break;
+      case 'name_desc':
+        query += ' ORDER BY p.name DESC';
+        break;
+      case 'featured':
+        query += ' ORDER BY p.is_featured DESC, p.id DESC';
+        break;
+      case 'newest':
+      default:
+        query += ' ORDER BY p.id DESC';
+        break;
+    }
+    
+    try {
+      // Contar total de produtos (sem paginação)
+      let countQuery = query.replace(/SELECT.*?FROM/s, 'SELECT COUNT(*) as total FROM');
+      countQuery = countQuery.replace(/ORDER BY.*$/s, '');
+      
+      const countResult = await this.adapter.executeAsync(countQuery, params);
+      const total = countResult[0] ? countResult[0].total : 0;
+      
+      // Adicionar paginação à query original
+      query += ' LIMIT ? OFFSET ?';
+      params.push(limit, offset);
+      
+      // Executar a query principal
+      const products = await this.adapter.executeAsync(query, params);
+      
+      // Buscar imagens principais para cada produto - em paralelo para melhor performance
+      const imageQueries = products.map(product => {
+        const imageQuery = `
+          SELECT image_url, alt 
+          FROM product_images 
+          WHERE product_id = ? AND variant_id IS NULL 
+          ORDER BY is_default DESC, display_order ASC 
+          LIMIT 1
+        `;
+        
+        return this.adapter.executeAsync(imageQuery, [product.id])
+          .then(images => {
+            const image = images[0];
+            return {
+              ...product,
+              mainImage: image ? image.image_url : null,
+              imageAlt: image ? image.alt : product.name
+            };
+          });
+      });
+      
+      const productsWithImages = await Promise.all(imageQueries);
+      
+      // Calcular total de páginas
+      const totalPages = Math.ceil(total / limit);
+      
+      return {
+        products: productsWithImages,
+        pagination: {
+          total,
+          totalPages,
+          currentPage: page,
+          limit,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao listar produtos:', error);
+      return {
+        products: [],
+        pagination: {
+          total: 0,
+          totalPages: 0,
+          currentPage: page,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false
+        }
+      };
+    }
+  }
 
   /**
    * Busca um produto pelo ID ou slug
    * @param {number|string} idOrSlug - ID do produto ou slug
    * @param {boolean} bySlug - Se true, busca pelo slug em vez de ID
-   * @returns {Object|null} Produto completo ou null se não encontrado
+   * @returns {Object|Promise<Object>|null} Produto completo ou null se não encontrado
    */
   getProductById(idOrSlug, bySlug = false) {
-    // Verificar valores dos parâmetros antes de conversão
-    console.log(`------------ DEBUG getProductById ------------`);
-    console.log(`Parâmetros recebidos:`, {
-      idOrSlug,
-      bySlug,
-      idOrSlugType: typeof idOrSlug,
-      bySlugType: typeof bySlug,
-      bySlugValue: String(bySlug)
-    });
+    if (this.isAsync) {
+      return this.getProductByIdAsync(idOrSlug, bySlug);
+    }
     
-    // Garantir que bySlug seja booleano, forçando a conversão explícita
+    // Garantir que bySlug seja booleano
     bySlug = Boolean(bySlug);
     
-    // Verificar após a conversão
-    console.log(`Após conversão: bySlug=${bySlug} (${typeof bySlug})`);
-    console.log(`Buscando produto por ${bySlug ? 'slug' : 'id'}: "${idOrSlug}"`);
-    console.log(`----------------------------------------------`);
-    
-    // Dados estáticos de produtos para demonstração e fallback
-    const sampleProducts = [
-      {
-        id: '1',
-        slug: 'cadeira-de-alimentacao-multifuncional',
-        name: 'Cadeira de Alimentação Multifuncional',
-        price: 899.90,
-        compare_at_price: 1099.90,
-        stock: 10,
-        sku: 'CAD-ALIM-001',
-        category_id: 2,
-        category_name: 'Alimentação',
-        category_cid: 'alimentacao',
-        short_description: 'Cadeira de alimentação multifuncional para o conforto do seu bebê',
-        description: `<p>A cadeira de alimentação multifuncional foi desenvolvida para proporcionar conforto e praticidade na hora das refeições do bebê.</p>
-        <p>Com diversas posições de ajuste, bandeja removível e cinto de segurança de 5 pontos.</p>`,
-        images: [
-          { image_url: 'https://placehold.co/600x400?text=Cadeira-1', alt: 'Cadeira vista 1', is_default: 1 },
-          { image_url: 'https://placehold.co/600x400?text=Cadeira-2', alt: 'Cadeira vista 2', is_default: 0 },
-        ],
-        attributes: [
-          { type_display_name: 'Material', value: 'Plástico e metal' },
-          { type_display_name: 'Peso máximo', value: '20kg' },
-        ]
-      },
-      {
-        id: '2',
-        slug: 'berco-3-em-1-convertivel',
-        name: 'Berço 3 em 1 Convertível',
-        price: 1299.90,
-        compare_at_price: 1599.90,
-        stock: 5,
-        sku: 'BER-3EM1-001',
-        category_id: 1,
-        category_name: 'Berços e Camas',
-        category_cid: 'bercos',
-        short_description: 'Berço que se converte em cama à medida que o bebê cresce',
-        description: `<p>Berço versátil que acompanha as fases de crescimento do seu bebê.</p>
-        <p>Converte-se de berço para mini-cama e depois para cama infantil.</p>`,
-        images: [
-          { image_url: 'https://placehold.co/600x400?text=Berco-1', alt: 'Berço vista 1', is_default: 1 },
-          { image_url: 'https://placehold.co/600x400?text=Berco-2', alt: 'Berço vista 2', is_default: 0 },
-        ],
-        attributes: [
-          { type_display_name: 'Material', value: 'MDF' },
-          { type_display_name: 'Dimensões', value: '70 x 130 x 90 cm' },
-        ]
-      },
-      {
-        id: '3',
-        slug: 'grade-de-protecao',
-        name: 'Grade de Proteção',
-        price: 249.90,
-        compare_at_price: 299.90,
-        stock: 15,
-        sku: 'GRD-PROT-001',
-        category_id: 1,
-        category_name: 'Berços e Camas',
-        category_cid: 'bercos',
-        short_description: 'Grade de proteção para cama infantil',
-        description: `<p>Grade de proteção para garantir a segurança do seu filho durante o sono.</p>
-        <p>Fácil instalação e remoção, ideal para transição do berço para a cama.</p>`,
-        images: [
-          { image_url: 'https://placehold.co/600x400?text=Grade-1', alt: 'Grade vista 1', is_default: 1 },
-        ],
-        attributes: [
-          { type_display_name: 'Material', value: 'Metal e tecido' },
-          { type_display_name: 'Comprimento', value: '90 cm' },
-        ]
-      }
-    ];
-    
-    // Verificação dos dados estáticos (para desenvolvimento e fallback)
-    console.log(`[STATIC] Verificando se "${idOrSlug}" corresponde a algum produto estático (bySlug=${bySlug})`);
-    console.log(`[STATIC] Slugs estáticos disponíveis:`, sampleProducts.map(p => p.slug));
-    
-    const sampleProduct = sampleProducts.find(p => {
-      if (bySlug) {
-        const match = p.slug === idOrSlug;
-        console.log(`[STATIC] Comparando slug "${p.slug}" com "${idOrSlug}": ${match ? 'MATCH' : 'no match'}`);
-        return match;
-      } else {
-        const match = p.id.toString() === idOrSlug.toString();
-        console.log(`[STATIC] Comparando id "${p.id}" com "${idOrSlug}": ${match ? 'MATCH' : 'no match'}`);
-        return match;
-      }
-    });
-    
-    if (sampleProduct) {
-      console.log(`Produto encontrado nos dados estáticos: ${sampleProduct.name}`);
-      return sampleProduct;
-    }
-    
-    // Verificação especial para o slug específico que estava com problemas
-    if (bySlug && idOrSlug === 'cadeira-de-alimentacao-multifuncional') {
-      console.log(`[ENCONTRADO] Detectamos o slug específico "cadeira-de-alimentacao-multifuncional"`);
-      // Retornar o sample product correspondente explicitamente
-      const cadeiraProduto = sampleProducts.find(p => p.slug === 'cadeira-de-alimentacao-multifuncional');
-      if (cadeiraProduto) {
-        console.log(`[ENCONTRADO] Retornando produto específico para este slug`);
-        return cadeiraProduto;
-      }
-    }
-    
-    // Busca no banco de dados (implementação principal)
     try {
       // Query base para buscar produto
       let query = `
@@ -357,100 +493,120 @@ class ProductService {
       `;
       
       // Condição de busca com base em slug ou ID
-      if (bySlug === true) {
-        query += 'p.slug = ?';
-        console.log(`[SQL] Buscando por SLUG "${idOrSlug}" no banco (bySlug=${bySlug})`);
-      } else {
-        query += 'p.id = ?';
-        console.log(`[SQL] Buscando por ID "${idOrSlug}" no banco (bySlug=${bySlug})`);
-      }
+      query += bySlug ? 'p.slug = ?' : 'p.id = ?';
       
-      // Imprimir a query completa para diagnóstico
-      console.log(`[SQL] Query completa: ${query}`);
-      
-      // Executar a query com parâmetro seguro
-      const stmt = db.prepare(query);
-      const product = stmt.get(idOrSlug);
+      // Executar a query
+      const product = this.adapter.execute(query, [idOrSlug]);
       
       // Se não encontrar o produto
-      if (!product) {
-        console.log(`Produto não encontrado no banco: ${bySlug ? 'slug' : 'id'} = ${idOrSlug}`);
-        // Melhor prática: mostrar página 404 ou produto alternativo com aviso
-        
-        // Caso especial: se estiver buscando por slug, tentar buscar nos produtos estáticos novamente
-        if (bySlug) {
-          console.log(`[FALLBACK] Buscando produto com slug "${idOrSlug}" nos dados estáticos`);
-          // Verificar se há um sample product com o slug exato
-          const exactMatch = sampleProducts.find(p => p.slug === idOrSlug);
-          if (exactMatch) {
-            console.log(`[FALLBACK] Encontrado produto estático com slug exato: ${exactMatch.name}`);
-            return exactMatch;
-          }
-          
-          // Verificar se há um sample product com slug similar (começa com ou contém)
-          const similarMatch = sampleProducts.find(p => 
-            p.slug.startsWith(idOrSlug) || idOrSlug.startsWith(p.slug) || p.slug.includes(idOrSlug)
-          );
-          if (similarMatch) {
-            console.log(`[FALLBACK] Encontrado produto estático com slug similar: ${similarMatch.name}`);
-            // Adicionar flag para indicar que é um match aproximado
-            similarMatch.isFallback = true;
-            return similarMatch;
-          }
-        }
-        
-        // Se nada funcionar, usar o primeiro produto como fallback
-        if (sampleProducts.length > 0) {
-          console.log(`[FALLBACK] Retornando primeiro produto de demonstração como fallback`);
-          const fallbackProduct = sampleProducts[0];
-          // Adicionar flag para indicar que é um fallback
-          fallbackProduct.isFallback = true;
-          return fallbackProduct;
-        }
+      if (!product || !product[0]) {
         return null;
       }
       
-      console.log(`Produto encontrado no banco: ${product.name} (ID: ${product.id})`);
+      const productData = product[0];
       
       // Enriquecer o produto com dados relacionados
       try {
-        // Buscar imagens do produto (com indexação para melhor performance)
-        const getProductImages = db.prepare(`
+        // Buscar imagens do produto
+        const imagesQuery = `
           SELECT * 
           FROM product_images 
           WHERE product_id = ? AND variant_id IS NULL 
           ORDER BY is_default DESC, display_order ASC
-        `);
+        `;
         
-        product.images = getProductImages.all(product.id);
+        productData.images = this.adapter.execute(imagesQuery, [productData.id]);
         
-        // Buscar atributos do produto (com joins otimizados)
-        const getProductAttributes = db.prepare(`
+        // Buscar atributos do produto
+        const attributesQuery = `
           SELECT 
             pav.id, pav.value, pav.display_value,
             pat.id as type_id, pat.name as type_name, pat.display_name as type_display_name
           FROM product_attribute_values pav
           JOIN product_attribute_types pat ON pav.attribute_type_id = pat.id
           WHERE pav.product_id = ? AND pav.variant_id IS NULL
-        `);
+        `;
         
-        product.attributes = getProductAttributes.all(product.id);
+        productData.attributes = this.adapter.execute(attributesQuery, [productData.id]);
         
-        return product;
+        return productData;
       } catch (error) {
         console.error('Erro ao buscar detalhes adicionais do produto:', error);
         // Retornar o produto básico mesmo sem detalhes
-        return product;
+        return productData;
       }
     } catch (error) {
-      console.error('Erro ao buscar produto no banco:', error);
-      // Melhor prática: logar o erro e retornar produto alternativo
-      if (sampleProducts.length > 0) {
-        console.log("Erro na consulta ao banco. Retornando produto de demonstração.");
-        const fallbackProduct = sampleProducts[0];
-        fallbackProduct.isFallback = true;
-        return fallbackProduct;
+      console.error('Erro ao buscar produto:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Versão assíncrona do método getProductById
+   * @param {number|string} idOrSlug - ID do produto ou slug
+   * @param {boolean} bySlug - Se true, busca pelo slug em vez de ID
+   * @returns {Promise<Object|null>} Produto completo ou null se não encontrado
+   */
+  async getProductByIdAsync(idOrSlug, bySlug = false) {
+    // Garantir que bySlug seja booleano
+    bySlug = Boolean(bySlug);
+    
+    try {
+      // Query base para buscar produto - idêntica à versão síncrona
+      let query = `
+        SELECT 
+          p.*, 
+          c.id as category_id, c.name as category_name,
+          ci.cid as category_cid,
+          v.id as vendor_id, v.shop_name as vendor_name,
+          v.logo_url as vendor_logo, v.description as vendor_description
+        FROM products p
+        JOIN categories c ON p.category_id = c.id
+        LEFT JOIN category_identifiers ci ON c.id = ci.category_id
+        LEFT JOIN vendors v ON p.vendor_id = v.id
+        WHERE p.is_active = 1 AND 
+      `;
+      
+      // Condição de busca com base em slug ou ID
+      query += bySlug ? 'p.slug = ?' : 'p.id = ?';
+      
+      // Executar a query
+      const products = await this.adapter.executeAsync(query, [idOrSlug]);
+      
+      // Se não encontrar o produto
+      if (!products || products.length === 0) {
+        return null;
       }
+      
+      const product = products[0];
+      
+      // Buscar imagens e atributos em paralelo para melhor performance
+      const [images, attributes] = await Promise.all([
+        // Buscar imagens do produto
+        this.adapter.executeAsync(`
+          SELECT * 
+          FROM product_images 
+          WHERE product_id = ? AND variant_id IS NULL 
+          ORDER BY is_default DESC, display_order ASC
+        `, [product.id]),
+        
+        // Buscar atributos do produto
+        this.adapter.executeAsync(`
+          SELECT 
+            pav.id, pav.value, pav.display_value,
+            pat.id as type_id, pat.name as type_name, pat.display_name as type_display_name
+          FROM product_attribute_values pav
+          JOIN product_attribute_types pat ON pav.attribute_type_id = pat.id
+          WHERE pav.product_id = ? AND pav.variant_id IS NULL
+        `, [product.id])
+      ]);
+      
+      product.images = images;
+      product.attributes = attributes;
+      
+      return product;
+    } catch (error) {
+      console.error('Erro ao buscar produto de forma assíncrona:', error);
       return null;
     }
   }
@@ -705,5 +861,15 @@ class ProductService {
   }
 }
 
+// Determinar o tipo de adaptador a ser usado com base no ambiente
+// Para desenvolvimento, usar SQLite local como padrão
+// Para produção, podemos configurar para usar Turso
+// Lendo a variável de ambiente DATABASE_TYPE, ou usando 'sqlite' como padrão
+const dbType = process.env.DATABASE_TYPE || 'sqlite';
+
+// Criar o adaptador apropriado usando a factory
+const adapter = DatabaseAdapterFactory.create(dbType);
+
 // Exportar uma instância do serviço para uso em toda a aplicação
-export default new ProductService();
+const productService = new ProductService(adapter);
+export default productService;
