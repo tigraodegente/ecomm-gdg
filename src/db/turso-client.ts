@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client';
 
-// Função para inicializar o cliente Turso
+// Função para inicializar o cliente Turso otimizado para Cloudflare
 export function initTursoClient() {
   const url = import.meta.env.TURSO_DB_URL || process.env.TURSO_DB_URL;
   const authToken = import.meta.env.TURSO_DB_TOKEN || process.env.TURSO_DB_TOKEN;
@@ -12,19 +12,37 @@ export function initTursoClient() {
   
   return createClient({
     url,
-    authToken
+    authToken,
+    // Opções específicas para ambiente Cloudflare
+    fetch: (globalThis.fetch as any),
+    syncUrl: import.meta.env.TURSO_SYNC_URL || process.env.TURSO_SYNC_URL
   });
 }
 
-// Singleton para usar em toda a aplicação
-let tursoClient: ReturnType<typeof createClient> | null = null;
+// Cache específico para ambientes edge (Cloudflare Workers)
+// Não compartilhado entre requisições, mas persistente durante uma única requisição
+const edgeRuntime = typeof EdgeRuntime !== 'undefined';
+let requestScopedClient: ReturnType<typeof createClient> | null = null;
 
+// Singleton para usar em toda a aplicação com suporte a edge
 export function getTursoClient() {
-  if (!tursoClient) {
-    tursoClient = initTursoClient();
+  // Em ambientes edge, usamos uma instância por requisição
+  if (edgeRuntime) {
+    if (!requestScopedClient) {
+      requestScopedClient = initTursoClient();
+    }
+    return requestScopedClient;
   }
-  return tursoClient;
+  
+  // Para ambientes não-edge, usamos um singleton global
+  if (!globalTursoClient) {
+    globalTursoClient = initTursoClient();
+  }
+  return globalTursoClient;
 }
+
+// Singleton global para ambientes não-edge
+let globalTursoClient: ReturnType<typeof createClient> | null = null;
 
 // Função para executar queries com retry para lidar com conectividade intermitente
 export async function executeQuery<T>(

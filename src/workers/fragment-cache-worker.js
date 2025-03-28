@@ -1,5 +1,5 @@
 /**
- * Worker para cache de fragmentos HTML
+ * Worker para cache de fragmentos HTML otimizado para Cloudflare
  * 
  * Permite caching de partes de páginas HTML (como cards de produto, menus, etc.)
  * para reutilização entre páginas sem precisar renderizar novamente.
@@ -9,6 +9,7 @@
  * - Diferentes estratégias de cache por tipo de fragmento
  * - Versionamento para invalidação seletiva
  * - Suporte a Streaming SSR
+ * - Otimizado para KV Storage do Cloudflare
  */
 
 export default {
@@ -40,11 +41,16 @@ export default {
     return new Response('Endpoint não encontrado', { status: 404 });
   },
   
-  // Executar tarefas agendadas
+  // Executar tarefas agendadas usando Cron Triggers do Cloudflare
   async scheduled(event, env, ctx) {
-    // Limpeza de fragmentos expirados
+    // Limpeza de fragmentos expirados - executa todos os dias às 4h da manhã
     if (event.cron === '0 4 * * *') {
       await cleanupExpiredFragments(env);
+    }
+    
+    // Refresh de fragmentos populares - executa a cada 3 horas
+    if (event.cron === '0 */3 * * *') {
+      await refreshPopularFragments(env);
     }
   }
 };
@@ -70,9 +76,12 @@ async function handleFragmentRequest(request, env, ctx) {
   const cacheKey = `fragment:${fragmentId}:${version}:${locale}`;
   
   // Verificar se temos em cache
-  const cachedFragment = await env.CACHE_STORE.get(cacheKey);
+  const cachedFragment = await env.CACHE_KV.get(cacheKey);
   
   if (cachedFragment) {
+    // Registrar hit no analytics para otimização futura
+    ctx.waitUntil(registerFragmentHit(fragmentId, env));
+    
     return new Response(cachedFragment, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
@@ -118,12 +127,15 @@ async function handleFragmentRendering(request, env, ctx) {
     // Determinar TTL baseado no tipo de fragmento
     const ttl = getFragmentTTL(fragmentType, fragmentId);
     
-    // Armazenar no cache
+    // Armazenar no cache KV
     const cacheKey = `fragment:${fragmentId}:${version}:${locale}`;
-    await env.CACHE_STORE.put(cacheKey, htmlContent, { expirationTtl: ttl });
+    await env.CACHE_KV.put(cacheKey, htmlContent, { expirationTtl: ttl });
     
     // Também atualizar o registro de fragmentos
     await updateFragmentRegistry(fragmentId, version, locale, fragmentType, ttl, env);
+    
+    // Registrar cache criado para analytics
+    ctx.waitUntil(registerFragmentCreation(fragmentId, fragmentType, env));
     
     return new Response(htmlContent, {
       headers: {
@@ -290,7 +302,7 @@ async function cleanupExpiredFragments(env) {
  */
 async function getFragmentRegistry(env) {
   try {
-    const registry = await env.CACHE_STORE.get('fragment_registry', { type: 'json' });
+    const registry = await env.CACHE_KV.get('fragment_registry', { type: 'json' });
     return registry || { fragments: [] };
   } catch (error) {
     console.error('Erro ao obter registro de fragmentos:', error);
@@ -337,7 +349,9 @@ async function updateFragmentRegistry(fragmentId, version, locale, type, ttl, en
     }
     
     // Salvar registro atualizado
-    await env.CACHE_STORE.put('fragment_registry', JSON.stringify(registry));
+    await env.CACHE_KV.put('fragment_registry', JSON.stringify(registry), {
+      expirationTtl: 86400 * 30 // 30 dias
+    });
   } catch (error) {
     console.error('Erro ao atualizar registro de fragmentos:', error);
   }
@@ -370,7 +384,16 @@ async function updateFragmentRegistryAfterInvalidation(invalidatedKeys, env) {
     });
     
     // Salvar registro atualizado
-    await env.CACHE_STORE.put('fragment_registry', JSON.stringify(registry));
+    await env.CACHE_KV.put('fragment_registry', JSON.stringify(registry), {
+      expirationTtl: 86400 * 30 // 30 dias
+    });
+    
+    // Registrar no analytics
+    await env.PERFORMANCE_METRICS.put(`invalidation:${Date.now()}`, JSON.stringify({
+      count: invalidatedKeys.length,
+      fragments: invalidatedFragments.map(f => f.id),
+      timestamp: Date.now()
+    }), { expirationTtl: 86400 * 7 });
   } catch (error) {
     console.error('Erro ao atualizar registro após invalidação:', error);
   }
@@ -388,6 +411,12 @@ function getFragmentType(fragmentId) {
     return 'featured-products';
   } else if (fragmentId.startsWith('review-')) {
     return 'review';
+  } else if (fragmentId.startsWith('footer-')) {
+    return 'footer';
+  } else if (fragmentId.startsWith('header-')) {
+    return 'header';
+  } else if (fragmentId.startsWith('banner-')) {
+    return 'banner';
   } else {
     return 'generic';
   }
@@ -406,6 +435,12 @@ function getFragmentTTL(type, id) {
       return 1800; // 30 minutos
     case 'review':
       return 86400; // 24 horas
+    case 'footer':
+      return 604800; // 1 semana (conteúdo raramente muda)
+    case 'header':
+      return 86400; // 24 horas
+    case 'banner':
+      return 3600; // 1 hora (podem mudar com frequência)
     case 'generic':
     default:
       return 7200; // 2 horas
@@ -419,7 +454,7 @@ function isValidAuthToken(authHeader, env) {
   if (!authHeader) return false;
   
   const token = authHeader.replace('Bearer ', '');
-  return token === env.CACHE_AUTH_TOKEN;
+  return token === env.FRAGMENT_CACHE_TOKEN;
 }
 
 /**
@@ -434,7 +469,7 @@ async function renderFragment(fragmentId, params, env) {
     return `
       <div class="product-card" data-product-id="${productId}">
         <div class="product-image">
-          <img src="https://example.com/product${productId}.jpg" alt="Produto ${productId}">
+          <img src="https://example.com/product${productId}.jpg" alt="Produto ${productId}" loading="lazy">
         </div>
         <div class="product-info">
           <h3>Produto ${productId}</h3>
@@ -465,7 +500,231 @@ async function renderFragment(fragmentId, params, env) {
         </div>
       </section>
     `;
+  } else if (fragmentId === 'footer-main') {
+    return `
+      <footer class="site-footer">
+        <div class="footer-container">
+          <div class="footer-column">
+            <h3>Institucional</h3>
+            <ul>
+              <li><a href="/sobre">Sobre nós</a></li>
+              <li><a href="/contato">Contato</a></li>
+              <li><a href="/termos">Termos de uso</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Atendimento</h3>
+            <ul>
+              <li><a href="/faq">Perguntas frequentes</a></li>
+              <li><a href="/trocas">Trocas e devoluções</a></li>
+              <li><a href="/privacidade">Política de privacidade</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Redes sociais</h3>
+            <div class="social-icons">
+              <a href="#" aria-label="Facebook"><i class="icon-facebook"></i></a>
+              <a href="#" aria-label="Instagram"><i class="icon-instagram"></i></a>
+              <a href="#" aria-label="Twitter"><i class="icon-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2025 Grão de Gente. Todos os direitos reservados.</p>
+        </div>
+      </footer>
+    `;
+  } else if (fragmentId === 'header-main') {
+    return `
+      <header class="site-header">
+        <div class="header-top">
+          <div class="logo">
+            <a href="/"><img src="/images/logo.svg" alt="Grão de Gente" width="120" height="40"></a>
+          </div>
+          <div class="search-box">
+            <form action="/busca" method="get">
+              <input type="text" name="q" placeholder="O que você procura?" aria-label="Buscar">
+              <button type="submit" aria-label="Buscar"><i class="icon-search"></i></button>
+            </form>
+          </div>
+          <div class="header-actions">
+            <a href="/minha-conta" class="account-link"><i class="icon-user"></i> Minha conta</a>
+            <a href="/carrinho" class="cart-link"><i class="icon-cart"></i> Carrinho</a>
+          </div>
+        </div>
+      </header>
+    `;
+  } else if (fragmentId.startsWith('banner-')) {
+    const bannerType = fragmentId.replace('banner-', '');
+    return `
+      <div class="banner banner-${bannerType}">
+        <a href="/promocao">
+          <picture>
+            <source media="(max-width: 768px)" srcset="/images/banners/mobile-banner-${bannerType}.jpg">
+            <img src="/images/banners/desktop-banner-${bannerType}.jpg" alt="Promoção especial" width="1200" height="400" fetchpriority="high">
+          </picture>
+        </a>
+      </div>
+    `;
   }
   
   return null;
+}
+
+/**
+ * Registra hit do fragmento para analytics
+ */
+async function registerFragmentHit(fragmentId, env) {
+  try {
+    const key = `hit:${fragmentId}:${getYYYYMMDD()}`;
+    
+    // Incrementar contador
+    let hits = 1;
+    try {
+      const existing = await env.PERFORMANCE_METRICS.get(key, { type: 'json' });
+      if (existing && typeof existing.hits === 'number') {
+        hits = existing.hits + 1;
+      }
+    } catch (e) {
+      // Se não existir, começamos do 1
+    }
+    
+    // Salvar contagem atualizada
+    await env.PERFORMANCE_METRICS.put(key, JSON.stringify({
+      fragmentId,
+      hits,
+      lastHit: Date.now()
+    }), { expirationTtl: 86400 * 30 }); // 30 dias
+  } catch (error) {
+    // Falha silenciosa para não impactar a resposta
+    console.error('Erro ao registrar hit de fragmento:', error);
+  }
+}
+
+/**
+ * Registra criação de fragmento para analytics
+ */
+async function registerFragmentCreation(fragmentId, fragmentType, env) {
+  try {
+    const key = `creation:${getYYYYMMDD()}`;
+    
+    let creations = {};
+    try {
+      const existing = await env.PERFORMANCE_METRICS.get(key, { type: 'json' });
+      if (existing) {
+        creations = existing;
+      }
+    } catch (e) {
+      // Se não existir, começamos vazio
+    }
+    
+    // Incrementar contador para este tipo
+    creations[fragmentType] = (creations[fragmentType] || 0) + 1;
+    
+    // Salvar dados atualizados
+    await env.PERFORMANCE_METRICS.put(key, JSON.stringify(creations), 
+      { expirationTtl: 86400 * 30 }); // 30 dias
+  } catch (error) {
+    // Falha silenciosa
+    console.error('Erro ao registrar criação de fragmento:', error);
+  }
+}
+
+/**
+ * Atualiza fragmentos populares automaticamente
+ */
+async function refreshPopularFragments(env) {
+  try {
+    // Buscar estatísticas de hits para identificar fragmentos populares
+    const today = getYYYYMMDD();
+    const yesterday = getYYYYMMDD(-1);
+    
+    const prefixToday = `hit:*:${today}`;
+    const prefixYesterday = `hit:*:${yesterday}`;
+    
+    // Pegar lista de chaves com base no padrão
+    const todayKeys = await env.PERFORMANCE_METRICS.list({ prefix: prefixToday });
+    const yesterdayKeys = await env.PERFORMANCE_METRICS.list({ prefix: prefixYesterday });
+    
+    // Combinar para obter fragmentos populares
+    const fragmentHits = new Map();
+    
+    // Processar hits de hoje (peso maior)
+    for (const key of todayKeys.keys) {
+      const data = await env.PERFORMANCE_METRICS.get(key.name, { type: 'json' });
+      if (data && data.fragmentId) {
+        fragmentHits.set(data.fragmentId, (fragmentHits.get(data.fragmentId) || 0) + data.hits * 2);
+      }
+    }
+    
+    // Processar hits de ontem (peso menor)
+    for (const key of yesterdayKeys.keys) {
+      const data = await env.PERFORMANCE_METRICS.get(key.name, { type: 'json' });
+      if (data && data.fragmentId) {
+        fragmentHits.set(data.fragmentId, (fragmentHits.get(data.fragmentId) || 0) + data.hits);
+      }
+    }
+    
+    // Ordenar por popularidade
+    const popularFragments = Array.from(fragmentHits.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10) // Top 10
+      .map(([id]) => id);
+    
+    // Invalidar e recriar os fragmentos populares
+    for (const fragmentId of popularFragments) {
+      try {
+        const params = {}; // Parâmetros padrão
+        const fragmentType = getFragmentType(fragmentId);
+        const version = 'latest';
+        const locale = 'pt-BR';
+        
+        // Renderizar o fragmento
+        const htmlContent = await renderFragment(fragmentId, params, env);
+        
+        if (htmlContent) {
+          // Determinar TTL
+          const ttl = getFragmentTTL(fragmentType, fragmentId);
+          
+          // Armazenar no cache com TTL extendido (25% a mais para fragmentos populares)
+          const extendedTtl = Math.floor(ttl * 1.25);
+          const cacheKey = `fragment:${fragmentId}:${version}:${locale}`;
+          
+          await env.CACHE_KV.put(cacheKey, htmlContent, { expirationTtl: extendedTtl });
+          
+          // Atualizar registro
+          await updateFragmentRegistry(fragmentId, version, locale, fragmentType, extendedTtl, env);
+          
+          console.log(`Fragmento popular atualizado: ${fragmentId}`);
+        }
+      } catch (e) {
+        console.error(`Erro ao atualizar fragmento popular ${fragmentId}:`, e);
+      }
+    }
+    
+    // Salvar lista de fragmentos populares para referência
+    await env.PERFORMANCE_METRICS.put('popular_fragments', JSON.stringify({
+      fragments: popularFragments,
+      updated: Date.now()
+    }), { expirationTtl: 86400 }); // 1 dia
+    
+  } catch (error) {
+    console.error('Erro ao atualizar fragmentos populares:', error);
+  }
+}
+
+/**
+ * Retorna data no formato YYYYMMDD com offset opcional de dias
+ */
+function getYYYYMMDD(dayOffset = 0) {
+  const date = new Date();
+  if (dayOffset) {
+    date.setDate(date.getDate() + dayOffset);
+  }
+  
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}${month}${day}`;
 }

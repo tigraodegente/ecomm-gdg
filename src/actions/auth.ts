@@ -1,10 +1,7 @@
-// Inspired by https://github.com/HiDeoo/starlight-better-auth-example/blob/main/src/actions/index.ts
-import { defineAction, ActionError, type ActionErrorCode } from "astro:actions";
-import { z } from "astro:schema";
+// Versão adaptada para Cloudflare
 import type { AstroCookies } from "astro";
-import { APIError } from "better-auth/api";
-import { auth as betterAuth } from "@/lib/auth";
-import type { ActionAPIContext } from "astro:actions";
+import { auth } from "@/lib/auth";
+import { z } from 'zod';
 
 function parseCookiesFromResponse(cookiesArray: string[]) {
   return cookiesArray.map((cookieString) => {
@@ -29,9 +26,21 @@ export function setAuthCookiesFromResponse(cookiesArray: string[], cookies: Astr
   }
 }
 
+type ActionErrorCode = 'BAD_REQUEST' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'INTERNAL_SERVER_ERROR';
+
+class ActionError extends Error {
+  code: ActionErrorCode;
+  
+  constructor({ code, message }: { code: ActionErrorCode; message: string }) {
+    super(message);
+    this.code = code;
+    this.name = 'ActionError';
+  }
+}
+
 async function handleAuthResponse(
   apiCall: () => Promise<Response>,
-  _context: ActionAPIContext,
+  context: { request: Request },
   errorCode: ActionErrorCode
 ) {
   try {
@@ -46,75 +55,144 @@ async function handleAuthResponse(
   }
 }
 
-export const auth = {
-  signUp: defineAction({
-    accept: "form",
-    input: z.object({
+// Simplificação de defineAction para compatibilidade com Cloudflare
+function defineAction(options: {
+  accept?: string;
+  input?: z.ZodType<any, any>;
+  handler: (input: any, context: { request: Request }) => Promise<any>;
+}) {
+  return async (formData: FormData, request: Request) => {
+    let input: any;
+    
+    if (options.input) {
+      try {
+        // Converter FormData para objeto
+        const data: Record<string, any> = {};
+        for (const [key, value] of formData.entries()) {
+          data[key] = value;
+        }
+        
+        // Validar com Zod
+        input = options.input.parse(data);
+      } catch (error) {
+        throw new ActionError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid input data'
+        });
+      }
+    } else {
+      input = undefined;
+    }
+    
+    return options.handler(input, { request });
+  };
+}
+
+export const cloudflareAuth = {
+  signUp: async (formData: FormData, request: Request) => {
+    // Schema de validação
+    const schema = z.object({
       email: z.string().email(),
       password: z.string(),
       name: z.string(),
       imageUrl: z.string().optional(),
       middleware: z.string().optional()
-    }),
-    handler: async (input, context) => {
+    });
+    
+    // Extrair e validar dados
+    const data: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+    
+    try {
+      const input = schema.parse(data);
+      
       if (input.middleware) {
         throw new ActionError({
           code: "BAD_REQUEST",
           message: "Bots are not allowed to sign up"
         });
       }
-
+      
       return await handleAuthResponse(
         () =>
-          betterAuth.api.signUpEmail({
+          auth.api.signUpEmail({
             body: { ...input, image: input.imageUrl || "" },
-            headers: context.request.headers,
+            headers: request.headers,
             asResponse: true
           }),
-        context,
+        { request },
         "BAD_REQUEST"
       );
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: "Invalid input data"
+        });
+      }
+      throw error;
     }
-  }),
-
-  signIn: defineAction({
-    accept: "form",
-    input: z.object({
+  },
+  
+  signIn: async (formData: FormData, request: Request) => {
+    // Schema de validação
+    const schema = z.object({
       email: z.string().email(),
       password: z.string()
-    }),
-    handler: async (input, context) =>
-      await handleAuthResponse(
+    });
+    
+    // Extrair e validar dados
+    const data: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+    
+    try {
+      const input = schema.parse(data);
+      
+      return await handleAuthResponse(
         () =>
-          betterAuth.api.signInEmail({
+          auth.api.signInEmail({
             body: input,
-            headers: context.request.headers,
+            headers: request.headers,
             asResponse: true
           }),
-        context,
+        { request },
         "UNAUTHORIZED"
-      )
-  }),
-
-  signOut: defineAction({
-    accept: "form",
-    handler: async (_, context) =>
-      await handleAuthResponse(
-        () =>
-          betterAuth.api.signOut({
-            headers: context.request.headers,
-            asResponse: true
-          }),
-        context,
-        "BAD_REQUEST"
-      )
-  })
+      );
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: "Invalid email or password"
+        });
+      }
+      throw error;
+    }
+  },
+  
+  signOut: async (formData: FormData, request: Request) => {
+    return await handleAuthResponse(
+      () =>
+        auth.api.signOut({
+          headers: request.headers,
+          asResponse: true
+        }),
+      { request },
+      "BAD_REQUEST"
+    );
+  }
 };
+
+// Para compatibilidade com código existente
+export const auth = cloudflareAuth;
 
 function throwActionAuthError(code: ActionErrorCode, error: unknown): never {
   console.error(error);
   throw new ActionError({
     code,
-    message: error instanceof APIError ? `${error.body.message}.` : "Something went wrong, please try again later."
+    message: error instanceof Error ? error.message : "Something went wrong, please try again later."
   });
 }

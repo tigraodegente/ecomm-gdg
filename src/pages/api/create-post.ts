@@ -1,6 +1,16 @@
-import { db, Posts } from "astro:db";
+import { executeQuery } from '../../db/turso-client';
 import type { APIContext } from "astro";
-import { purgeCache } from "@netlify/functions";
+
+// Função de purge de cache para Cloudflare
+async function purgeCloudflareCache(tags: string[]) {
+  try {
+    console.log(`Purging cache for tags: ${tags.join(', ')}`);
+    // Em ambiente de produção, implementar a chamada para a API de purge do Cloudflare
+    // Exemplo: await fetch('https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache', {...})
+  } catch (error) {
+    console.error('Error purging Cloudflare cache:', error);
+  }
+}
 
 export async function POST(context: APIContext): Promise<Response> {
   try {
@@ -23,16 +33,26 @@ export async function POST(context: APIContext): Promise<Response> {
       return new Response("Missing required fields", { status: 400 });
     }
 
-    await db.insert(Posts).values(post);
+    // Inserir no banco de dados usando Turso
+    await executeQuery(
+      `INSERT INTO Posts (title, pubDate, description, author, imageUrl, imageAlt, tags, slug, content) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        post.title,
+        post.pubDate.toISOString(),
+        post.description,
+        post.author,
+        post.imageUrl,
+        post.imageAlt,
+        JSON.stringify(post.tags),
+        post.slug,
+        post.content
+      ]
+    );
 
+    // Purgar cache no Cloudflare em produção
     if (import.meta.env.PROD) {
-      try {
-        await purgeCache({
-          tags: ["posts"]
-        });
-      } catch (error) {
-        console.error("Error purging cache:", error);
-      }
+      await purgeCloudflareCache(['posts']);
     }
 
     return context.redirect("/posts");
