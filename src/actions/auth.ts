@@ -1,6 +1,6 @@
 // Versão adaptada para Cloudflare
 import type { AstroCookies } from "astro";
-import { auth } from "@/lib/auth";
+import { auth as libAuth } from "@/lib/auth";
 import { z } from 'zod';
 
 function parseCookiesFromResponse(cookiesArray: string[]) {
@@ -117,7 +117,7 @@ export const cloudflareAuth = {
       
       return await handleAuthResponse(
         () =>
-          auth.api.signUpEmail({
+          libAuth.api.signUpEmail({
             body: { ...input, image: input.imageUrl || "" },
             headers: request.headers,
             asResponse: true
@@ -154,7 +154,7 @@ export const cloudflareAuth = {
       
       return await handleAuthResponse(
         () =>
-          auth.api.signInEmail({
+          libAuth.api.signInEmail({
             body: input,
             headers: request.headers,
             asResponse: true
@@ -176,7 +176,7 @@ export const cloudflareAuth = {
   signOut: async (formData: FormData, request: Request) => {
     return await handleAuthResponse(
       () =>
-        auth.api.signOut({
+        libAuth.api.signOut({
           headers: request.headers,
           asResponse: true
         }),

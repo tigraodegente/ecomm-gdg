@@ -1,8 +1,17 @@
 // Serviço para acesso a dados de produtos
 import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+// Obter o diretório atual para paths absolutos
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Criar conexão com o banco de dados SQLite
-const db = new Database("./marketplace.db", { readonly: true });
+// Usando path absoluto para garantir que o banco seja encontrado
+const dbPath = resolve(__dirname, '../../marketplace.db');
+console.log('Conectando ao banco de dados em:', dbPath);
+const db = new Database(dbPath, { readonly: true });
 
 /**
  * Serviço de acesso a dados para produtos
@@ -705,6 +714,176 @@ class ProductService {
     
     // Buscar valores para o tipo tamanho
     return this.getAttributeValuesForType(sizeType.id, { categoryId, search });
+  }
+  
+  /**
+   * Busca avançada de produtos usando FlexSearch
+   * @param {string} term - Termo de busca
+   * @param {Object} options - Opções adicionais (limite, página, filtros)
+   * @returns {Object} Resultados da busca e dados para indexação
+   */
+  searchProducts(term, options = {}) {
+    const {
+      limit = 20,
+      page = 1,
+      includeAllForIndex = false
+    } = options;
+    
+    // Se estiver buscando todos os produtos para indexação
+    if (includeAllForIndex) {
+      console.log('Buscando todos os produtos para indexação do banco de dados...');
+      const getAllProducts = db.prepare(`
+        SELECT 
+          p.id, p.name, p.short_description, p.description, p.price, 
+          p.compare_at_price, p.is_variable, p.slug, p.sku,
+          c.name as category_name, ci.cid as category_cid,
+          v.shop_name as vendor_name,
+          (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_default DESC, display_order ASC LIMIT 1) as main_image
+        FROM products p
+        JOIN categories c ON p.category_id = c.id
+        LEFT JOIN category_identifiers ci ON c.id = ci.category_id
+        LEFT JOIN vendors v ON p.vendor_id = v.id
+        WHERE p.is_active = 1
+        ORDER BY p.id DESC
+        LIMIT 1000
+      `);
+      
+      const products = getAllProducts.all();
+      
+      // Buscar atributos para cada produto para melhorar a indexação
+      const getProductAttributes = db.prepare(`
+        SELECT pat.name as type_name, pav.value, pav.display_value
+        FROM product_attribute_values pav
+        JOIN product_attribute_types pat ON pav.attribute_type_id = pat.id
+        WHERE pav.product_id = ? AND pav.variant_id IS NULL
+      `);
+      
+      // Adicionar atributos e categorias aninhadas a cada produto
+      products.forEach(product => {
+        const attributes = getProductAttributes.all(product.id);
+        
+        // Extrair valores de atributos para texto de busca
+        product.attributeValues = attributes.map(attr => 
+          `${attr.type_name} ${attr.value} ${attr.display_value || ''}`
+        ).join(' ');
+        
+        // Preparar dados para indexação por FlexSearch
+        product.searchData = `${product.name} ${product.short_description || ''} ${product.description || ''} ${product.category_name || ''} ${product.vendor_name || ''} ${product.attributeValues || ''}`;
+      });
+      
+      console.log(`Encontrados ${products.length} produtos no banco de dados`);
+      
+      // Debug de produtos com "kit" no nome
+      const kitsProducts = products.filter(p => p.name && p.name.toLowerCase().includes('kit'));
+      if (kitsProducts.length > 0) {
+        console.log(`Produtos com "kit" encontrados no banco: ${kitsProducts.length}`);
+        kitsProducts.slice(0, 3).forEach(p => {
+          console.log(`- ${p.name}`);
+        });
+      }
+      
+      return { products };
+    }
+    
+    // Caso contrário, busca normal com o termo
+    if (!term || term.trim() === '') {
+      return this.listProducts({ ...options, page, limit });
+    }
+    
+    // Cálculo do offset para paginação
+    const offset = (page - 1) * limit;
+    
+    // Busca por similaridade de texto - versão básica usando LIKE
+    // Em um banco mais avançado, usaríamos FTS (Full Text Search)
+    let query = `
+      SELECT 
+        p.id, p.name, p.short_description, p.price, p.compare_at_price,
+        p.is_variable, p.slug, p.stock, p.sku, p.is_featured,
+        c.id as category_id, c.name as category_name,
+        ci.cid as category_cid,
+        (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_default DESC, display_order ASC LIMIT 1) as main_image
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      LEFT JOIN category_identifiers ci ON c.id = ci.category_id
+      WHERE p.is_active = 1 AND (
+        p.name LIKE ? OR 
+        p.description LIKE ? OR 
+        p.short_description LIKE ? OR
+        p.sku LIKE ? OR
+        c.name LIKE ?
+      )
+    `;
+    
+    // Parâmetros da busca
+    const searchPattern = `%${term}%`;
+    const params = [
+      searchPattern,
+      searchPattern,
+      searchPattern,
+      searchPattern,
+      searchPattern
+    ];
+    
+    // Também buscar por atributos do produto
+    query += `
+      OR p.id IN (
+        SELECT pav.product_id 
+        FROM product_attribute_values pav
+        JOIN product_attribute_types pat ON pav.attribute_type_id = pat.id
+        WHERE pav.value LIKE ? 
+          OR pav.display_value LIKE ?
+          OR pat.name LIKE ?
+      )
+    `;
+    
+    params.push(searchPattern, searchPattern, searchPattern);
+    
+    // Ordenação: primeiro os que têm o termo no nome (mais relevantes)
+    query += `
+      ORDER BY 
+        CASE WHEN p.name LIKE ? THEN 1
+             WHEN p.short_description LIKE ? THEN 2
+             WHEN c.name LIKE ? THEN 3
+             ELSE 4
+        END,
+        p.is_featured DESC,
+        p.id DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    params.push(
+      `%${term}%`,
+      `%${term}%`,
+      `%${term}%`,
+      limit,
+      offset
+    );
+    
+    // Executar a query
+    const stmt = db.prepare(query);
+    const products = stmt.all(...params);
+    
+    // Contar total de produtos para a paginação
+    let countQuery = query.replace(/SELECT.*?FROM/s, 'SELECT COUNT(*) as total FROM');
+    // Remover a cláusula ORDER BY e LIMIT
+    countQuery = countQuery.replace(/ORDER BY.*$/s, '');
+    const countStmt = db.prepare(countQuery);
+    const { total } = countStmt.get(...params.slice(0, -2)) || { total: 0 };
+    
+    // Calcular total de páginas
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      products,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    };
   }
 }
 

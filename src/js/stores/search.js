@@ -18,8 +18,10 @@ document.addEventListener('alpine:init', () => {
     recentSearches: [],
     
     init() {
+      // Carregar dados mas não mostrar resultados imediatamente
       this.initFlexSearch();
       this.loadRecentSearches();
+      this.showResults = false;
     },
     
     /**
@@ -74,9 +76,12 @@ document.addEventListener('alpine:init', () => {
     async initFlexSearch() {
       try {
         // Importar FlexSearch dinamicamente
-        const FlexSearch = await import('flexsearch');
+        const FlexSearchModule = await import('flexsearch');
+        const FlexSearch = FlexSearchModule.default || FlexSearchModule;
         
-        // Configuração simplificada para garantir resultados com termos curtos
+        console.log("FlexSearch importado com sucesso. Configurando...");
+        
+        // Configuração otimizada para termos curtos
         this.flexSearch = new FlexSearch.Document({
           document: {
             id: 'id',
@@ -86,31 +91,32 @@ document.addEventListener('alpine:init', () => {
           charset: "latin:extra",  // Suporte a acentos
           tokenize: "forward",     // Tokenização para prefixos (útil para autocompletar)
           optimize: true,          // Otimizar para performance
-          resolution: 9,           // Alta resolução
+          resolution: 9,           // Alta resolução 
           cache: 100,              // Cache grande
           minlength: 1,            // Permitir termos de 1 caractere
-          worker: false,           // Desativar workers para simplicidade
           
-          // Indexação simplificada por campo
+          // Configuração para campos específicos
           index: {
             name: {
-              encode: false,       // Sem codificação para preservar termos exatos
-              tokenize: "full",    // Tokenização completa para termos como "kit"
+              charset: "latin:extra",
+              tokenize: "forward",
               resolution: 9,
-              minlength: 1,        // Permitir termos muito curtos
-              context: false       // Desativar contexto para simplicidade
+              minlength: 1,
+              stemmer: false
             },
             searchData: {
-              tokenize: "full",
-              resolution: 9, 
+              charset: "latin:extra",
+              tokenize: "forward",
+              resolution: 9,
               minlength: 1,
-              context: false
+              stemmer: false
             }
           }
         });
         
-        // Carregar produtos do servidor via actions Astro
-        // Usando setTimeout para garantir que o FlexSearch seja inicializado antes de carregar produtos
+        console.log("FlexSearch configurado com suporte a termos curtos (minlength: 1)");
+        
+        // Carregar produtos do servidor
         setTimeout(() => {
           this.loadProducts();
         }, 100);
@@ -125,162 +131,159 @@ document.addEventListener('alpine:init', () => {
     async loadProducts() {
       try {
         this.loading = true;
+        console.log("Carregando produtos para o índice de busca...");
         
-        // Cache de índice para evitar requisições desnecessárias
-        const cachedIndex = localStorage.getItem('search_index_cache');
-        const cachedTimestamp = localStorage.getItem('search_index_timestamp');
-        const now = Date.now();
-        const cacheValid = cachedTimestamp && (now - parseInt(cachedTimestamp) < 3600000); // 1 hora
+        // Tentar buscar diretamente do endpoint (sem cache)
+        console.log('Buscando produtos do endpoint /api/searchindex');
         
-        let data;
-        
-        // Tentar usar cache primeiro se for válido
-        if (cacheValid && cachedIndex) {
-          try {
-            data = JSON.parse(cachedIndex);
-            console.log('Usando índice de busca em cache');
-          } catch (e) {
-            console.warn('Erro ao ler cache:', e);
-          }
-        }
-        
-        // Se não tiver cache válido, buscar da API
-        if (!data) {
-          console.log('Buscando novo índice da API');
-          
-          try {
-            // Usar o endpoint otimizado de busca
-            const response = await fetch('/api/searchindex');
-            data = await response.json();
-            
-            if (!data.success || !data.products || !Array.isArray(data.products)) {
-              throw new Error('Formato de resposta inválido');
-            }
-            
-            // Salvar no cache com compressão para reduzir tamanho
-            this.saveSearchIndexToCache(data);
-          } catch (error) {
-            console.warn('Erro ao buscar produtos para indexação:', error);
-            
-            // Tentar usar cache mesmo que expirado
-            if (cachedIndex) {
-              try {
-                data = JSON.parse(cachedIndex);
-                console.log('Usando cache expirado como fallback');
-              } catch (e) {
-                // Fallback com produtos locais
-                data = this.getDefaultProductsData();
-              }
-            } else {
-              // Fallback com produtos locais
-              data = this.getDefaultProductsData();
-            }
-          }
-        }
-        
-        const { products } = data;
-        
-        // Limpar índice existente antes de adicionar novos produtos
-        // Para evitar duplicatas em caso de recarregamento
-        if (this.flexSearch && typeof this.flexSearch.add === 'function') {
-          console.log('Limpando índice de busca antes de reindexar');
-        }
-        
-        // Adicionar produtos ao índice de busca usando Document API
-        console.log('Indexando', products.length, 'produtos com FlexSearch Document API');
-        
-        // Debug: Verificar se temos o produto específico com "kit" nos dados
-        const hasKitProduct = products.some(p => p.name && p.name.toLowerCase().includes('kit'));
-        console.log('Existe produto com "kit" no nome?', hasKitProduct);
-        
-        // Iniciar um novo índice do zero
         try {
-          console.log('Recriando índice FlexSearch');
-          const FlexSearch = await import('flexsearch');
-          this.flexSearch = new FlexSearch.Document({
-            document: {
-              id: 'id',
-              index: ['name', 'description', 'category', 'vendorName', 'searchData'],
-              store: ['id', 'name', 'description', 'price', 'comparePrice', 'image', 'slug', 'vendorName', 'category']
-            },
-            tokenize: 'full',
-            optimize: true,
-            resolution: 9,
-            minlength: 1,
-            context: true
-          });
-        } catch (err) {
-          console.error('Erro ao recriar índice FlexSearch:', err);
+          // Usar o endpoint otimizado de busca
+          const response = await fetch('/api/searchindex?nocache=' + Date.now());
+          
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (!data.success || !data.products || !Array.isArray(data.products)) {
+            console.error('Formato de resposta inválido:', data);
+            throw new Error('Formato de resposta inválido');
+          }
+          
+          const { products } = data;
+          console.log(`Carregados ${products.length} produtos da API com sucesso`);
+          
+          // Debug: Verificar produtos com "kit" no nome
+          const kitsProducts = products.filter(p => p.name && p.name.toLowerCase().includes('kit'));
+          console.log(`Produtos com "kit" no nome: ${kitsProducts.length}`);
+          kitsProducts.forEach(p => console.log(`- ${p.name}`));
+          
+          // Limpar índice e adicionar novos produtos
+          this.addProductsToIndex(products);
+          
+          return;
+        } catch (error) {
+          console.error('Erro ao buscar produtos da API:', error);
+          console.log('Tentando utilizar cache ou dados locais...');
         }
         
-        // Processar produtos em lotes para melhor performance
-        const BATCH_SIZE = 20; // Reduzido para garantir melhor processamento
-        for (let i = 0; i < products.length; i += BATCH_SIZE) {
-          const batch = products.slice(i, i + BATCH_SIZE);
+        // Se falhou, tentar usar cache do localStorage
+        try {
+          const cachedIndex = localStorage.getItem('search_index_cache');
+          if (cachedIndex) {
+            const data = JSON.parse(cachedIndex);
+            if (data.products && Array.isArray(data.products)) {
+              console.log(`Usando ${data.products.length} produtos do cache local`);
+              this.addProductsToIndex(data.products);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Erro ao ler cache:', e);
+        }
+        
+        // Último recurso: usar dados de fallback
+        console.log('Usando dados de fallback para busca');
+        const fallbackData = this.getDefaultProductsData();
+        this.addProductsToIndex(fallbackData.products);
+      } catch (error) {
+        console.error('Erro crítico ao carregar produtos para busca:', error);
+        this.loading = false;
+        
+        // Garantir que temos ao menos alguns produtos para busca funcionar
+        const fallbackData = this.getDefaultProductsData();
+        this.products = fallbackData.products;
+      }
+    },
+    
+    /**
+     * Adiciona produtos ao índice FlexSearch e atualiza store
+     * @param {Array} products - Lista de produtos para indexar
+     */
+    addProductsToIndex(products) {
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        console.error("Nenhum produto válido para indexação");
+        this.loading = false;
+        return;
+      }
+      
+      console.log(`Indexando ${products.length} produtos com FlexSearch...`);
+      
+      // Armazenar produtos completos para acesso direto
+      this.products = products;
+      
+      // Adicionar ao índice FlexSearch se disponível
+      if (this.flexSearch && typeof this.flexSearch.add === 'function') {
+        // Processar em lotes pequenos para não travar o navegador
+        const BATCH_SIZE = 20;
+        let processed = 0;
+        
+        const processNextBatch = async () => {
+          const batch = products.slice(processed, processed + BATCH_SIZE);
+          processed += batch.length;
           
-          // Processar cada produto no lote
-          batch.forEach(product => {
+          for (const product of batch) {
             try {
-              // Garantir que temos dados válidos
-              if (!product || !product.id) {
-                console.warn('Produto inválido para indexação:', product);
-                return;
-              }
+              if (!product || !product.id) continue;
               
-              // Debug do produto com "kit"
-              if (product.name && product.name.toLowerCase().includes('kit')) {
-                console.log('Indexando produto com kit:', product);
-              }
-              
-              // Extrair campos relevantes para indexação
+              // Criar documento otimizado para busca
               const doc = {
                 id: product.id,
                 name: (product.name || '').toLowerCase(),
-                description: (product.description || product.short_description || '').toLowerCase(),
+                description: (product.description || '').toLowerCase(),
                 category: (product.category || '').toLowerCase(),
                 vendorName: (product.vendorName || '').toLowerCase(),
-                // Campo combinado para melhorar a busca com termos curtos
                 searchData: [
-                  (product.name || ''),
-                  (product.description || product.short_description || ''),
-                  (product.category || ''),
-                  (product.vendorName || ''),
-                  (product.searchData || ''),
-                  (product.tags || []).join(' ')
+                  product.name || '',
+                  product.description || '',
+                  product.category || '',
+                  product.vendorName || '',
+                  product.searchData || ''
                 ].join(' ').toLowerCase(),
+                
+                // Campos para store
                 price: product.price,
                 comparePrice: product.comparePrice,
-                image: product.image || product.mainImage || product.main_image,
+                image: product.image,
                 slug: product.slug
               };
               
-              // Adicionar ao índice FlexSearch Document
-              if (this.flexSearch && typeof this.flexSearch.add === 'function') {
-                this.flexSearch.add(doc);
+              // Adicionar ao índice
+              this.flexSearch.add(doc);
+              
+              // Debug para produtos com "kit"
+              if (doc.name.includes('kit')) {
+                console.log(`Produto indexado: ${product.name} (ID: ${product.id})`);
               }
             } catch (err) {
-              console.error('Erro ao indexar produto:', err, product);
+              console.error(`Erro ao indexar produto ${product.id}:`, err);
             }
-          });
-          
-          // Para evitar bloquear o navegador com muitos produtos
-          if (i + BATCH_SIZE < products.length) {
-            // Pequena pausa para permitir que a UI responda entre lotes
-            await new Promise(resolve => setTimeout(resolve, 0));
           }
-        }
+          
+          // Continuar processando ou finalizar
+          if (processed < products.length) {
+            // Pausa para permitir que a UI responda
+            await new Promise(resolve => setTimeout(resolve, 0));
+            processNextBatch();
+          } else {
+            console.log(`Indexação concluída: ${products.length} produtos processados`);
+            
+            // Salvar no localStorage para acesso offline
+            this.saveSearchIndexToCache({ success: true, products });
+            
+            // Extrair categorias para filtragem
+            this.extractCategories();
+            
+            this.loading = false;
+          }
+        };
         
-        console.log("FlexSearch indexou", products.length, "produtos com sucesso");
-        
-        // Armazenar produtos completos para acesso rápido
-        this.products = products;
-        
-        // Extrair categorias únicas para filtros rápidos
+        // Iniciar processamento
+        processNextBatch();
+      } else {
+        console.warn("FlexSearch não está disponível para indexação");
         this.extractCategories();
-        
-        this.loading = false;
-      } catch (error) {
-        console.error('Erro ao carregar produtos para busca:', error);
         this.loading = false;
       }
     },
@@ -292,19 +295,18 @@ document.addEventListener('alpine:init', () => {
     saveSearchIndexToCache(data) {
       try {
         // Otimizar os dados antes de salvar no cache
-        // Removendo campos desnecessários para economizar espaço
         const optimizedData = {
           success: true,
           products: data.products.map(p => ({
             id: p.id,
             name: p.name,
-            description: p.short_description || '',
+            description: p.description || '',
             price: p.price,
-            comparePrice: p.compare_at_price || p.comparePrice,
-            image: p.mainImage || p.main_image || p.image,
+            comparePrice: p.comparePrice,
+            image: p.image,
             slug: p.slug || p.id,
-            vendorName: p.vendor_name || p.vendorName || '',
-            category: p.category_name || p.category || '',
+            vendorName: p.vendorName || '',
+            category: p.category || '',
             searchData: p.searchData || ''
           }))
         };
@@ -360,7 +362,10 @@ document.addEventListener('alpine:init', () => {
     async query(term) {
       this.searchTerm = term;
       
-      // Alterado para permitir termos curtos (como "kit")
+      // Log para diagnóstico
+      console.log(`Buscando por termo: "${term}"`);
+      
+      // Permitir termos com pelo menos 1 caractere
       if (!term || term.length < 1) {
         this.results = [];
         this.categories = [];
@@ -371,15 +376,21 @@ document.addEventListener('alpine:init', () => {
       
       // Verificar se FlexSearch foi inicializado
       if (!this.flexSearch) {
-        console.warn("FlexSearch não foi inicializado ainda, tentando inicializar");
-        await this.initFlexSearch();
-        // Se ainda não estiver inicializado após a tentativa, retornar
-        if (!this.flexSearch) {
-          console.error("Falha ao inicializar FlexSearch");
+        console.warn("FlexSearch não foi inicializado ainda");
+        
+        // Busca direta nos produtos (fallback)
+        const results = this.directSearch(term);
+        if (results.length > 0) {
+          console.log(`Encontrados ${results.length} resultados via busca direta`);
+          this.results = results.slice(0, 6);
+          this.showResults = true;
+          this.hasSearched = true;
+          return;
+        } else {
+          console.log("Nenhum resultado encontrado via busca direta");
+          this.showResults = true;
+          this.hasSearched = true;
           this.results = [];
-          this.categories = [];
-          this.suggestions = [];
-          this.showResults = false;
           return;
         }
       }
@@ -388,143 +399,99 @@ document.addEventListener('alpine:init', () => {
       this.showResults = true;
       
       try {
-        // Busca avançada com FlexSearch.Document
         const searchTerm = term.toLowerCase();
-        console.log("Buscando por:", searchTerm);
         
-        // Método simplificado: Use fallback para garantir resultados
-      
-      // 1. Pesquisa direta nos dados - abordagem muito confiável para termos curtos
-      const directResults = this.products.filter(product => {
-        if (!product || !product.name) return false;
+        // BUSCA DIRETA - abordagem confiável para termos curtos
+        const directResults = this.directSearch(term);
+        console.log(`Busca direta encontrou ${directResults.length} resultados`);
         
-        // Busca em todos os campos relevantes
-        const searchableText = [
-          product.name,
-          product.description || product.short_description || '',
-          product.category || '',
-          product.vendorName || product.vendor_name || '',
-          product.searchData || ''
-        ].join(' ').toLowerCase();
-        
-        // Para termos curtos como "kit", verificamos várias condições
-        return (
-          // Correspondência exata no nome (mais relevante)
-          product.name.toLowerCase() === searchTerm ||
-          // Palavra no início do nome (como "Kit Enxoval")
-          product.name.toLowerCase().startsWith(searchTerm) ||
-          // Palavra no nome (como "Super Kit de Beleza")
-          product.name.toLowerCase().includes(` ${searchTerm} `) ||
-          // Em qualquer lugar do nome
-          product.name.toLowerCase().includes(searchTerm) ||
-          // Em qualquer campo de texto
-          searchableText.includes(searchTerm)
-        );
-      });
-      
-      console.log(`Busca direta encontrou ${directResults.length} produtos com '${searchTerm}'`);
-      if (directResults.length > 0) {
-        console.log('Exemplos:', directResults.slice(0, 2).map(p => p.name));
-      }
-      
-      // 2. Pesquisa via FlexSearch para termos mais complexos
-      const resultsByField = {};
-      const fields = ['name', 'searchData']; // Simplificado para maior eficiência
-      
-      try {
-        // Configuração simplificada, focando apenas no essencial
-        const searchConfig = {
-          limit: 100,       // Limite alto para garantir resultados
-          suggest: true,    // Ativar sugestões
-          enrich: true,     // Incluir documento completo
-          bool: 'or',       // Operador OR para combinar termos
-          fuzzy: 0.4        // Alta tolerância a erros
-        };
-        
-        // Buscar apenas nos campos principais
-        for (const field of fields) {
-          try {
-            resultsByField[field] = await this.flexSearch.search(field, searchTerm, searchConfig);
-          } catch (err) {
-            console.error(`Erro na busca FlexSearch (${field}):`, err);
-            resultsByField[field] = [];
-          }
+        if (directResults.length > 0) {
+          this.results = directResults.slice(0, 6);
+          this.extractResultCategories(directResults);
+          this.hasSearched = true;
+          this.loading = false;
+          return;
         }
-      } catch (err) {
-        console.error('Erro geral na busca FlexSearch:', err);
-      }
         
-        // Combinar resultados das duas abordagens
-        let scoredResults = [];
-        
-        // 1. Adicionar resultados FlexSearch se disponíveis
+        // Se não encontrou nada na busca direta, tentar com FlexSearch
         try {
-          const flexResults = this.combineSearchResults(resultsByField, searchTerm);
-          if (flexResults && flexResults.length > 0) {
-            console.log(`FlexSearch encontrou ${flexResults.length} resultados`);
-            scoredResults = flexResults;
+          // Buscar em múltiplos campos
+          const searchConfig = {
+            limit: 20,
+            suggest: true,
+            enrich: true
+          };
+          
+          // Busca em campos principais
+          const nameResults = await this.flexSearch.search("name", term, searchConfig);
+          const searchDataResults = await this.flexSearch.search("searchData", term, searchConfig);
+          
+          // Extrair documentos únicos dos resultados
+          const resultsMap = new Map();
+          
+          // Processar resultados por nome (maior peso)
+          nameResults.forEach(resultGroup => {
+            resultGroup.result.forEach(match => {
+              if (match.doc) {
+                resultsMap.set(match.doc.id, {
+                  ...match.doc,
+                  _score: 10
+                });
+              }
+            });
+          });
+          
+          // Processar resultados por dados de busca
+          searchDataResults.forEach(resultGroup => {
+            resultGroup.result.forEach(match => {
+              if (match.doc) {
+                // Se já existe, aumentar pontuação, senão adicionar
+                if (resultsMap.has(match.doc.id)) {
+                  const existing = resultsMap.get(match.doc.id);
+                  resultsMap.set(match.doc.id, {
+                    ...existing,
+                    _score: existing._score + 5
+                  });
+                } else {
+                  resultsMap.set(match.doc.id, {
+                    ...match.doc,
+                    _score: 5
+                  });
+                }
+              }
+            });
+          });
+          
+          // Converter mapa para array e ordenar por pontuação
+          let results = Array.from(resultsMap.values())
+            .sort((a, b) => b._score - a._score);
+            
+          console.log(`FlexSearch encontrou ${results.length} resultados`);
+          
+          // Se ainda não encontrou nada, usar a busca direta como último recurso
+          if (results.length === 0) {
+            console.log("Usando resultados da busca direta como fallback");
+            results = directResults;
+          }
+          
+          // Processar categorias e sugestões
+          this.extractResultCategories(results);
+          
+          // Limitar os resultados para a UI
+          this.results = results.slice(0, 6);
+          
+          // Manter histórico
+          this.hasSearched = true;
+          
+          // Adicionar termo às buscas recentes se houver resultados
+          if (this.results.length > 0) {
+            this.addToRecentSearches(term);
           }
         } catch (err) {
-          console.error('Erro ao processar resultados FlexSearch:', err);
-        }
-        
-        // 2. Usar resultados diretos se FlexSearch não encontrou nada ou encontrou poucos resultados
-        if (scoredResults.length === 0 && directResults.length > 0) {
-          console.log("Usando resultados da busca direta");
-          scoredResults = directResults.map(product => ({
-            ...product,
-            _score: 100 // Score alto para resultados diretos
-          }));
-        }
-        // Se temos poucos resultados do FlexSearch, complementar com a busca direta
-        else if (scoredResults.length < 3 && directResults.length > scoredResults.length) {
-          console.log("Complementando resultados do FlexSearch com a busca direta");
-          
-          // Obter IDs já presentes para evitar duplicatas
-          const existingIds = new Set(scoredResults.map(p => p.id));
-          
-          // Adicionar apenas resultados não duplicados
-          const additionalResults = directResults
-            .filter(product => !existingIds.has(product.id))
-            .map(product => ({
-              ...product,
-              _score: 80 // Score um pouco menor para resultados complementares
-            }));
-            
-          scoredResults = [...scoredResults, ...additionalResults];
-        }
-        
-        console.log("FlexSearch encontrou", scoredResults.length, "resultados com scoring");
-        
-        // Processar categorias dos resultados
-        const categoriesMap = this.getCategoriesFromResults(scoredResults);
-        
-        // Obter as categorias mais relevantes
-        this.categories = Array.from(categoriesMap.values())
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
-        
-        // Gerar sugestões de busca inteligentes baseadas nos resultados
-        this.suggestions = this.generateSearchSuggestions(scoredResults, searchTerm);
-        
-        // Aplicar correção de termos mal digitados
-        if (scoredResults.length < 3 && term.length > 3) {
-          const correctedTerm = this.getSpellingSuggestion(term);
-          if (correctedTerm && correctedTerm !== term) {
-            // Adicionar a correção às sugestões
-            this.suggestions.unshift(correctedTerm);
-          }
-        }
-        
-        // Limitar os resultados finais para a visualização instantânea
-        this.results = scoredResults.slice(0, 6);
-        
-        // Manter histórico
-        this.hasSearched = true;
-        
-        // Adicionar termo às buscas recentes se houver resultados
-        if (this.results.length > 0) {
-          this.addToRecentSearches(term);
+          console.error("Erro ao buscar com FlexSearch:", err);
+          // Fallback para busca direta
+          this.results = directResults.slice(0, 6);
+          this.extractResultCategories(directResults);
         }
       } catch (error) {
         console.error('Erro ao realizar busca:', error);
@@ -537,97 +504,50 @@ document.addEventListener('alpine:init', () => {
     },
     
     /**
-     * Combina resultados de diferentes campos com scoring de relevância
-     * @param {Object} resultsByField - Resultados por campo
-     * @param {string} searchTerm - Termo de busca
-     * @returns {Array} Resultados ordenados por relevância
+     * Realiza busca direta nos produtos (sem FlexSearch)
+     * @param {string} term - Termo de busca
+     * @returns {Array} Resultados da busca
      */
-    combineSearchResults(resultsByField, searchTerm) {
-      // Mapa para armazenar pontuações combinadas por ID
-      const scoreMap = new Map();
-      const productsMap = new Map();
+    directSearch(term) {
+      const searchTerm = term.toLowerCase();
       
-      // Pesos por campo para cálculo da relevância
-      const fieldWeights = {
-        name: 5,         // Peso maior para correspondências no nome
-        description: 3,  // Peso médio para descrições
-        category: 3,     // Peso médio para categorias
-        vendorName: 2,   // Peso menor para fornecedor
-        searchData: 1    // Peso menor para dados gerais
-      };
-      
-      // Processar resultados de cada campo
-      Object.entries(resultsByField).forEach(([field, results]) => {
-        const weight = fieldWeights[field] || 1;
+      return this.products.filter(product => {
+        if (!product || !product.name) return false;
         
-        // Processar resultados deste campo
-        results.forEach(result => {
-          // Cada resultado tem um array 'result' com documentos
-          result.result.forEach(doc => {
-            const id = doc.id;
-            const product = doc.doc;
-            
-            // Armazenar o produto completo
-            if (!productsMap.has(id)) {
-              // Encontrar o produto original com todos os dados
-              const fullProduct = this.products.find(p => p.id.toString() === id.toString());
-              if (fullProduct) {
-                productsMap.set(id, fullProduct);
-              } else {
-                productsMap.set(id, product);
-              }
-            }
-            
-            // Calcular score adicional baseado na qualidade da correspondência
-            let extraScore = 0;
-            
-            // Bônus para correspondências exatas no nome
-            if (field === 'name') {
-              const productName = (product.name || '').toLowerCase();
-              
-              // Correspondência exata ganha bônus máximo
-              if (productName === searchTerm) {
-                extraScore += 50;
-              }
-              // Correspondência no início do nome
-              else if (productName.startsWith(searchTerm)) {
-                extraScore += 30;
-              }
-              // Correspondência em uma palavra completa
-              else if (new RegExp(`\\b${searchTerm}\\b`).test(productName)) {
-                extraScore += 20;
-              }
-              // Correspondência parcial
-              else if (productName.includes(searchTerm)) {
-                extraScore += 10;
-              }
-            }
-            
-            // Adicionar à pontuação total
-            const currentScore = scoreMap.get(id) || 0;
-            scoreMap.set(id, currentScore + (weight * 10) + extraScore);
-          });
-        });
-      });
-      
-      // Converter mapa para array e ordenar por pontuação
-      const scoredResults = Array.from(productsMap.entries())
-        .map(([id, product]) => ({
-          ...product,
-          _score: scoreMap.get(id) || 0
-        }))
-        .sort((a, b) => b._score - a._score);
-      
-      return scoredResults;
+        // Busca em todos os campos relevantes
+        const searchableText = [
+          product.name,
+          product.description || '',
+          product.category || '',
+          product.vendorName || '',
+          product.searchData || ''
+        ].join(' ').toLowerCase();
+        
+        // Para termos curtos, verificamos várias condições
+        return (
+          // Correspondência exata no nome
+          product.name.toLowerCase() === searchTerm ||
+          // Palavra no início do nome
+          product.name.toLowerCase().startsWith(searchTerm) ||
+          // Palavra no nome
+          product.name.toLowerCase().includes(` ${searchTerm} `) ||
+          // Em qualquer lugar do nome
+          product.name.toLowerCase().includes(searchTerm) ||
+          // Em qualquer campo de texto
+          searchableText.includes(searchTerm)
+        );
+      }).map(product => ({
+        ...product,
+        _score: 100 // Score padrão para ordenação
+      }));
     },
     
     /**
-     * Extrai categorias dos resultados da busca
+     * Extrai categorias e sugestões dos resultados da busca
      * @param {Array} results - Resultados da busca
-     * @returns {Map} Mapa de categorias com contagens
      */
-    getCategoriesFromResults(results) {
-      // Mapa para contar produtos por categoria
+    extractResultCategories(results) {
+      // Extrair categorias dos resultados
       const categoriesMap = new Map();
       
       results.forEach(product => {
@@ -647,260 +567,16 @@ document.addEventListener('alpine:init', () => {
         }
       });
       
-      return categoriesMap;
-    },
-    
-    /**
-     * Gera sugestões de busca inteligentes
-     * @param {Array} results - Resultados da busca
-     * @param {string} searchTerm - Termo de busca original
-     * @returns {Array} Sugestões de busca
-     */
-    generateSearchSuggestions(results, searchTerm) {
-      // Extrair termos candidatos dos resultados
-      let candidates = [];
+      // Obter as categorias mais relevantes
+      this.categories = Array.from(categoriesMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
       
-      // Extrair dos nomes dos produtos
-      results.slice(0, 10).forEach(product => {
-        // Adicionar sempre nome completo do produto se não for muito longo
-        if (product.name && product.name.length < 50) {
-          candidates.push(product.name);
-        }
-        
-        // Dividir nome em palavras
-        const words = (product.name || '').split(/\s+/);
-        
-        // Para cada palavra/frase no nome
-        if (words.length > 1) {
-          // Adicionar palavras individuais relevantes que incluem o termo de busca
-          const matchedParts = words.filter(word => 
-            word.toLowerCase().includes(searchTerm) && word.length > 2
-          );
-          
-          // Adicionar apenas palavras relevantes para evitar preposições isoladas
-          matchedParts.forEach(word => {
-            if (word.length > 3 || word.toLowerCase() === searchTerm) {
-              candidates.push(word);
-            }
-          });
-          
-          // Frases-chave de 3 palavras para nomes de produtos
-          // Isso captura frases completas como "Kit Lençol e Fronha"
-          if (words.length >= 3) {
-            for (let i = 0; i < words.length - 2; i++) {
-              candidates.push(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
-            }
-          }
-          
-          // Adicionar combinações significativas de duas palavras, evitando preposições isoladas
-          for (let i = 0; i < words.length - 1; i++) {
-            // Evitar combinações que comecem com preposições pequenas
-            if (words[i].length > 2 || words[i+1].length > 2) {
-              candidates.push(`${words[i]} ${words[i + 1]}`);
-            }
-          }
-        } else if (words.length === 1 && words[0].length > 2) {
-          candidates.push(product.name);
-        }
-        
-        // Adicionar categoria se relevante
-        if (product.category && product.category.toLowerCase().includes(searchTerm)) {
-          candidates.push(product.category);
-        }
-      });
-      
-      // Preservar versões originais (com acentuação) dos candidatos
-      const originalCandidates = candidates.slice();
-      
-      // Limpar e normalizar candidatos
-      candidates = candidates
-        .map(term => term.trim())
-        .filter(term => term.length > 0 && term.length < 50);
-      
-      // Agrupar termos similares e contar ocorrências
-      const termCounts = {};
-      const originalTerms = {}; // Mapear versões normalizadas para originais
-      
-      candidates.forEach(term => {
-        const normalizedTerm = term.toLowerCase();
-        
-        // Incrementar contagem
-        termCounts[normalizedTerm] = (termCounts[normalizedTerm] || 0) + 1;
-        
-        // Guardar versão original com acentuação
-        if (!originalTerms[normalizedTerm] || term.length < originalTerms[normalizedTerm].length) {
-          originalTerms[normalizedTerm] = term;
-        }
-      });
-      
-      // Pontuação personalizada para cada termo
-      const getTermScore = (term) => {
-        let score = termCounts[term] * 10; // Base: contagem de ocorrências
-        
-        // Priorizar frases completas
-        const wordCount = term.split(/\s+/).length;
-        score += wordCount * 5; // Maior pontuação para frases completas
-        
-        // Penalizar preposições e termos muito curtos isolados
-        const hasShortWords = term.split(/\s+/).some(word => word.length <= 2);
-        if (wordCount === 1 && term.length <= 2) {
-          score -= 20; // Penalizar palavras curtas isoladas
-        } else if (hasShortWords && wordCount === 1) {
-          score -= 5;  // Penalizar levemente palavras curtas
-        }
-        
-        // Bônus para termos que começam com a consulta de busca
-        if (term.toLowerCase().startsWith(searchTerm.toLowerCase())) {
-          score += 15;
-        }
-        
-        // Bônus para termos que contêm a consulta completa
-        if (term.toLowerCase().includes(searchTerm.toLowerCase())) {
-          score += 10;
-        }
-        
-        return score;
-      };
-      
-      // Ordenar por pontuação personalizada (maior primeiro)
-      const sortedTerms = Object.keys(termCounts)
-        .sort((a, b) => {
-          return getTermScore(b) - getTermScore(a);
-        });
-      
-      // Remover duplicatas funcionais (por exemplo, "Kit" e "Kit Lençol")
-      const isDuplicate = (term, index, terms) => {
-        // Verificar se algum termo anterior contém este termo completamente
-        for (let i = 0; i < index; i++) {
-          if (terms[i].toLowerCase().includes(term.toLowerCase()) && 
-              terms[i].split(/\s+/).length > term.split(/\s+/).length) {
-            return true;
-          }
-        }
-        return false;
-      };
-      
-      // Filtrar resultados para obter sugestões de alta qualidade
-      return sortedTerms
-        // Remover o próprio termo de busca
-        .filter(term => term !== searchTerm.toLowerCase())
-        // Remover termos muito curtos isolados como "e", "de", etc.
-        .filter(term => !(term.length <= 2 && term.split(/\s+/).length === 1))
-        // Remover termos que são partes de outros termos já selecionados
-        .filter((term, index, terms) => !isDuplicate(term, index, terms))
-        // Limitar a 3 sugestões
-        .slice(0, 3)
-        .map(term => {
-          // Usar a versão original (com acentuação) que guardamos
-          const originalTerm = originalTerms[term] || term;
-          
-          // Se não temos versão original preservada, capitalizar a primeira letra
-          if (originalTerm === term) {
-            return term.split(/\s+/).map(word => {
-              // Capitalizar preservando acentos - pegando primeiro caractere e resto da string
-              if (word.length > 0) {
-                return word.charAt(0).toUpperCase() + word.slice(1);
-              }
-              return word;
-            }).join(' ');
-          }
-          
-          return originalTerm;
-        });
-    },
-    
-    /**
-     * Sugere correções para termos mal digitados
-     * @param {string} term - Termo de busca com possível erro
-     * @returns {string|null} Sugestão corrigida ou null
-     */
-    getSpellingSuggestion(term) {
-      // Implementação simples de correção por distância de edição
-      const normalizedTerm = term.toLowerCase();
-      
-      // Considerar apenas produtos com nome próximo ao termo buscado
-      const candidates = this.products
-        .filter(p => p.name && p.name.length >= term.length / 2)  // Filtrar nomes muito curtos
-        .map(p => {
-          const name = p.name.toLowerCase();
-          // Calcular similaridade com o nome completo
-          const nameSimilarity = this.calculateSimilarity(normalizedTerm, name);
-          
-          // Calcular também similaridade com palavras individuais do nome
-          const words = name.split(/\s+/);
-          let wordSimilarity = 0;
-          
-          words.forEach(word => {
-            if (word.length >= 3) {  // Ignorar palavras muito curtas
-              const similarity = this.calculateSimilarity(normalizedTerm, word);
-              wordSimilarity = Math.max(wordSimilarity, similarity);
-            }
-          });
-          
-          // Retornar o máximo das duas similaridades
-          return {
-            term: p.name,
-            similarity: Math.max(nameSimilarity, wordSimilarity)
-          };
-        })
-        .filter(c => c.similarity > 0.7)  // Filtrar apenas termos suficientemente similares
-        .sort((a, b) => b.similarity - a.similarity);
-      
-      // Retornar o melhor candidato, se houver
-      return candidates.length > 0 ? candidates[0].term : null;
-    },
-    
-    /**
-     * Calcula similaridade entre duas strings (0-1)
-     * @param {string} a - Primeira string
-     * @param {string} b - Segunda string
-     * @returns {number} Similaridade entre 0 e 1
-     */
-    calculateSimilarity(a, b) {
-      // Implementação simples de similaridade por distância de edição normalizada
-      if (a === b) return 1.0;  // Correspondência exata
-      if (a.length === 0 || b.length === 0) return 0.0;  // Uma string vazia
-      
-      // Verificar se uma é substring da outra
-      if (a.includes(b) || b.includes(a)) {
-        const minLength = Math.min(a.length, b.length);
-        const maxLength = Math.max(a.length, b.length);
-        return minLength / maxLength;
-      }
-      
-      // Verificar prefixo comum (útil para autocompletar)
-      let commonPrefixLength = 0;
-      const minLength = Math.min(a.length, b.length);
-      
-      for (let i = 0; i < minLength; i++) {
-        if (a[i] === b[i]) {
-          commonPrefixLength++;
-        } else {
-          break;
-        }
-      }
-      
-      if (commonPrefixLength > 2) {  // Prefixo significativo
-        return commonPrefixLength / Math.max(a.length, b.length);
-      }
-      
-      // Distância de Levenshtein simplificada para casos onde não há prefixo comum
-      let distance = 0;
-      const aChars = a.split('');
-      const bChars = b.split('');
-      
-      // Calcular diferenças de caracteres (simplificado)
-      const uniqueCharsA = new Set(aChars);
-      const uniqueCharsB = new Set(bChars);
-      
-      let commonChars = 0;
-      uniqueCharsA.forEach(char => {
-        if (uniqueCharsB.has(char)) commonChars++;
-      });
-      
-      const totalUniqueChars = uniqueCharsA.size + uniqueCharsB.size - commonChars;
-      
-      return commonChars / totalUniqueChars;
+      // Gerar sugestões simples baseadas nos resultados
+      this.suggestions = results
+        .slice(0, 5)
+        .map(p => p.name)
+        .filter((v, i, a) => a.indexOf(v) === i);
     },
     
     /**
@@ -926,7 +602,7 @@ document.addEventListener('alpine:init', () => {
         // Adicionar termo às buscas recentes
         this.addToRecentSearches(term);
         
-        // Buscar via Astro API usando path absoluto
+        // Buscar via API
         const response = await fetch(`/api/search-products?q=${encodeURIComponent(term)}&page=${page}`);
         const data = await response.json();
         
@@ -960,7 +636,7 @@ document.addEventListener('alpine:init', () => {
      * @param {string} term - Termo de busca
      */
     executeSearch(term) {
-      if (!term || term.trim().length < 2) return;
+      if (!term || term.trim().length < 1) return;
       
       // Adicionar às buscas recentes
       this.addToRecentSearches(term);
@@ -1068,6 +744,44 @@ document.addEventListener('alpine:init', () => {
       
       const regex = new RegExp(`(${this.searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
       return text.replace(regex, '<span class="bg-yellow-100">$1</span>');
+    },
+    
+    // Função para diagnóstico - pode ser chamada do console
+    testSearch(term) {
+      console.log(`TESTE DE BUSCA: "${term}"`);
+      console.log(`FlexSearch inicializado: ${this.flexSearch !== null}`);
+      console.log(`Produtos carregados: ${this.products.length}`);
+      
+      // Busca direta nos produtos
+      const results = this.directSearch(term);
+      console.log(`Resultados encontrados: ${results.length}`);
+      
+      if (results.length > 0) {
+        results.slice(0, 3).forEach((p, i) => {
+          console.log(`${i+1}. ${p.name} (${p.category})`);
+        });
+      } else {
+        // Verificar produtos com termos semelhantes
+        const similar = [];
+        const termLower = term.toLowerCase();
+        
+        this.products.forEach(p => {
+          const name = (p.name || '').toLowerCase();
+          if (name.includes(termLower.substring(0, 2))) {
+            similar.push(p);
+          }
+        });
+        
+        if (similar.length > 0) {
+          console.log("Produtos semelhantes que poderiam corresponder:");
+          similar.slice(0, 3).forEach((p, i) => {
+            console.log(`${i+1}. ${p.name} (${p.category})`);
+          });
+        }
+      }
+      
+      // Executar a busca normal
+      this.query(term);
     }
   });
 });

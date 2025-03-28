@@ -1,5 +1,7 @@
 import productService from '../services/productService';
 import type { APIContext } from 'astro';
+import fs from 'fs';
+import path from 'path';
 
 // Log para depuração
 console.log('Carregando módulo de actions de busca');
@@ -14,6 +16,9 @@ export const search = {
    */
   async getSearchIndex() {
     try {
+      // Priorizar busca do banco de dados para ter dados reais
+      console.log('Buscando produtos do banco de dados para indexação');
+      
       // Buscar produtos com formatação para indexação
       const { products } = productService.searchProducts('', { includeAllForIndex: true });
       
@@ -39,7 +44,7 @@ export const search = {
           description: product.short_description || '',
           price: product.price,
           comparePrice: product.compare_at_price,
-          image: product.mainImage || product.main_image || 'https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp',
+          image: product.mainImage || product.main_image || 'https://via.placeholder.com/150',
           slug: product.slug || product.id,
           vendorName: product.vendor_name || '',
           category: product.category_name,
@@ -60,9 +65,25 @@ export const search = {
       };
     } catch (error) {
       console.error('Erro ao gerar índice de busca:', error);
+      
+      // Dados mínimos para evitar erros na inicialização do FlexSearch
       return {
         success: false,
-        error: 'Falha ao gerar índice de busca'
+        error: 'Falha ao gerar índice de busca',
+        products: [
+          {
+            id: '1',
+            name: 'Produto Exemplo',
+            description: 'Descrição do produto exemplo',
+            price: 99.99,
+            comparePrice: 129.99,
+            image: 'https://via.placeholder.com/150',
+            slug: 'produto-exemplo',
+            vendorName: 'Loja Exemplo',
+            category: 'Categoria Exemplo',
+            searchData: 'produto exemplo descrição exemplo'
+          }
+        ]
       };
     }
   },
@@ -123,7 +144,7 @@ export const search = {
         description: product.short_description || '',
         price: product.price,
         comparePrice: product.compare_at_price,
-        image: product.mainImage || product.main_image || 'https://gdg-images.s3.sa-east-1.amazonaws.com/gcp/logo-vertical-white.webp',
+        image: product.mainImage || product.main_image || 'https://via.placeholder.com/150',
         slug: product.slug || product.id,
         category: product.category_name,
         vendorName: product.vendor_name || '',
