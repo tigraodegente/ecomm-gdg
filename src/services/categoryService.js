@@ -70,7 +70,9 @@ class CategoryService {
       ORDER BY c.display_order ASC, c.name ASC
     `);
     
-    return stmt.all();
+    const categories = stmt.all();
+    console.log('Categorias carregadas do banco:', categories.map(c => `${c.name} (ordem: ${c.display_order})`));
+    return categories;
   }
   
   /**
@@ -124,18 +126,23 @@ class CategoryService {
   }
   
   /**
-   * Constrói um menu completo com categorias e subcategorias seguindo uma ordem específica
+   * Constrói um menu completo com categorias e subcategorias
    * @returns {Object} Menu completo para a navegação
    */
   getMenuWithCategories() {
-    // Ordem específica das categorias
-    const categoryOrder = [
-      'todos-produtos', // Categoria especial para todos os produtos
-      'alimentacao',    // Alimentação
-      'bercos-e-camas', // Berços
-      'acessorios-berco', // Acessórios para berço
-      'lencois',        // Lençóis
-      'brinquedos'      // Brinquedos para Bebês
+    // Obter categorias do banco, já ordenadas pelo campo display_order
+    const categoryTree = this.getCategoryTree();
+    
+    // Adicionar categoria "Todos os Produtos" como primeira opção
+    const orderedCategories = [
+      {
+        id: 0,
+        name: "Todos os Produtos",
+        cid: "todos-produtos", 
+        url: "/produtos",
+        subcategories: []
+      },
+      ...categoryTree
     ];
     
     // Links fixos após as categorias
@@ -145,52 +152,6 @@ class CategoryService {
       { name: 'Contato', url: '/contato', highlight: false }
     ];
     
-    // Preparar categorias do banco em um mapa para fácil acesso
-    const allCategories = this.getMainCategories();
-    const categoriesMap = new Map();
-    
-    allCategories.forEach(category => {
-      categoriesMap.set(category.cid, {
-        ...category,
-        subcategories: this.getSubcategories(category.id)
-      });
-    });
-    
-    // Construir o menu na ordem especificada
-    const orderedCategories = [];
-    
-    // Adicionar categoria "Todos os Produtos" como primeira opção
-    orderedCategories.push({
-      id: 0,
-      name: "Todos os Produtos",
-      cid: "todos-produtos",
-      url: "/produtos",
-      subcategories: []
-    });
-    
-    // Adicionar as demais categorias do banco na ordem especificada
-    for (let i = 1; i < categoryOrder.length; i++) {
-      const cid = categoryOrder[i];
-      
-      // Se a categoria existe no banco, use-a
-      if (categoriesMap.has(cid)) {
-        orderedCategories.push(categoriesMap.get(cid));
-      } else {
-        // Se não existe no banco, procurar uma categoria similar
-        const similarCategory = allCategories.find(cat => 
-          cat.name.toLowerCase().includes(categoryOrder[i].replace('-', ' '))
-        );
-        
-        if (similarCategory) {
-          orderedCategories.push({
-            ...similarCategory,
-            subcategories: this.getSubcategories(similarCategory.id)
-          });
-        }
-      }
-    }
-    
-    // Adicionar links não relacionados a produtos (Ofertas, Blog, Contato)
     return {
       categories: orderedCategories,
       staticLinks: staticLinks
