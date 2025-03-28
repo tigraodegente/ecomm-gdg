@@ -1,0 +1,171 @@
+---
+/**
+ * Componente para registro do Service Worker
+ * 
+ * Adiciona script inline para registrar o Service Worker e garantir
+ * que a aplicação funcione mesmo offline.
+ */
+---
+
+<script>
+  // Registrar service worker apenas em produção e se o navegador suportar
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js', { 
+        scope: '/' 
+      }).then(registration => {
+        console.log('Service Worker registrado com sucesso:', registration.scope);
+        
+        // Verificar por atualizações a cada hora
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000);
+        
+        // Adicionar handler para lidar com atualizações disponíveis
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Nova versão do Service Worker está disponível e pronta para tomar o controle
+              notifyUserAboutUpdate();
+            }
+          });
+        });
+      }).catch(error => {
+        console.error('Falha ao registrar Service Worker:', error);
+      });
+      
+      // Lidar com mensagens do service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'CACHE_UPDATED') {
+          console.log('Cache atualizado:', event.data.url);
+        }
+      });
+      
+      // Verificar se temos conexão
+      window.addEventListener('online', () => {
+        // Registrar transações pendentes
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SYNC_PENDING_OPERATIONS'
+          });
+          
+          // Solicitar sincronização quando ficar online
+          navigator.serviceWorker.ready.then(registration => {
+            registration.sync.register('sync-cart');
+            registration.sync.register('sync-wishlist');
+          });
+        }
+      });
+    });
+  }
+  
+  // Notifica o usuário sobre a atualização disponível
+  function notifyUserAboutUpdate() {
+    // Apenas notificar se o usuário está na página inicial ou de produtos
+    // para não interromper fluxos importantes como checkout
+    const safeToNotify = ['/', '/produtos', '/produto'].some(path => 
+      window.location.pathname === path || window.location.pathname.startsWith(path)
+    );
+    
+    if (safeToNotify) {
+      // Criar notificação de atualização
+      const updateBanner = document.createElement('div');
+      updateBanner.className = 'update-banner';
+      updateBanner.innerHTML = `
+        <div class="update-content">
+          <p>Uma nova versão está disponível!</p>
+          <button class="update-button">Atualizar agora</button>
+        </div>
+      `;
+      
+      // Estilizar a notificação
+      Object.assign(updateBanner.style, {
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        backgroundColor: '#4DC0B5',
+        color: 'white',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+        zIndex: '9999',
+        maxWidth: '300px'
+      });
+      
+      // Adicionar ao DOM
+      document.body.appendChild(updateBanner);
+      
+      // Configurar handler de clique
+      const updateButton = updateBanner.querySelector('.update-button');
+      updateButton.addEventListener('click', () => {
+        // Recarregar a página para aplicar a atualização
+        window.location.reload();
+        updateBanner.remove();
+      });
+      
+      // Fechar automaticamente após 1 minuto
+      setTimeout(() => {
+        if (document.body.contains(updateBanner)) {
+          updateBanner.remove();
+        }
+      }, 60000);
+    }
+  }
+  
+  // Código para suporte a PWA
+  if ('serviceWorker' in navigator && window.matchMedia('(display-mode: standalone)').matches) {
+    // Estamos executando como PWA instalado
+    document.documentElement.classList.add('pwa-installed');
+    
+    // Backup de carrinho e favoritos para evitar perda de dados
+    window.addEventListener('beforeunload', () => {
+      try {
+        if (window.Alpine && window.Alpine.store) {
+          // Backup do carrinho
+          if (window.Alpine.store('cart')) {
+            const cartData = window.Alpine.store('cart').items;
+            localStorage.setItem('pwa_cart_backup', JSON.stringify(cartData));
+          }
+          
+          // Backup da lista de desejos
+          if (window.Alpine.store('wishlist')) {
+            const wishlistData = window.Alpine.store('wishlist').items;
+            localStorage.setItem('pwa_wishlist_backup', JSON.stringify(wishlistData));
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao fazer backup de dados para PWA:', e);
+      }
+    });
+  }
+</script>
+
+<style>
+  .update-button {
+    background-color: white;
+    color: #4DC0B5;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+  }
+  
+  .update-button:hover {
+    background-color: #f3f3f3;
+  }
+  
+  .update-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .update-content p {
+    margin: 0 0 8px 0;
+  }
+</style>

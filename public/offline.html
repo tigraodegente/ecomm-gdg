@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Você está offline - GDG Store</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        
+        header {
+            background-color: #4DC0B5;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        header img {
+            max-height: 60px;
+        }
+        
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .offline-icon {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+            color: #4DC0B5;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        p {
+            margin-bottom: 2rem;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #4DC0B5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            margin: 0.5rem;
+        }
+        
+        .button:hover {
+            background-color: #38a89d;
+        }
+        
+        .button.secondary {
+            background-color: transparent;
+            border: 1px solid #4DC0B5;
+            color: #4DC0B5;
+        }
+        
+        .button.secondary:hover {
+            background-color: rgba(77, 192, 181, 0.1);
+        }
+        
+        .cached-pages {
+            margin-top: 2rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .cached-pages h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        .pages-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .pages-list li a {
+            display: block;
+            padding: 0.75rem;
+            background-color: white;
+            border-radius: 4px;
+            color: #4a5568;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .pages-list li a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #4DC0B5;
+        }
+        
+        footer {
+            padding: 1rem;
+            background-color: #f1f5f9;
+            text-align: center;
+            color: #4a5568;
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            main {
+                padding: 1.5rem;
+            }
+            
+            .offline-icon {
+                width: 80px;
+                height: 80px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/images/logo.svg" alt="GDG Store Logo">
+    </header>
+    
+    <main>
+        <svg class="offline-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        
+        <h1>Você está offline</h1>
+        <p>Parece que você está sem conexão com a internet. Algumas funcionalidades podem estar limitadas até que a conexão seja restabelecida.</p>
+        
+        <div>
+            <button class="button" onclick="window.location.reload()">Tentar novamente</button>
+            <a href="/" class="button secondary">Ir para a página inicial</a>
+        </div>
+        
+        <div class="cached-pages">
+            <h2>Páginas disponíveis offline</h2>
+            <ul class="pages-list" id="cachedPages">
+                <li><a href="/">Página inicial</a></li>
+                <li><a href="/produtos">Produtos</a></li>
+                <!-- Mais páginas serão adicionadas via JavaScript quando disponíveis no cache -->
+            </ul>
+        </div>
+    </main>
+    
+    <footer>
+        &copy; 2023 GDG Store - Todos os direitos reservados
+    </footer>
+    
+    <script>
+        // Verificar páginas em cache quando disponível
+        if ('caches' in window) {
+            caches.open('pages-cache').then(cache => {
+                cache.keys().then(keys => {
+                    const cachedURLs = keys.map(request => request.url);
+                    const pagesList = document.getElementById('cachedPages');
+                    
+                    // Adicionar páginas em cache à lista
+                    const pagesToCheck = [
+                        { url: '/carrinho', name: 'Carrinho' },
+                        { url: '/produtos/bercos', name: 'Berços' },
+                        { url: '/produtos/enxoval', name: 'Enxoval' },
+                        { url: '/produtos/decoracao', name: 'Decoração' }
+                    ];
+                    
+                    pagesToCheck.forEach(page => {
+                        if (cachedURLs.some(url => url.includes(page.url))) {
+                            const li = document.createElement('li');
+                            const a = document.createElement('a');
+                            a.href = page.url;
+                            a.textContent = page.name;
+                            li.appendChild(a);
+                            pagesList.appendChild(li);
+                        }
+                    });
+                });
+            });
+        }
+    </script>
+</body>
+</html>
