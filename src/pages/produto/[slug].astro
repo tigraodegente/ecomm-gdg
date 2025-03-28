@@ -1,6 +1,5 @@
 ---
 import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
-import Button from '../../components/ui/Button.astro';
 import productService from '../../services/productService';
 
 // Obter o slug do produto da URL
@@ -411,24 +410,22 @@ if (!isShowingFallback) {
             </div>
             
             <div class="flex flex-col sm:flex-row gap-3">
-              <Button 
+              <button 
                 id="add-to-cart-btn"
-                variant="primary" 
-                class="px-8 py-3 text-base flex-1 bg-cyan500 hover:bg-cyan600"
+                class="px-8 py-3 text-base flex-1 bg-cyan500 hover:bg-cyan600 text-white font-medium rounded-md"
                 disabled={product.stock <= 0}
               >
                 {product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível'}
-              </Button>
+              </button>
               
-              <Button 
+              <button 
                 id="add-to-wishlist-btn"
-                variant="outline" 
-                class="px-3 py-3 text-base"
+                class="px-3 py-3 text-base border border-gray-300 rounded-md hover:border-cyan500"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-              </Button>
+              </button>
             </div>
           </div>
           
@@ -534,7 +531,7 @@ if (!isShowingFallback) {
             <div class="space-y-6">
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-medium text-gray-900">Avaliações dos Clientes</h3>
-                <Button variant="primary" size="sm">Escrever Avaliação</Button>
+                <button class="bg-cyan500 hover:bg-cyan600 text-white px-4 py-2 text-sm rounded-md">Escrever Avaliação</button>
               </div>
               
               <div class="bg-gray-50 p-6 rounded-lg">
