@@ -349,6 +349,24 @@ textarea {
   color: var(--color-primary, #00BFB3);
 }
 
+.footer-trust {
+  margin-top: var(--spacing-lg, 2.4rem);
+}
+
+.footer-trust h4 {
+  color: var(--color-gray-700, #4F4F4F);
+}
+
+.footer-trust img {
+  display: inline-block;
+  filter: grayscale(20%);
+  transition: filter 0.3s ease;
+}
+
+.footer-trust img:hover {
+  filter: grayscale(0%);
+}
+
 .footer-bottom {
   margin-top: var(--spacing-xl, 3.2rem);
   padding-top: var(--spacing-md, 1.6rem);
@@ -431,17 +449,39 @@ select::-ms-expand {
 }
 
 /* Style filter buttons */
-.filter-btn {
+.filter-btn, .filter-button {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.filter-btn:active {
+.filter-btn:active, .filter-button:active {
   transform: scale(0.97);
 }
 
 .filter-btn-active {
   background-color: #40C1AC !important;
   color: white !important;
+}
+
+/* Ensure text color consistency in filters */
+.filter-button {
+  color: #777777 !important;
+  font-weight: 500 !important;
+}
+
+.filter-button.bg-\[\#40C1AC\] {
+  color: white !important;
+}
+
+/* Make filter texts more legible */
+.filter-button span:not(.ml-1\.5) {
+  color: #777777 !important;
+}
+
+/* Consistent color for ordering text and filters */
+.dropdown-custom button,
+.dropdown-custom #sort-menu a:not(.bg-\[#E0F7F4\]),
+.inline-flex.items-center.px-3.py-1\.5.text-xs {
+  color: #777777 !important;
 }
 
 /* Improve select dropdown appearance */

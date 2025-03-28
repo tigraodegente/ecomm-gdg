@@ -21,12 +21,15 @@ const {
   x-data="{
     isOpen: false,
     searchTerm: '',
+    displayResults: false,
+    initialized: false,
     
     init() {
       // Definir ouvintes de evento para fechar ao clicar fora
       document.addEventListener('click', e => {
         if (!this.$el.contains(e.target)) {
           this.isOpen = false;
+          this.displayResults = false;
         }
       });
       
@@ -42,16 +45,39 @@ const {
           Alpine.store('search').initFlexSearch();
         }, 500);
       }
+      
+      // Garantir que o dropdown não apareça ao carregar a página
+      this.isOpen = false;
+      this.displayResults = false;
+      
+      // Marcar como inicializado (apenas após Alpine ter completado a inicialização)
+      setTimeout(() => {
+        this.initialized = true;
+      }, 0);
     },
     
     search() {
-      this.isOpen = this.searchTerm.length >= 1;
-      Alpine.store('search').query(this.searchTerm);
+      if (this.searchTerm.length >= 1) {
+        this.isOpen = true;
+        this.displayResults = true;
+        
+        // Adicionar classe para permitir que o dropdown seja mostrado
+        setTimeout(() => {
+          const dropdown = this.$refs.searchResults;
+          if (dropdown) dropdown.classList.add('loaded');
+        }, 0);
+        
+        Alpine.store('search').query(this.searchTerm);
+      } else {
+        this.isOpen = false;
+        this.displayResults = false;
+      }
     },
     
     clearSearch() {
       this.searchTerm = '';
       this.isOpen = false;
+      this.displayResults = false;
       Alpine.store('search').clearSearch();
     },
     
@@ -63,10 +89,11 @@ const {
     
     selectRecentSearch(term) {
       this.searchTerm = term;
+      this.displayResults = true;
       this.executeSearch();
     }
   }"
-  @keydown.escape.window="isOpen = false"
+  @keydown.escape.window="isOpen = false; displayResults = false"
   @keydown.down.prevent="$refs.searchResults?.querySelector('a')?.focus()"
   class="relative w-full"
 >
@@ -79,7 +106,13 @@ const {
       type="search"
       x-model="searchTerm"
       x-on:input.debounce.200ms="search()"
-      x-on:focus="isOpen = searchTerm.length >= 1"
+      x-on:focus="if(searchTerm.length >= 1) { 
+        isOpen = true; 
+        displayResults = true; 
+        $nextTick(() => { 
+          if($refs.searchResults) $refs.searchResults.classList.add('loaded');
+        });
+      }"
       placeholder={placeholder}
       class={`h-[40px] w-full ${isMobile ? 'text-[14px]' : 'text-[16px]'} font-medium leading-[24px] text-gray600 bg-white rounded-l-[8px] border-none outline-none focus:ring-0 focus:outline-none pl-3`}
       autocomplete="off"
@@ -117,16 +150,17 @@ const {
   
   <!-- Resultados da busca -->
   <div 
-    x-show="isOpen"
-    x-transition:enter="transition ease-out duration-200"
-    x-transition:enter-start="opacity-0 transform scale-95"
-    x-transition:enter-end="opacity-100 transform scale-100" 
-    x-transition:leave="transition ease-in duration-150"
-    x-transition:leave-start="opacity-100 transform scale-100"
-    x-transition:leave-end="opacity-0 transform scale-95"
-    class="absolute z-50 top-[48px] left-0 w-full bg-white rounded-md shadow-xl"
-    style="max-height: 480px; overflow-y: auto;"
-    x-ref="searchResults"
+    x-cloak
+    x-show="displayResults && isOpen && searchTerm.length >= 1"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 transform scale-95"
+      x-transition:enter-end="opacity-100 transform scale-100" 
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 transform scale-100"
+      x-transition:leave-end="opacity-0 transform scale-95"
+      class="absolute z-50 top-[48px] left-0 w-full bg-white rounded-md shadow-xl searchbox-dropdown" 
+      style="max-height: 480px; overflow-y: auto;"
+      x-ref="searchResults"
   >
     <!-- Indicador de carregamento -->
     <div x-show="$store.search.loading" class="flex items-center justify-center p-4">
@@ -335,4 +369,26 @@ const {
     background-color: rgba(254, 243, 199, 0.8);
     padding: 0 2px;
   }
+  
+  /* Impedir que elementos com x-cloak sejam visíveis durante a inicialização */
+  [x-cloak] {
+    display: none !important;
+  }
+  
+  /* Apenas esconder inicialmente, não forçar sempre oculto */
+  .searchbox-dropdown:not(.loaded) {
+    display: none !important;
+  }
 </style>
+
+<script>
+  // Garantir que o dropdown não apareça na inicialização da página
+  document.addEventListener('DOMContentLoaded', () => {
+    // Bloquear imediatamente a exibição de qualquer dropdown na inicialização
+    const searchDropdowns = document.querySelectorAll('.searchbox-dropdown');
+    searchDropdowns.forEach(dropdown => {
+      // Não usar style.display para não sobrescrever os controles do Alpine.js
+      dropdown.classList.remove('loaded');
+    });
+  });
+</script>

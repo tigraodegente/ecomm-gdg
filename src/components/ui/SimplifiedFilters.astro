@@ -2,7 +2,7 @@
 /**
  * Componente de Filtros para produtos
  * 
- * Exibe categorias, faixas de preço e outros filtros disponíveis
+ * Exibe categorias, faixas de preï¿½o e outros filtros disponï¿½veis
  * para refinar a listagem de produtos.
  */
 
@@ -10,7 +10,7 @@
 const { 
   categories = [],
   priceRanges = [
-    { min: 0, max: 50, label: 'Até R$ 50' },
+    { min: 0, max: 50, label: 'Atï¿½ R$ 50' },
     { min: 50, max: 100, label: 'R$ 50 - R$ 100' },
     { min: 100, max: 200, label: 'R$ 100 - R$ 200' },
     { min: 200, max: 500, label: 'R$ 200 - R$ 500' },
@@ -22,7 +22,7 @@ const {
   selectedCategory
 } = Astro.props;
 
-// Formatar preço
+// Formatar preï¿½o
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -31,11 +31,11 @@ function formatCurrency(value) {
   }).format(value);
 }
 
-// Função para construir a URL de filtro
+// Funï¿½ï¿½o para construir a URL de filtro
 function getFilterUrl(params = {}) {
   const url = new URL(Astro.url);
   
-  // Manter parâmetros existentes
+  // Manter parï¿½metros existentes
   if (selectedCategory && !('category' in params)) {
     params.category = selectedCategory;
   }
@@ -52,12 +52,12 @@ function getFilterUrl(params = {}) {
     params.maxPrice = maxPrice;
   }
   
-  // Limpar parâmetros atuais
+  // Limpar parï¿½metros atuais
   Array.from(url.searchParams.keys()).forEach(key => {
     url.searchParams.delete(key);
   });
   
-  // Adicionar parâmetros filtrados (remover undefined e null)
+  // Adicionar parï¿½metros filtrados (remover undefined e null)
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       url.searchParams.set(key, value);
@@ -67,7 +67,7 @@ function getFilterUrl(params = {}) {
   return url.toString();
 }
 
-// Verificar qual faixa de preço está selecionada
+// Verificar qual faixa de preï¿½o estï¿½ selecionada
 function isPriceRangeSelected(min, max) {
   const currentMin = minPrice ? Number(minPrice) : null;
   const currentMax = maxPrice ? Number(maxPrice) : null;
@@ -77,13 +77,13 @@ function isPriceRangeSelected(min, max) {
 ---
 
 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  <h2 class="text-lg font-medium text-gray-900 mb-4">Filtros</h2>
+  <h2 class="text-lg font-medium text-gray-400 mb-4">Filtros</h2>
   
-  <!-- Busca rápida -->
+  <!-- Busca rï¿½pida -->
   <div class="mb-6">
     <label for="filter-search" class="block text-sm font-medium text-gray-700 mb-1">Busca</label>
     <form action="/produtos" method="get" class="relative">
-      <!-- Manter parâmetros existentes em campos ocultos -->
+      <!-- Manter parï¿½metros existentes em campos ocultos -->
       {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
       {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
       {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
@@ -111,29 +111,29 @@ function isPriceRangeSelected(min, max) {
   <!-- Categorias -->
   {categories.length > 0 && (
     <div class="mb-6">
-      <h3 class="text-sm font-medium text-gray-900 mb-2">Categorias</h3>
+      <h3 class="text-sm font-medium text-gray-400 mb-2">Categorias</h3>
       <div class="space-y-1 max-h-48 overflow-y-auto pr-2">
         {categories.map(category => (
           <a 
             href={getFilterUrl({ category: category.cid, page: 1 })}
-            class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedCategory === category.cid ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+            class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedCategory === category.cid ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600'}`}
           >
             {category.name} 
-            {category.count && <span class="text-xs text-gray-500 ml-1">({category.count})</span>}
+            {category.count && <span class="text-xs text-gray-600 font-medium ml-1">({category.count})</span>}
           </a>
         ))}
       </div>
     </div>
   )}
   
-  <!-- Faixa de preço -->
+  <!-- Faixa de preï¿½o -->
   <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-900 mb-2">Faixa de Preço</h3>
+    <h3 class="text-sm font-medium text-gray-400 mb-2">Faixa de PreÃ§o</h3>
     <div class="space-y-1">
       {priceRanges.map(range => (
         <a 
           href={getFilterUrl({ minPrice: range.min, maxPrice: range.max, page: 1 })}
-          class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${isPriceRangeSelected(range.min, range.max) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+          class={`block px-2 py-1 text-sm rounded hover:bg-gray-100 ${isPriceRangeSelected(range.min, range.max) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600'}`}
         >
           {range.label}
         </a>
@@ -141,11 +141,11 @@ function isPriceRangeSelected(min, max) {
     </div>
   </div>
   
-  <!-- Filtro de preço personalizado -->
+  <!-- Filtro de preï¿½o personalizado -->
   <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-900 mb-2">Preço Personalizado</h3>
+    <h3 class="text-sm font-medium text-gray-400 mb-2">PreÃ§o Personalizado</h3>
     <form action="/produtos" method="get" class="space-y-3">
-      <!-- Manter parâmetros existentes em campos ocultos -->
+      <!-- Manter parï¿½metros existentes em campos ocultos -->
       {selectedCategory && <input type="hidden" name="category" value={selectedCategory} />}
       {search && <input type="hidden" name="search" value={search} />}
       
@@ -163,7 +163,7 @@ function isPriceRangeSelected(min, max) {
         />
       </div>
       <div>
-        <label for="filter-price-to" class="block text-xs text-gray-500 mb-1">Até</label>
+        <label for="filter-price-to" class="block text-xs text-gray-500 mb-1">Atï¿½</label>
         <input
           type="number"
           name="maxPrice"
