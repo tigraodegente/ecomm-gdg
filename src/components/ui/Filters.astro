@@ -315,105 +315,89 @@ function getFilterUrl(params = {}) {
   return url.toString();
 }
 
-// Adicionar ou remover um valor de atributo dos filtros
+// Adicionar ou remover um valor de atributo dos filtros - versão server-side segura
 function getAttributeFilterUrl(typeId, value) {
-  // Começar com uma URL limpa
-  const newUrl = new URL(Astro.url);
+  // Usar o objeto Astro.url que é seguro no servidor
+  const currentUrl = Astro.url;
   
-  // Preservar todos os parâmetros existentes (incluindo categorias múltiplas)
-  const params = {};
-  
-  // Manter parâmetros de categoria
-  const categoriesStr = newUrl.searchParams.get('categories');
-  if (categoriesStr) {
-    params.categories = categoriesStr.split(',');
-  } else if (selectedCategory) {
-    params.categories = [selectedCategory];
+  // Extrair parâmetros de categorias (podem ser múltiplos)
+  let categoryValues = [];
+  for (const val of currentUrl.searchParams.getAll('category')) {
+    categoryValues.push(val);
   }
   
-  // Manter parâmetros de ordenação e paginação
-  const sortParam = newUrl.searchParams.get('sort');
-  if (sortParam) {
-    params.sort = sortParam;
-  } else if (selectedSort) {
-    params.sort = selectedSort;
-  }
-  
-  // Sempre resetar para página 1 quando mudar filtros
-  params.page = 1;
-  
-  // Manter parâmetros de preço
-  const minPriceParam = newUrl.searchParams.get('minPrice');
-  if (minPriceParam) {
-    params.minPrice = minPriceParam;
-  } else if (minPrice) {
-    params.minPrice = minPrice;
-  }
-  
-  const maxPriceParam = newUrl.searchParams.get('maxPrice');
-  if (maxPriceParam) {
-    params.maxPrice = maxPriceParam;
-  } else if (maxPrice) {
-    params.maxPrice = maxPrice;
-  }
-  
-  // Manter parâmetro de busca
-  const searchParam = newUrl.searchParams.get('search');
-  if (searchParam) {
-    params.search = searchParam;
-  } else if (search) {
-    params.search = search;
-  }
-  
-  // Copiar os filtros atuais de atributos da URL
-  const newFilters = { ...attributeFilters };
-  
-  // Processar todos os parâmetros de atributos da URL atual
-  for (const [key, value] of newUrl.searchParams.entries()) {
+  // Extrair todos os parâmetros de atributos atuais
+  const currentFilters = {};
+  for (const [key, val] of currentUrl.searchParams.entries()) {
     if (key.startsWith('attr_')) {
-      const attrTypeId = key.replace('attr_', '');
-      newFilters[attrTypeId] = value.split(',');
+      const attrId = key.replace('attr_', '');
+      currentFilters[attrId] = val.split(',');
     }
   }
   
-  // Agora lidar com o atributo específico que estamos alterando
-  if (newFilters[typeId]) {
-    // Se o valor já estiver selecionado, removê-lo
-    if (newFilters[typeId].includes(value)) {
-      newFilters[typeId] = newFilters[typeId].filter(v => v !== value);
-      if (newFilters[typeId].length === 0) {
-        delete newFilters[typeId];
+  // Verificar se o valor está selecionado
+  const attrKey = `attr_${typeId}`;
+  let isSelected = false;
+  
+  if (currentFilters[typeId]) {
+    isSelected = currentFilters[typeId].includes(value);
+  }
+  
+  // Limpar a URL completamente e reconstruir
+  const cleanUrl = new URL(currentUrl.pathname, currentUrl.origin);
+  
+  // Adicionar todos os parâmetros exceto o que estamos mudando
+  for (const [key, val] of currentUrl.searchParams.entries()) {
+    if (key !== attrKey && !key.startsWith('page')) {
+      cleanUrl.searchParams.set(key, val);
+    }
+  }
+  
+  // Agora adicionar ou remover o valor específico
+  if (isSelected) {
+    // Se está selecionado, remover
+    if (currentFilters[typeId]) {
+      const newValues = currentFilters[typeId].filter(v => v !== value);
+      if (newValues.length > 0) {
+        cleanUrl.searchParams.set(attrKey, newValues.join(','));
       }
-    } else {
-      // Senão, adicioná-lo
-      newFilters[typeId] = [...newFilters[typeId], value];
+      // Se não sobrou nenhum valor, o parâmetro não é readicionado
     }
   } else {
-    // Se o tipo não existir, criar novo com o valor
-    newFilters[typeId] = [value];
+    // Se não está selecionado, adicionar
+    let newValues = [];
+    if (currentFilters[typeId]) {
+      newValues = [...currentFilters[typeId]];
+    }
+    newValues.push(value);
+    cleanUrl.searchParams.set(attrKey, newValues.join(','));
   }
   
-  // Converter para formato esperado pela URL
-  Object.entries(newFilters).forEach(([id, vals]) => {
-    params[`attr_${id}`] = vals;
-  });
+  // Sempre voltar para a página 1 quando mudar filtros
+  cleanUrl.searchParams.set('page', '1');
   
-  // Usar a função getFilterUrl para construir a URL final
-  return getFilterUrl(params);
+  return cleanUrl.toString();
 }
 
-// Obter IDs dos atributos para uso posterior
-const colorTypeId = productService.getAttributeTypesForFilters().find(
+// Obter IDs dos atributos para uso posterior - com IDs corretos baseados no banco
+// ID 1: color (Cor)
+// ID 2: size (Tamanho)
+// ID 3: material (Material)
+
+// Obtendo de forma dinâmica, mas também definindo fallbacks com os IDs conhecidos
+const attributeTypes = productService.getAttributeTypesForFilters();
+
+const colorTypeId = attributeTypes.find(
   t => t.name.toLowerCase().includes('cor') || t.name.toLowerCase().includes('color')
-)?.id;
+)?.id || 1; // Fallback para ID 1 (cor)
 
-const sizeTypeId = productService.getAttributeTypesForFilters().find(
+const sizeTypeId = attributeTypes.find(
   t => t.name.toLowerCase().includes('tamanho') || t.name.toLowerCase().includes('size')
-)?.id;
+)?.id || 2; // Fallback para ID 2 (tamanho)
 
-const materialTypeId = productService.getAttributeTypesForFilters().find(
+const materialTypeId = attributeTypes.find(
   t => t.name.toLowerCase().includes('material')
-)?.id;
+)?.id || 3; // Fallback para ID 3 (material);
 ---
 
 <div class="shadow-none bg-[#F5F5F5] w-[100%] h-full">
@@ -547,11 +531,13 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
             <a
               href={getAttributeFilterUrl(colorTypeId, color.value)}
               class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
                 color.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD]"
+                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
               ]}
+              aria-pressed={color.selected ? "true" : "false"}
+              role="button"
             >
               {color.selected && <span class="mr-1">✓</span>}
               <span 
@@ -575,11 +561,13 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
             <a
               href={getAttributeFilterUrl(sizeTypeId, size.value)}
               class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
                 size.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD]"
+                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
               ]}
+              aria-pressed={size.selected ? "true" : "false"}
+              role="button"
             >
               {size.selected && <span class="mr-1">✓</span>}
               <span>{size.name}</span>
@@ -599,11 +587,13 @@ const materialTypeId = productService.getAttributeTypesForFilters().find(
             <a
               href={getAttributeFilterUrl(materialTypeId, material.value)}
               class:list={[
-                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm",
+                "filter-button inline-flex items-center px-3 py-1.5 rounded-full text-sm transition-all",
                 material.selected 
-                  ? "bg-[#6EDAC8] text-white font-medium" 
-                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD]"
+                  ? "bg-[#6EDAC8] text-white font-medium shadow-md" 
+                  : "bg-white text-[#555555] hover:bg-gray-50 border border-[#DDDDDD] hover:shadow-sm"
               ]}
+              aria-pressed={material.selected ? "true" : "false"}
+              role="button"
             >
               {material.selected && <span class="mr-1">✓</span>}
               <span>{material.name}</span>

@@ -26,7 +26,7 @@ const selectedCategories = params.getAll('category') || [];
 // Parâmetros para filtros de atributos
 const attributeFilters = {};
 
-// Encontrar todos os parâmetros de atributos (formato: attr_ID=VALOR)
+// Encontrar todos os parâmetros de atributos (formato: attr_ID=VALOR1,VALOR2,...)
 for (const [key, value] of params.entries()) {
   if (key.startsWith('attr_')) {
     const attrId = key.replace('attr_', '');
@@ -35,7 +35,15 @@ for (const [key, value] of params.entries()) {
       attributeFilters[attrId] = [];
     }
     
-    attributeFilters[attrId].push(value);
+    // Dividir valores separados por vírgula
+    if (value.includes(',')) {
+      // Se tiver vírgulas, dividir em múltiplos valores
+      const valuesArray = value.split(',');
+      attributeFilters[attrId] = [...attributeFilters[attrId], ...valuesArray];
+    } else {
+      // Valor único
+      attributeFilters[attrId].push(value);
+    }
   }
 }
 
