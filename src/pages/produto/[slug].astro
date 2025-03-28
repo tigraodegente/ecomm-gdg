@@ -1,5 +1,6 @@
 ---
 import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
+import CategoryMenu from '../../components/navigation/CategoryMenu.astro';
 import productService from '../../services/productService';
 
 // Obter o slug do produto da URL
@@ -193,6 +194,8 @@ if (!isShowingFallback) {
   canonicalUrl={`${Astro.url.origin}/produto/${product.slug}`}
   ogImage={product.images && product.images.length > 0 ? product.images[0].image_url : '/og-image.png'}
 >
+  <!-- Usar o mesmo menu de categorias do layout do marketplace -->
+  <CategoryMenu position="main" slot="navbar" />
   <Fragment slot="head">
     {/* Schema.org JSON-LD para SEO */}
     <script type="application/ld+json" set:html={JSON.stringify({
