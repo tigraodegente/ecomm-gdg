@@ -1,0 +1,78 @@
+---
+/**
+ * Componente para gerar Schema.org JSON-LD para o site
+ * 
+ * Implementa os tipos Organization e WebSite de acordo
+ * com as especificações do Schema.org para melhor SEO
+ */
+
+export interface WebsiteSchemaProps {
+  name: string;
+  description: string;
+  url: string;
+  logoUrl: string;
+  socialProfiles?: string[];
+  sameAs?: string[];
+  contactPoint?: {
+    telephone: string;
+    contactType: string;
+    areaServed?: string;
+    availableLanguage?: string;
+  }[];
+}
+
+const { 
+  name = 'Grão de Gente',
+  description = 'Loja online de produtos para bebês, crianças e decoração infantil',
+  url = 'https://loja.com.br',
+  logoUrl = '/images/logo.svg',
+  socialProfiles = [],
+  sameAs = [],
+  contactPoint = []
+} = Astro.props;
+
+// Schema.org para a Organização
+const organizationSchema = {
+  "@type": "Organization",
+  "name": name,
+  "url": url,
+  "logo": {
+    "@type": "ImageObject",
+    "url": url + logoUrl
+  },
+  "description": description,
+  "sameAs": [...socialProfiles, ...sameAs].filter(Boolean)
+};
+
+// Adicionar pontos de contato se existirem
+if (contactPoint && contactPoint.length > 0) {
+  organizationSchema["contactPoint"] = contactPoint.map(point => ({
+    "@type": "ContactPoint",
+    "telephone": point.telephone,
+    "contactType": point.contactType,
+    "areaServed": point.areaServed || "BR",
+    "availableLanguage": point.availableLanguage || "Portuguese"
+  }));
+}
+
+// Schema.org para o Website
+const websiteSchema = {
+  "@type": "WebSite",
+  "name": name,
+  "url": url,
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": `${url}/produtos?q={search_term_string}`
+    },
+    "query-input": "required name=search_term_string"
+  }
+};
+
+// Combinar schemas em um único JSON-LD
+const schemas = [organizationSchema, websiteSchema];
+
+---
+<script type="application/ld+json" set:html={JSON.stringify({ "@context": "https://schema.org", "@graph": schemas })}>
+</script>

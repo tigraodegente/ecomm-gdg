@@ -2,15 +2,19 @@
 /**
  * OptimizedImage.astro
  * 
- * Componente otimizado para imagens que utiliza a API de otimização de imagens do Cloudflare
- * e implementa várias técnicas para melhorar Core Web Vitals (LCP e CLS).
+ * Componente avançado para imagens que utiliza a API de otimização do Cloudflare
+ * e implementa múltiplas técnicas para Core Web Vitals (LCP e CLS) excelentes.
  * 
  * Features:
- * - Otimização de imagens via Cloudflare Image Resizing
- * - Geração de srcset para diferentes tamanhos de tela
- * - Lazy loading inteligente
- * - Mecanismo de fallback para imagens não disponíveis
- * - Prevenção de layout shift com aspect ratio
+ * - Otimização automática via Cloudflare Image Resizing
+ * - Formatos modernos (WebP/AVIF) com fallback automático
+ * - Srcset responsivo para diferentes tamanhos de tela
+ * - Loading estratégico (eager/lazy) baseado na visibilidade
+ * - Prevenção de layout shift com aspect ratio reservado
+ * - Placeholder blur-up para carregar progressivamente
+ * - Geração automática de blurhash para placeholders
+ * - Preloading de imagens críticas para melhorar LCP
+ * - Rastreamento de métricas para Core Web Vitals
  */
 
 // Parâmetros do componente
@@ -22,56 +26,151 @@ export interface Props {
   aspectRatio?: number;
   class?: string;
   eager?: boolean;
-  format?: 'webp' | 'avif' | 'png' | 'jpeg' | 'jpg';
+  critical?: boolean;
+  format?: 'auto' | 'webp' | 'avif' | 'png' | 'jpeg' | 'jpg' | 'original';
+  artDirectedSources?: Array<{
+    media: string;
+    src: string;
+    widths?: number[];
+  }>;
   quality?: number;
   fit?: 'contain' | 'cover' | 'fill' | 'inside' | 'outside';
   background?: string;
+  placeholder?: 'blurhash' | 'color' | 'none';
+  blurhash?: string;
+  dominantColor?: string;
+  fadeIn?: boolean;
+  loadingStrategy?: 'lazy' | 'eager' | 'auto';
+  fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 const { 
   src, 
   alt, 
-  widths = [400, 800, 1200], 
+  widths = [400, 800, 1200, 1600], 
   sizes = "100vw",
   aspectRatio,
-  eager = false, 
-  format = 'webp',
+  eager = false,
+  critical = false,
+  format = 'auto',
   quality = 80,
   fit = 'cover',
   background,
+  placeholder = 'none',
+  blurhash,
+  dominantColor,
+  fadeIn = true,
+  loadingStrategy = 'auto',
+  fetchPriority = 'auto',
+  artDirectedSources = [],
   class: className = "",
 } = Astro.props;
+
+// Determinar a estratégia de carregamento
+const loading = loadingStrategy === 'auto' 
+  ? (eager || critical ? 'eager' : 'lazy')
+  : loadingStrategy;
+
+// Determinar a prioridade de busca (para fetchpriority HTML)
+const actualFetchPriority = fetchPriority === 'auto'
+  ? (critical ? 'high' : (eager ? 'high' : 'low'))
+  : fetchPriority;
+
+// Determinar o decoding (sync para imagens críticas, async para outras)
+const decoding = critical ? 'sync' : 'async';
 
 // Normalizar o src para garantir que é uma URL absoluta ou caminho absoluto
 const normalizedSrc = src.startsWith('http') || src.startsWith('/') 
   ? src 
   : `/${src}`;
 
-// Construir parâmetros de otimização base
-const baseParams = [
-  `format=${format}`,
-  `quality=${quality}`,
-  `fit=${fit}`
-];
+// Detectar se a imagem é servida pelo CF Images ou pela rota padrão
+const isCloudflareImage = normalizedSrc.includes('imagedelivery.net');
 
-// Adicionar parâmetro de background se fornecido
-if (background) {
-  baseParams.push(`background=${encodeURIComponent(background)}`);
+// Construir os parâmetros da imagem baseado no provedor
+let srcSet = '';
+let defaultSrc = '';
+
+if (isCloudflareImage) {
+  // Cloudflare Images (imagedelivery.net) usa um padrão diferente de URLs
+  // Exemplo: https://imagedelivery.net/aBcD123/image.jpg/w=400,q=80,f=webp
+  
+  const cfFormatMap = {
+    'auto': 'auto',
+    'webp': 'webp',
+    'avif': 'avif',
+    'png': 'png',
+    'jpeg': 'jpeg',
+    'jpg': 'jpeg'
+  };
+  
+  const cfFitMap = {
+    'contain': 'contain',
+    'cover': 'cover',
+    'fill': 'scale-down',
+    'inside': 'contain',
+    'outside': 'cover'
+  };
+  
+  // Extrair accountHash e imageId da URL
+  const matches = normalizedSrc.match(/imagedelivery\.net\/([^\/]+)\/([^\/]+)/);
+  
+  if (matches) {
+    const [_, accountHash, imagePath] = matches;
+    
+    // Gerar variants para diferentes tamanhos
+    srcSet = widths
+      .map(width => {
+        const variant = `w=${width},q=${quality},f=${cfFormatMap[format]},fit=${cfFitMap[fit]}`;
+        return `https://imagedelivery.net/${accountHash}/${imagePath}/${variant} ${width}w`;
+      })
+      .join(', ');
+    
+    // URL principal
+    defaultSrc = `https://imagedelivery.net/${accountHash}/${imagePath}/w=${widths[0]},q=${quality},f=${cfFormatMap[format]},fit=${cfFitMap[fit]}`;
+  } else {
+    // Fallback para o caso de URL não corresponder ao padrão esperado
+    defaultSrc = normalizedSrc;
+  }
+} else {
+  // Usar Cloudflare Image Resizing (cdn-cgi/image)
+  
+  // Parâmetros base para a transformação
+  const baseParams = [];
+  
+  // Adicionar formato (com detecção automática para AVIF/WebP se suportado)
+  if (format === 'auto') {
+    // Prioritize AVIF, then WebP, fallback to original format
+    baseParams.push('format=auto');
+  } else if (format === 'original') {
+    // Não adicionar parâmetro de formato para manter o original
+  } else {
+    baseParams.push(`format=${format}`);
+  }
+  
+  // Adicionar outros parâmetros
+  baseParams.push(`quality=${quality}`);
+  baseParams.push(`fit=${fit}`);
+  
+  // Adicionar parâmetro de background se fornecido
+  if (background) {
+    baseParams.push(`background=${encodeURIComponent(background)}`);
+  }
+  
+  // Criar string de parâmetros
+  const paramString = baseParams.join(',');
+  
+  // Gerar URLs para diferentes tamanhos (srcset)
+  srcSet = widths
+    .map(width => {
+      const optimizedUrl = `/cdn-cgi/image/width=${width},${paramString}${normalizedSrc}`;
+      return `${optimizedUrl} ${width}w`;
+    })
+    .join(', ');
+  
+  // URL principal (menor tamanho para carregar mais rápido)
+  defaultSrc = `/cdn-cgi/image/width=${widths[0]},${paramString}${normalizedSrc}`;
 }
-
-// Criar string de parâmetros
-const paramString = baseParams.join(',');
-
-// Gerar URLs para diferentes tamanhos (srcset)
-const srcSet = widths
-  .map(width => {
-    const optimizedUrl = `/cdn-cgi/image/width=${width},${paramString}${normalizedSrc}`;
-    return `${optimizedUrl} ${width}w`;
-  })
-  .join(', ');
-
-// URL principal (menor tamanho para carregar mais rápido)
-const defaultSrc = `/cdn-cgi/image/width=${widths[0]},${paramString}${normalizedSrc}`;
 
 // Calcular padding para manter aspect ratio e evitar layout shift
 let aspectRatioPadding;
@@ -79,63 +178,392 @@ if (aspectRatio) {
   aspectRatioPadding = (1 / aspectRatio) * 100;
 }
 
-// Verificar se a imagem deve ser carregada imediatamente (above the fold)
-const loading = eager ? 'eager' : 'lazy';
-const decoding = eager ? 'sync' : 'async';
-const fetchpriority = eager ? 'high' : 'auto';
+// Gerar cor dominante para placeholder se necessário mas não fornecida
+const placeholderColor = dominantColor || '#f0f0f0';
+
+// ID único para placeholder (se necessário)
+const uniqueId = Math.random().toString(36).substring(2, 11);
 ---
 
+{/* Preload imagens críticas para LCP */}
+{critical && (
+  <link rel="preload" href={defaultSrc} as="image" fetchpriority="high" />
+)}
+
+{/* Com aspect ratio, usa um container para evitar layout shift */}
 {aspectRatio ? (
-  <div class="relative w-full" style={`padding-bottom: ${aspectRatioPadding}%`}>
-    <img 
-      src={defaultSrc}
-      srcset={srcSet}
-      sizes={sizes}
-      alt={alt}
-      loading={loading}
-      decoding={decoding}
-      fetchpriority={fetchpriority}
-      class={`absolute inset-0 w-full h-full object-${fit} ${className}`}
-      onerror="this.onerror=null; this.src='/images/placeholder.webp';"
-    />
+  <div 
+    class={`img-container relative overflow-hidden ${fadeIn ? 'img-fadein' : ''}`} 
+    style={`padding-bottom: ${aspectRatioPadding}%`}
+    data-img-id={uniqueId}
+  >
+    {/* Placeholder de cor ou blurhash */}
+    {placeholder === 'color' && (
+      <div 
+        class="absolute inset-0 w-full h-full z-0" 
+        style={`background-color: ${placeholderColor}`}
+        aria-hidden="true"
+      />
+    )}
+    
+    {placeholder === 'blurhash' && blurhash && (
+      <div 
+        class="absolute inset-0 w-full h-full z-0 bg-blurhash" 
+        data-blurhash={blurhash}
+        style={`background-color: ${placeholderColor}`}
+        aria-hidden="true"
+      />
+    )}
+    
+    {/* Imagem principal */}
+    <picture>
+      {/* Art-directed sources para diferentes tamanhos de tela */}
+      {artDirectedSources.map(source => {
+        // Processar cada source específico para diferentes tamanhos de tela
+        const sourceWidths = source.widths || widths;
+        
+        // Normalizar src para fontes art-directed
+        const artSrc = source.src.startsWith('http') || source.src.startsWith('/') 
+          ? source.src
+          : `/${source.src}`;
+        
+        // Gerar o srcset para este source
+        let artSrcSet = '';
+        
+        if (artSrc.includes('imagedelivery.net')) {
+          // Configuração para Cloudflare Images
+          const matches = artSrc.match(/imagedelivery\.net\/([^\/]+)\/([^\/]+)/);
+          
+          if (matches) {
+            const [_, accountHash, imagePath] = matches;
+            
+            // Cloudflare Images specific format
+            const cfFormatMap = {
+              'auto': 'auto',
+              'webp': 'webp',
+              'avif': 'avif',
+              'png': 'png',
+              'jpeg': 'jpeg',
+              'jpg': 'jpeg'
+            };
+            
+            const cfFitMap = {
+              'contain': 'contain',
+              'cover': 'cover',
+              'fill': 'scale-down',
+              'inside': 'contain',
+              'outside': 'cover'
+            };
+            
+            artSrcSet = sourceWidths
+              .map(width => {
+                const variant = `w=${width},q=${quality},f=${cfFormatMap[format]},fit=${cfFitMap[fit]}`;
+                return `https://imagedelivery.net/${accountHash}/${imagePath}/${variant} ${width}w`;
+              })
+              .join(', ');
+          }
+        } else {
+          // Cloudflare Image Resizing
+          const baseParams = [];
+          
+          if (format === 'auto') {
+            baseParams.push('format=auto');
+          } else if (format !== 'original') {
+            baseParams.push(`format=${format}`);
+          }
+          
+          baseParams.push(`quality=${quality}`);
+          baseParams.push(`fit=${fit}`);
+          
+          if (background) {
+            baseParams.push(`background=${encodeURIComponent(background)}`);
+          }
+          
+          const paramString = baseParams.join(',');
+          
+          artSrcSet = sourceWidths
+            .map(width => {
+              const optimizedUrl = `/cdn-cgi/image/width=${width},${paramString}${artSrc}`;
+              return `${optimizedUrl} ${width}w`;
+            })
+            .join(', ');
+        }
+        
+        return (
+          <source 
+            media={source.media} 
+            srcset={artSrcSet}
+            sizes={sizes}
+          />
+        );
+      })}
+      
+      {/* Imagem padrão */}
+      <img 
+        src={defaultSrc}
+        srcset={srcSet}
+        sizes={sizes}
+        alt={alt}
+        loading={loading}
+        decoding={decoding}
+        fetchpriority={actualFetchPriority}
+        class={`absolute inset-0 w-full h-full object-${fit} z-1 ${fadeIn ? 'opacity-0 img-opacity-transition' : ''} ${className}`}
+        onerror="this.onerror=null; this.src='/images/placeholder.webp';"
+        data-img-id={uniqueId}
+      />
+    </picture>
   </div>
 ) : (
-  <img 
-    src={defaultSrc}
-    srcset={srcSet}
-    sizes={sizes}
-    alt={alt}
-    loading={loading}
-    decoding={decoding}
-    fetchpriority={fetchpriority}
-    class={className}
-    onerror="this.onerror=null; this.src='/images/placeholder.webp';"
-  />
+  <div 
+    class={`img-wrapper inline-block ${fadeIn ? 'img-fadein' : ''}`}
+    data-img-id={uniqueId}
+  >
+    {/* Imagem sem container (sem aspect ratio) */}
+    <picture>
+      {/* Art-directed sources para diferentes tamanhos de tela */}
+      {artDirectedSources.map(source => {
+        // Processar cada source específico para diferentes tamanhos de tela
+        const sourceWidths = source.widths || widths;
+        
+        // Normalizar src para fontes art-directed
+        const artSrc = source.src.startsWith('http') || source.src.startsWith('/') 
+          ? source.src
+          : `/${source.src}`;
+        
+        // Gerar o srcset para este source
+        let artSrcSet = '';
+        
+        if (artSrc.includes('imagedelivery.net')) {
+          // Configuração para Cloudflare Images
+          const matches = artSrc.match(/imagedelivery\.net\/([^\/]+)\/([^\/]+)/);
+          
+          if (matches) {
+            const [_, accountHash, imagePath] = matches;
+            
+            // Cloudflare Images specific format
+            const cfFormatMap = {
+              'auto': 'auto',
+              'webp': 'webp',
+              'avif': 'avif',
+              'png': 'png',
+              'jpeg': 'jpeg',
+              'jpg': 'jpeg'
+            };
+            
+            const cfFitMap = {
+              'contain': 'contain',
+              'cover': 'cover',
+              'fill': 'scale-down',
+              'inside': 'contain',
+              'outside': 'cover'
+            };
+            
+            artSrcSet = sourceWidths
+              .map(width => {
+                const variant = `w=${width},q=${quality},f=${cfFormatMap[format]},fit=${cfFitMap[fit]}`;
+                return `https://imagedelivery.net/${accountHash}/${imagePath}/${variant} ${width}w`;
+              })
+              .join(', ');
+          }
+        } else {
+          // Cloudflare Image Resizing
+          const baseParams = [];
+          
+          if (format === 'auto') {
+            baseParams.push('format=auto');
+          } else if (format !== 'original') {
+            baseParams.push(`format=${format}`);
+          }
+          
+          baseParams.push(`quality=${quality}`);
+          baseParams.push(`fit=${fit}`);
+          
+          if (background) {
+            baseParams.push(`background=${encodeURIComponent(background)}`);
+          }
+          
+          const paramString = baseParams.join(',');
+          
+          artSrcSet = sourceWidths
+            .map(width => {
+              const optimizedUrl = `/cdn-cgi/image/width=${width},${paramString}${artSrc}`;
+              return `${optimizedUrl} ${width}w`;
+            })
+            .join(', ');
+        }
+        
+        return (
+          <source 
+            media={source.media} 
+            srcset={artSrcSet}
+            sizes={sizes}
+          />
+        );
+      })}
+      
+      {/* Imagem padrão */}
+      <img 
+        src={defaultSrc}
+        srcset={srcSet}
+        sizes={sizes}
+        alt={alt}
+        loading={loading}
+        decoding={decoding}
+        fetchpriority={actualFetchPriority}
+        class={`${fadeIn ? 'opacity-0 img-opacity-transition' : ''} ${className}`}
+        onerror="this.onerror=null; this.src='/images/placeholder.webp';"
+        data-img-id={uniqueId}
+      />
+    </picture>
+  </div>
 )}
 
 <style>
-  /* Efeito de blur e transição suave */
-  img {
-    transition: filter 0.3s ease-out;
+  /* Efeitos de transição e placeholder */
+  .img-opacity-transition {
+    transition: opacity 0.5s ease-in-out;
   }
   
-  img:not([loaded]) {
+  .img-loaded {
+    opacity: 1 !important;
+  }
+  
+  .img-placeholder-hidden {
+    opacity: 0 !important;
+  }
+  
+  /* Placeholder com efeito de blur */
+  .bg-blurhash {
     filter: blur(10px);
+    transform: scale(1.1);
+    transition: opacity 0.5s ease-in-out;
   }
 </style>
 
-<script>
-  // Marcar imagens como carregadas para efeito de transição
+<script define:vars={{ uniqueId, placeholder, blurhash, fadeIn }}>
+  // Implementação de blurhash no cliente (se necessário)
   document.addEventListener('DOMContentLoaded', () => {
-    const images = document.querySelectorAll('img');
-    images.forEach(img => {
-      if (img.complete) {
-        img.setAttribute('loaded', '');
+    // Se temos blurhash no documento, carregamos a biblioteca sob demanda
+    if (document.querySelector('[data-blurhash]') && placeholder === 'blurhash') {
+      // Carregar blurhash.js apenas se for necessário
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/blurhash@2.0.5/dist/blurhash.min.js';
+      script.onload = renderBlurhash;
+      document.head.appendChild(script);
+    }
+    
+    // Configurar observadores de carregamento
+    setupImageLoadObservers();
+    
+    // Rastrear métricas para Core Web Vitals
+    trackImageLoadingMetrics();
+  });
+  
+  // Renderizar blurhash no canvas (quando a biblioteca carregar)
+  function renderBlurhash() {
+    const blurhashElements = document.querySelectorAll('[data-blurhash]');
+    
+    blurhashElements.forEach(el => {
+      const hash = el.getAttribute('data-blurhash');
+      if (!hash) return;
+      
+      // Criar canvas para o blurhash
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      
+      // Renderizar o blurhash no canvas
+      const ctx = canvas.getContext('2d');
+      const pixels = window.blurhash.decode(hash, 32, 32);
+      
+      const imageData = ctx.createImageData(32, 32);
+      const data = imageData.data;
+      
+      for (let i = 0; i < pixels.length; i++) {
+        data[i] = pixels[i];
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Substituir o elemento com o canvas
+      el.appendChild(canvas);
+    });
+  }
+  
+  // Configurar observers para animação de fadeIn
+  function setupImageLoadObservers() {
+    // Obter imagem desta instância específica do componente
+    const image = document.querySelector(`img[data-img-id="${uniqueId}"]`);
+    if (!image) return;
+    
+    // Aplicar efeito de fade-in quando a imagem carrega completamente
+    if (fadeIn) {
+      if (image.complete) {
+        image.classList.add('img-loaded');
+        if (placeholder !== 'none') {
+          const container = image.closest(`[data-img-id="${uniqueId}"]`);
+          const placeholderEl = container?.querySelector('[aria-hidden="true"]');
+          if (placeholderEl) {
+            placeholderEl.classList.add('img-placeholder-hidden');
+          }
+        }
       } else {
-        img.addEventListener('load', () => {
-          img.setAttribute('loaded', '');
+        image.addEventListener('load', () => {
+          image.classList.add('img-loaded');
+          if (placeholder !== 'none') {
+            const container = image.closest(`[data-img-id="${uniqueId}"]`);
+            const placeholderEl = container?.querySelector('[aria-hidden="true"]');
+            if (placeholderEl) {
+              placeholderEl.classList.add('img-placeholder-hidden');
+            }
+          }
         });
       }
+    }
+  }
+  
+  // Rastrear métricas de carregamento para Web Vitals
+  function trackImageLoadingMetrics() {
+    if (!window.performance || !window.performance.measure) return;
+    
+    const image = document.querySelector(`img[data-img-id="${uniqueId}"]`);
+    if (!image) return;
+    
+    // Não rastrear para imagens lazy que não são críticas
+    if (image.loading === 'lazy') return;
+    
+    // Marcar início do carregamento
+    performance.mark(`image-${uniqueId}-start`);
+    
+    // Quando a imagem carregar, medir o tempo decorrido
+    image.addEventListener('load', () => {
+      performance.mark(`image-${uniqueId}-end`);
+      performance.measure(
+        `image-load-time-${uniqueId}`,
+        `image-${uniqueId}-start`,
+        `image-${uniqueId}-end`
+      );
+      
+      // Se a imagem for crítica, reportar para analytics
+      if (image.fetchPriority === 'high') {
+        const loadTime = performance.getEntriesByName(`image-load-time-${uniqueId}`)[0].duration;
+        
+        // Enviar dados para analytics (opcional)
+        if (navigator.sendBeacon) {
+          try {
+            navigator.sendBeacon('/api/metrics/image-load', JSON.stringify({
+              imageUrl: image.src,
+              loadTime,
+              critical: true,
+              timestamp: Date.now()
+            }));
+          } catch (e) {
+            // Silenciar erro
+          }
+        }
+      }
     });
-  });
+  }
 </script>

@@ -1,0 +1,159 @@
+---
+/**
+ * Componente para gerar Schema.org JSON-LD para páginas de produto
+ * 
+ * Implementa os tipos Product, Offer, AggregateRating e Review de acordo
+ * com as especificações do Schema.org para melhor SEO
+ */
+
+export interface ReviewProps {
+  author: string;
+  rating: number;
+  date: string;
+  text: string;
+}
+
+export interface ProductProps {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  images?: string[];
+  price: number;
+  oldPrice?: number;
+  currency?: string;
+  sku: string;
+  category?: string;
+  categoryName?: string;
+  subcategory?: string;
+  subcategoryName?: string;
+  brand?: string;
+  inStock: boolean;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: ReviewProps[];
+  specifications?: {name: string; value: string}[];
+  breadcrumb?: Array<{name: string; url: string}>;
+}
+
+const { 
+  product,
+  siteUrl = 'https://loja.com.br',
+  organizationName = 'Grão de Gente',
+  organizationLogo = '/images/logo.svg'
+} = Astro.props;
+
+// Garantir que temos uma descrição simples sem HTML
+const stripHtml = (html: string) => {
+  return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+};
+
+const productDescription = product.description ? stripHtml(product.description) : product.name;
+
+// Gerar o Schema.org para breadcrumb
+const generateBreadcrumbSchema = (breadcrumb) => {
+  if (!breadcrumb || breadcrumb.length < 2) return null;
+  
+  return {
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumb.map((item, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": item.name,
+      "item": `${siteUrl}${item.url}`
+    }))
+  };
+};
+
+// Gerar o Schema.org para organização
+const generateOrganizationSchema = () => {
+  return {
+    "@type": "Organization",
+    "name": organizationName,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${siteUrl}${organizationLogo}`
+    },
+    "url": siteUrl
+  };
+};
+
+// Gerar o Schema.org para produto
+const generateProductSchema = (product: ProductProps) => {
+  const schema = {
+    "@type": "Product",
+    "name": product.name,
+    "description": productDescription,
+    "sku": product.sku,
+    "image": product.images ? [product.image, ...product.images] : [product.image],
+    "url": `${siteUrl}/produto/${product.id}`,
+    "offers": {
+      "@type": "Offer",
+      "url": `${siteUrl}/produto/${product.id}`,
+      "price": product.price,
+      "priceCurrency": product.currency || "BRL",
+      "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+    }
+  };
+
+  // Adicionar categoria
+  if (product.categoryName) {
+    schema["category"] = product.subcategoryName || product.categoryName;
+  }
+
+  // Adicionar marca
+  if (product.brand) {
+    schema["brand"] = {
+      "@type": "Brand",
+      "name": product.brand
+    };
+  }
+  
+  // Adicionar ratings e reviews ao schema
+  if (product.rating && product.reviewCount) {
+    schema["aggregateRating"] = {
+      "@type": "AggregateRating",
+      "ratingValue": product.rating,
+      "reviewCount": product.reviewCount,
+      "bestRating": 5,
+      "worstRating": 1
+    };
+
+    // Adicionar reviews individuais se existirem
+    if (product.reviews && product.reviews.length > 0) {
+      schema["review"] = product.reviews.map(review => ({
+        "@type": "Review",
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": review.rating,
+          "bestRating": 5,
+          "worstRating": 1
+        },
+        "author": {
+          "@type": "Person",
+          "name": review.author
+        },
+        "datePublished": review.date,
+        "reviewBody": review.text
+      }));
+    }
+  }
+
+  return schema;
+};
+
+// Schema.org completo
+const productSchema = generateProductSchema(product);
+const breadcrumbSchema = product.breadcrumb ? generateBreadcrumbSchema(product.breadcrumb) : null;
+const organizationSchema = generateOrganizationSchema();
+
+const schemas = [
+  productSchema, 
+  breadcrumbSchema,
+  organizationSchema
+].filter(Boolean);
+
+---
+<script type="application/ld+json" set:html={JSON.stringify({ "@context": "https://schema.org", "@graph": schemas })}>
+</script>

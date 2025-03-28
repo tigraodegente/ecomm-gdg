@@ -1,0 +1,217 @@
+---
+/**
+ * WebVitalsMonitor.astro
+ * 
+ * Componente para monitorar e reportar métricas Web Vitals em tempo real
+ * usando a web-vitals API e enviando dados para nosso endpoint de análise.
+ * 
+ * As métricas coletadas incluem:
+ * - LCP (Largest Contentful Paint)
+ * - FID (First Input Delay)
+ * - CLS (Cumulative Layout Shift)
+ * - INP (Interaction to Next Paint)
+ * - TTFB (Time to First Byte)
+ * - FCP (First Contentful Paint)
+ */
+
+export interface Props {
+  /** Ativar ou desativar o monitoramento */
+  enabled?: boolean;
+  
+  /** URL do endpoint para enviar as métricas */
+  endpoint?: string;
+  
+  /** Percentual de sessões para amostrar (0-100) */
+  samplingRate?: number;
+  
+  /** Enviar métricas adicionais além do Core Web Vitals */
+  extendedMetrics?: boolean;
+  
+  /** Dados adicionais para enviar com cada métrica */
+  customData?: Record<string, any>;
+}
+
+const {
+  enabled = true,
+  endpoint = '/api/metrics/web-vitals',
+  samplingRate = 100, // 100% por padrão
+  extendedMetrics = true,
+  customData = {}
+} = Astro.props;
+
+// Não renderizar nada se o monitoramento estiver desativado
+if (!enabled) return null;
+
+// ID de sessão único para agrupar métricas
+const sessionId = Math.random().toString(36).substring(2, 15);
+
+// URL atual para correlacionar métricas com páginas
+const currentPath = Astro.url.pathname;
+
+// Serializar dados personalizados
+const serializedCustomData = JSON.stringify(customData);
+---
+
+{/* Script de monitoramento de Web Vitals */}
+<script define:vars={{ 
+  endpoint, 
+  samplingRate, 
+  extendedMetrics, 
+  sessionId, 
+  currentPath, 
+  serializedCustomData 
+}}>
+  // Verificar se devemos amostrar esta sessão
+  const shouldSample = () => {
+    return Math.random() * 100 <= samplingRate;
+  };
+
+  // Se esta sessão não está na amostra, não fazemos nada
+  if (!shouldSample()) {
+    console.debug('RUM: Session not sampled');
+    // Ainda assim, registramos uma visualização de página
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, JSON.stringify({
+          type: 'pageview',
+          url: currentPath,
+          sessionId,
+          timestamp: Date.now(),
+          customData: JSON.parse(serializedCustomData || '{}')
+        }));
+      }
+    } catch (e) {
+      // Ignorar erros de relatório
+    }
+  } else {
+    // Carregar a biblioteca web-vitals
+    import('https://unpkg.com/web-vitals@3.5.1/dist/web-vitals.attribution.iife.js').then(({ onCLS, onFID, onLCP, onTTFB, onFCP, onINP }) => {
+      // Função para relatar os Web Vitals
+      const reportWebVitals = (metric) => {
+        // Construir os dados a serem enviados
+        const data = {
+          // Nome da métrica
+          name: metric.name,
+          // Valor principal da métrica
+          value: Math.round(metric.value * 100) / 100,
+          // ID da métrica para correlação
+          id: metric.id,
+          // Rating (good, needs-improvement, poor)
+          rating: metric.rating,
+          // Navegação
+          navigationType: performance?.getEntriesByType('navigation')[0]?.type || 'navigate',
+          // Informações da página
+          url: currentPath,
+          // ID da sessão
+          sessionId,
+          // Timestamp
+          timestamp: Date.now(),
+          // Dados adicionais da atribuição da métrica
+          attribution: metric.attribution || {},
+          // Dados personalizados
+          customData: JSON.parse(serializedCustomData || '{}')
+        };
+
+        // Adicionar informações do navegador e dispositivo
+        data.userAgent = navigator.userAgent;
+        data.deviceMemory = navigator.deviceMemory;
+        data.hardwareConcurrency = navigator.hardwareConcurrency;
+        data.connection = navigator.connection ? {
+          effectiveType: navigator.connection.effectiveType,
+          rtt: navigator.connection.rtt,
+          downlink: navigator.connection.downlink,
+          saveData: navigator.connection.saveData
+        } : {};
+        data.viewport = {
+          width: window.innerWidth,
+          height: window.innerHeight
+        };
+
+        // Enviar os dados usando Beacon API se disponível
+        try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(endpoint, JSON.stringify(data));
+          } else {
+            // Fallback para fetch
+            fetch(endpoint, {
+              method: 'POST',
+              body: JSON.stringify(data),
+              keepalive: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to send web-vitals metric:', e);
+        }
+      };
+
+      // Registrar Core Web Vitals
+      onCLS(reportWebVitals);
+      onLCP(reportWebVitals);
+      onFID(reportWebVitals);
+      
+      // Registrar INP (Interaction to Next Paint)
+      if (typeof onINP === 'function') {
+        onINP(reportWebVitals);
+      }
+
+      // Registrar métricas adicionais se extendedMetrics estiver ativado
+      if (extendedMetrics) {
+        onTTFB(reportWebVitals);
+        onFCP(reportWebVitals);
+      }
+
+      // Registrar evento de visualização de página
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint, JSON.stringify({
+            type: 'pageview',
+            url: currentPath,
+            sessionId,
+            timestamp: Date.now(),
+            referrer: document.referrer,
+            customData: JSON.parse(serializedCustomData || '{}')
+          }));
+        }
+      } catch (e) {
+        // Ignorar erros de relatório
+      }
+
+      // Registrar eventos de interação do usuário para análise mais aprofundada
+      document.addEventListener('click', (e) => {
+        // Identificar cliques em elementos importantes como botões e links
+        const target = e.target.closest('a, button, [role=button], input[type=button], input[type=submit]');
+        if (!target) return;
+
+        // Obter identificadores significativos do elemento clicado
+        const elementData = {
+          tagName: target.tagName,
+          id: target.id,
+          className: target.className,
+          textContent: target.textContent?.trim().substring(0, 50),
+          href: target.href,
+          type: target.type
+        };
+
+        // Enviar evento de interação
+        try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(endpoint, JSON.stringify({
+              type: 'interaction',
+              event: 'click',
+              element: elementData,
+              url: currentPath,
+              sessionId,
+              timestamp: Date.now(),
+              customData: JSON.parse(serializedCustomData || '{}')
+            }));
+          }
+        } catch (e) {
+          // Ignorar erros de relatório
+        }
+      }, { passive: true });
+    });
+  }
+</script>

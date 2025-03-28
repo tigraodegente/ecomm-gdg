@@ -1,32 +1,33 @@
 name = "ecomm-gdg"
-compatibility_date = "2023-05-18"
+main = "src/index.js"
+compatibility_date = "2024-03-28"
 compatibility_flags = ["nodejs_compat"]
 
-# Configuração do KV
+# Configuração do KV que serão criados na interface do Cloudflare
 kv_namespaces = [
-  { binding = "CACHE_STORE", id = "xxxx", preview_id = "xxxx" },
-  { binding = "SEARCH_INDEX", id = "xxxx", preview_id = "xxxx" },
-  { binding = "PRODUCT_CACHE", id = "xxxx", preview_id = "xxxx" },
-  { binding = "PERFORMANCE_METRICS", id = "xxxx", preview_id = "xxxx" }
+  { binding = "CACHE_KV", preview_id = "" },
+  { binding = "SEARCH_KV", preview_id = "" },
+  { binding = "SEARCH_METRICS", preview_id = "" },
+  { binding = "PRODUCT_CACHE", preview_id = "" },
+  { binding = "PERFORMANCE_METRICS", preview_id = "" }
 ]
 
-# Configuração do Durable Objects para carrinho
+# Configuração do Durable Objects para carrinho e sessão
+# Será configurado ao criar e publicar o primeiro worker
 [durable_objects]
 bindings = [
-  { name = "CART", class_name = "CartDO" }
+  { name = "CART_DO", class_name = "CartDurableObject" },
+  { name = "SESSION_DO", class_name = "SessionDurableObject" }
 ]
 
-# Configuração do D1 para backup/complemento ao Turso
-[[d1_databases]]
-binding = "DB"
-database_name = "ecomm_gdg"
-database_id = "xxxx"
-
-# Variáveis de ambiente
+# Configuração do Turso (SQLite distribuído)
 [vars]
-TURSO_DB_URL = "libsql://your-database.turso.io"
-TURSO_DB_TOKEN = "your-auth-token"
-SITE_URL = "https://your-site.pages.dev"
+TURSO_DB_URL = ""
+TURSO_DB_TOKEN = ""
+SITE_URL = "https://ecomm-gdg.pages.dev"
+SEARCH_INDEX_TOKEN = "secret-token-for-indexing"
+ENABLE_CACHE = "true"
+DEBUG_MODE = "false"
 
 # Rotas para personalização do comportamento por página
 [[routes]]
@@ -63,3 +64,51 @@ cache_key_fields = ["content-type", "content-encoding"]
 # Configuração de otimização de imagens
 [image_optimizer]
 compression_ratio = 85
+
+# Configurações avançadas de HTTP
+[http]
+compress = true
+http2 = true
+http3 = true
+tls_1_3 = true
+
+# Cabeçalhos de segurança globais
+[[headers]]
+for = "/*"
+[headers.cache]
+max_age = 31536000
+[headers.response]
+X-Content-Type-Options = "nosniff"
+X-Frame-Options = "DENY"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+Content-Security-Policy = "upgrade-insecure-requests"
+
+# Compressão Brotli para JavaScript
+[[headers]]
+for = "/_astro/*.js"
+[headers.response]
+Content-Type = "application/javascript; charset=utf-8"
+Content-Encoding = "br"
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Compressão Brotli para CSS
+[[headers]]
+for = "/_astro/*.css"
+[headers.response]
+Content-Type = "text/css; charset=utf-8"
+Content-Encoding = "br"
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Compressão Brotli para fontes
+[[headers]]
+for = "/fonts/**/*.woff2"
+[headers.response]
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Configurações para Service Worker
+[[headers]]
+for = "/service-worker.js"
+[headers.response]
+Cache-Control = "max-age=0, no-cache, no-store, must-revalidate"
+Service-Worker-Allowed = "/"

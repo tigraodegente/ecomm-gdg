@@ -9,6 +9,7 @@ import { SEO } from "astro-seo";
 import "@/global.css";
 import SearchBox from "../components/ui/SearchBox.astro";
 import CategoryMenu from "../components/navigation/CategoryMenu.astro";
+import SchemaOrgWebsite from "../components/SchemaOrgWebsite.astro";
 
 interface Props {
   title: string;
@@ -26,7 +27,7 @@ const {
 ---
 
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="graodegente">
+<html lang="pt-BR" data-theme="graodegente"
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,6 +40,27 @@ const {
     <!-- Fonte Lato -->
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
+    <!-- Schema.org para o site -->
+    <SchemaOrgWebsite 
+      name="Grão de Gente"
+      description="Loja online de produtos para bebês, crianças e decoração infantil"
+      url="https://graodegente.com.br"
+      logoUrl="/images/logo.svg"
+      socialProfiles={[
+        "https://www.facebook.com/graodegente",
+        "https://www.instagram.com/graodegente/",
+        "https://www.youtube.com/user/graodegente",
+        "https://www.tiktok.com/@graodegente",
+        "https://br.pinterest.com/graodegente/"
+      ]}
+      contactPoint={[
+        {
+          telephone: "+551140002000",
+          contactType: "customer service"
+        }
+      ]}
+    />
+    
     <!-- Slot para head adicional -->
     <slot name="head" />
     
@@ -189,6 +211,7 @@ const {
     
     <!-- Footer -->
     <footer>
+      
       <!-- Seção de informações com fundo verde -->
       <div class="bg-[#4DC0B5] pt-16 pb-16 text-white">
         <div class="container mx-auto px-8 max-w-[1360px]">

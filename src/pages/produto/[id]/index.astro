@@ -11,6 +11,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb.astro';
 import Button from '@/components/ui/Button.astro';
 import Badge from '@/components/ui/Badge.astro';
 import ProductCard from '@/components/ui/ProductCard.astro';
+import SchemaOrgProduct from '@/components/SchemaOrgProduct.astro';
 
 // Produtos de amostra
 const allProducts = [
@@ -189,7 +190,18 @@ breadcrumb.push({
 <MarketplaceLayout
   title={product.name}
   description={`${product.name} - ${product.categoryName || 'Produto Infantil'} | Grão de Gente`}
+  canonicalUrl={`/produto/${product.id}`}
 >
+  <SchemaOrgProduct 
+    slot="head" 
+    product={{
+      ...product,
+      breadcrumb
+    }}
+    siteUrl="https://graodegente.com.br"
+    organizationName="Grão de Gente"
+  />
+  
   <style>
     body {
       background-color: #F5F5F5;

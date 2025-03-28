@@ -6,6 +6,8 @@ import "@/global.css";
 import ServiceWorkerScript from '@/components/ServiceWorkerScript.astro';
 import { extractCriticalCSS, generateAsyncCSSLoader } from '../lib/performance/critical-css.js';
 import { generateOptimizedFontHtml } from '../lib/performance/font-loader.js';
+import CanonicalHead from '@/components/CanonicalHead.astro';
+import WebVitalsMonitor from '@/components/WebVitalsMonitor.astro';
 
 interface Props {
   title: string;
@@ -14,9 +16,31 @@ interface Props {
   canonicalUrl?: string;
   faviconUrl?: string;
   ogImageUrl?: string;
+  
+  /** Alternativas de idioma para esta página */
+  alternates?: Array<{
+    lang: string;
+    url: string;
+    hreflang: string;
+  }>;
+  
+  /** Para páginas com paginação */
+  pagination?: {
+    prev?: string;
+    next?: string;
+  };
 }
 
-const { title, description = "", bodyClasses, canonicalUrl, faviconUrl, ogImageUrl = "/og-image.png" } = Astro.props;
+const { 
+  title, 
+  description = "", 
+  bodyClasses, 
+  canonicalUrl, 
+  faviconUrl, 
+  ogImageUrl = "/og-image.png",
+  alternates = [],
+  pagination
+} = Astro.props;
 
 // Definir as fontes otimizadas para o site
 const optimizedFonts = [
@@ -25,7 +49,29 @@ const optimizedFonts = [
     weight: '400',
     style: 'normal',
     display: 'swap',
-    url: '/fonts/inter-v12-latin-regular.{format}',
+    url: '/fonts/inter/inter-regular.{format}',
+    formats: ['woff2', 'woff'],
+    unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    sizeAdjust: 100,
+    critical: true
+  },
+  {
+    family: 'Inter',
+    weight: '500',
+    style: 'normal',
+    display: 'swap',
+    url: '/fonts/inter/inter-medium.{format}',
+    formats: ['woff2', 'woff'],
+    unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    sizeAdjust: 100,
+    critical: true
+  },
+  {
+    family: 'Inter',
+    weight: '600',
+    style: 'normal',
+    display: 'swap',
+    url: '/fonts/inter/inter-semibold.{format}',
     formats: ['woff2', 'woff'],
     unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
     sizeAdjust: 100,
@@ -36,7 +82,7 @@ const optimizedFonts = [
     weight: '700',
     style: 'normal',
     display: 'swap',
-    url: '/fonts/inter-v12-latin-700.{format}',
+    url: '/fonts/inter/inter-bold.{format}',
     formats: ['woff2', 'woff'],
     unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
     sizeAdjust: 100,
@@ -104,6 +150,14 @@ if (isHomePage) {
 
     {/* Fontes otimizadas */}
     <Fragment set:html={fontHtml} />
+    
+    {/* Canonical URL e tags hreflang */}
+    <CanonicalHead 
+      canonicalUrl={canonicalUrl}
+      siteBaseUrl="https://graodegente.com.br"
+      alternates={alternates}
+      pagination={pagination}
+    />
 
     {/* Critical CSS inline para renderização rápida inicial */}
     <style is:inline>
@@ -117,7 +171,6 @@ if (isHomePage) {
       charset="utf-8"
       title={title}
       description={description}
-      canonical={canonicalUrl || Astro.url}
       openGraph={{
         basic: {
           title: title,
@@ -238,6 +291,16 @@ if (isHomePage) {
     
     <!-- Service Worker para cache offline e melhor performance -->
     <ServiceWorkerScript />
+    
+    <!-- Monitoramento Web Vitals -->
+    <WebVitalsMonitor 
+      enabled={true}
+      extendedMetrics={true}
+      samplingRate={100}
+      customData={{ 
+        pageType: isHomePage ? 'home' : (isProductPage ? 'product' : (isProductListPage ? 'product-list' : 'other'))
+      }}
+    />
   </body>
 </html>
 

@@ -1,0 +1,99 @@
+---
+/**
+ * CanonicalHead.astro
+ * 
+ * Componente para gerenciar URLs canônicas, alternativas, e tags hreflang
+ * para melhor SEO e internacionalização.
+ */
+
+export interface Props {
+  /** URL canônica atual */
+  canonicalUrl?: string;
+  
+  /** URL base do site, sem trailing slash */
+  siteBaseUrl?: string;
+  
+  /** 
+   * Alternativas de idioma para esta página
+   * { lang: string, url: string, hreflang: string }
+   */
+  alternates?: Array<{
+    /** Código do idioma, ex: 'en', 'pt-BR' */
+    lang: string;
+    
+    /** Caminho relativo, ex: '/en/products', '/es/productos' */
+    url: string;
+    
+    /** Código hreflang, ex: 'en', 'pt-br', 'es', 'x-default' */
+    hreflang: string;
+  }>;
+  
+  /** Suporte a paginação com prev/next */
+  pagination?: {
+    /** URL relativa da página anterior, se houver */
+    prev?: string;
+    
+    /** URL relativa da página seguinte, se houver */
+    next?: string;
+  };
+  
+  /** Configurações avançadas */
+  options?: {
+    /** Incluir tag para idioma padrão (x-default) */
+    includeDefaultLang?: boolean;
+    
+    /** Forçar protocolo HTTPS */
+    forceHttps?: boolean;
+  };
+}
+
+// Props padrão
+const { 
+  canonicalUrl,
+  siteBaseUrl = 'https://graodegente.com.br',
+  alternates = [],
+  pagination,
+  options = {
+    includeDefaultLang: true,
+    forceHttps: true
+  }
+} = Astro.props;
+
+// Obter URL atual se não fornecida
+const currentPath = canonicalUrl || Astro.url.pathname;
+
+// Normalizar URL canônica
+const fullCanonicalUrl = new URL(currentPath, siteBaseUrl).toString();
+
+// Verificar se temos URLs de paginação
+const hasPagination = pagination && (pagination.prev || pagination.next);
+
+// Função auxiliar para criar URL completa
+const createFullUrl = (path: string) => {
+  // Remover leading slash duplo
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return new URL(normalizedPath, siteBaseUrl).toString();
+};
+---
+
+{/* URL Canônica */}
+<link rel="canonical" href={fullCanonicalUrl} />
+
+{/* Alternativas de Idioma (hreflang) */}
+{alternates.map(({ lang, url, hreflang }) => (
+  <link rel="alternate" hreflang={hreflang} href={createFullUrl(url)} />
+))}
+
+{/* Adicionar x-default se solicitado e não estiver nas alternativas */}
+{options.includeDefaultLang && !alternates.some(alt => alt.hreflang === 'x-default') && (
+  <link rel="alternate" hreflang="x-default" href={fullCanonicalUrl} />
+)}
+
+{/* Links de paginação */}
+{hasPagination && pagination.prev && (
+  <link rel="prev" href={createFullUrl(pagination.prev)} />
+)}
+
+{hasPagination && pagination.next && (
+  <link rel="next" href={createFullUrl(pagination.next)} />
+)}
