@@ -458,7 +458,7 @@ select::-ms-expand {
 }
 
 .filter-btn-active {
-  background-color: #40C1AC !important;
+  background-color: #6EDAC8 !important;
   color: white !important;
 }
 
@@ -468,7 +468,7 @@ select::-ms-expand {
   font-weight: 500 !important;
 }
 
-.filter-button.bg-\[\#40C1AC\] {
+.filter-button.bg-\[\#6EDAC8\] {
   color: white !important;
 }
 
