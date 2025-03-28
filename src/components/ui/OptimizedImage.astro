@@ -1,0 +1,141 @@
+---
+/**
+ * OptimizedImage.astro
+ * 
+ * Componente otimizado para imagens que utiliza a API de otimização de imagens do Cloudflare
+ * e implementa várias técnicas para melhorar Core Web Vitals (LCP e CLS).
+ * 
+ * Features:
+ * - Otimização de imagens via Cloudflare Image Resizing
+ * - Geração de srcset para diferentes tamanhos de tela
+ * - Lazy loading inteligente
+ * - Mecanismo de fallback para imagens não disponíveis
+ * - Prevenção de layout shift com aspect ratio
+ */
+
+// Parâmetros do componente
+export interface Props {
+  src: string;
+  alt: string;
+  widths?: number[];
+  sizes?: string;
+  aspectRatio?: number;
+  class?: string;
+  eager?: boolean;
+  format?: 'webp' | 'avif' | 'png' | 'jpeg' | 'jpg';
+  quality?: number;
+  fit?: 'contain' | 'cover' | 'fill' | 'inside' | 'outside';
+  background?: string;
+}
+
+const { 
+  src, 
+  alt, 
+  widths = [400, 800, 1200], 
+  sizes = "100vw",
+  aspectRatio,
+  eager = false, 
+  format = 'webp',
+  quality = 80,
+  fit = 'cover',
+  background,
+  class: className = "",
+} = Astro.props;
+
+// Normalizar o src para garantir que é uma URL absoluta ou caminho absoluto
+const normalizedSrc = src.startsWith('http') || src.startsWith('/') 
+  ? src 
+  : `/${src}`;
+
+// Construir parâmetros de otimização base
+const baseParams = [
+  `format=${format}`,
+  `quality=${quality}`,
+  `fit=${fit}`
+];
+
+// Adicionar parâmetro de background se fornecido
+if (background) {
+  baseParams.push(`background=${encodeURIComponent(background)}`);
+}
+
+// Criar string de parâmetros
+const paramString = baseParams.join(',');
+
+// Gerar URLs para diferentes tamanhos (srcset)
+const srcSet = widths
+  .map(width => {
+    const optimizedUrl = `/cdn-cgi/image/width=${width},${paramString}${normalizedSrc}`;
+    return `${optimizedUrl} ${width}w`;
+  })
+  .join(', ');
+
+// URL principal (menor tamanho para carregar mais rápido)
+const defaultSrc = `/cdn-cgi/image/width=${widths[0]},${paramString}${normalizedSrc}`;
+
+// Calcular padding para manter aspect ratio e evitar layout shift
+let aspectRatioPadding;
+if (aspectRatio) {
+  aspectRatioPadding = (1 / aspectRatio) * 100;
+}
+
+// Verificar se a imagem deve ser carregada imediatamente (above the fold)
+const loading = eager ? 'eager' : 'lazy';
+const decoding = eager ? 'sync' : 'async';
+const fetchpriority = eager ? 'high' : 'auto';
+---
+
+{aspectRatio ? (
+  <div class="relative w-full" style={`padding-bottom: ${aspectRatioPadding}%`}>
+    <img 
+      src={defaultSrc}
+      srcset={srcSet}
+      sizes={sizes}
+      alt={alt}
+      loading={loading}
+      decoding={decoding}
+      fetchpriority={fetchpriority}
+      class={`absolute inset-0 w-full h-full object-${fit} ${className}`}
+      onerror="this.onerror=null; this.src='/images/placeholder.webp';"
+    />
+  </div>
+) : (
+  <img 
+    src={defaultSrc}
+    srcset={srcSet}
+    sizes={sizes}
+    alt={alt}
+    loading={loading}
+    decoding={decoding}
+    fetchpriority={fetchpriority}
+    class={className}
+    onerror="this.onerror=null; this.src='/images/placeholder.webp';"
+  />
+)}
+
+<style>
+  /* Efeito de blur e transição suave */
+  img {
+    transition: filter 0.3s ease-out;
+  }
+  
+  img:not([loaded]) {
+    filter: blur(10px);
+  }
+</style>
+
+<script>
+  // Marcar imagens como carregadas para efeito de transição
+  document.addEventListener('DOMContentLoaded', () => {
+    const images = document.querySelectorAll('img');
+    images.forEach(img => {
+      if (img.complete) {
+        img.setAttribute('loaded', '');
+      } else {
+        img.addEventListener('load', () => {
+          img.setAttribute('loaded', '');
+        });
+      }
+    });
+  });
+</script>

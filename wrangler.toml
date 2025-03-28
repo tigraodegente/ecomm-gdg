@@ -1,0 +1,65 @@
+name = "ecomm-gdg"
+compatibility_date = "2023-05-18"
+compatibility_flags = ["nodejs_compat"]
+
+# Configuração do KV
+kv_namespaces = [
+  { binding = "CACHE_STORE", id = "xxxx", preview_id = "xxxx" },
+  { binding = "SEARCH_INDEX", id = "xxxx", preview_id = "xxxx" },
+  { binding = "PRODUCT_CACHE", id = "xxxx", preview_id = "xxxx" },
+  { binding = "PERFORMANCE_METRICS", id = "xxxx", preview_id = "xxxx" }
+]
+
+# Configuração do Durable Objects para carrinho
+[durable_objects]
+bindings = [
+  { name = "CART", class_name = "CartDO" }
+]
+
+# Configuração do D1 para backup/complemento ao Turso
+[[d1_databases]]
+binding = "DB"
+database_name = "ecomm_gdg"
+database_id = "xxxx"
+
+# Variáveis de ambiente
+[vars]
+TURSO_DB_URL = "libsql://your-database.turso.io"
+TURSO_DB_TOKEN = "your-auth-token"
+SITE_URL = "https://your-site.pages.dev"
+
+# Rotas para personalização do comportamento por página
+[[routes]]
+pattern = "/produto/*"
+custom_domains = true
+content_type = "text/html;charset=UTF-8"
+[routes.cache]
+browser_ttl = 3600
+edge_ttl = 86400
+stale_while_revalidate = 172800
+
+[[routes]]
+pattern = "/produtos/*"
+[routes.cache]
+browser_ttl = 1800
+edge_ttl = 7200
+stale_while_revalidate = 86400
+
+[[routes]]
+pattern = "/api/search*"
+[routes.cache]
+browser_ttl = 60
+edge_ttl = 300
+stale_while_revalidate = 1800
+
+# Assets estáticos com cache de longa duração
+[[routes]]
+pattern = "/_astro/*"
+[routes.cache]
+browser_ttl = 31536000
+edge_ttl = 31536000
+cache_key_fields = ["content-type", "content-encoding"]
+
+# Configuração de otimização de imagens
+[image_optimizer]
+compression_ratio = 85
