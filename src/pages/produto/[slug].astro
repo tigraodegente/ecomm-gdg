@@ -1,7 +1,6 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import MarketplaceLayout from '../../layouts/MarketplaceLayout.astro';
 import Button from '../../components/ui/Button.astro';
-import CategoryMenu from '../../components/navigation/CategoryMenu.astro';
 import productService from '../../services/productService';
 
 // Obter o slug do produto da URL
@@ -189,15 +188,13 @@ if (!isShowingFallback) {
 }
 ---
 
-<Layout title={product.name}>
+<MarketplaceLayout 
+  title={product.name}
+  description={product.short_description || `${product.name} - Compre agora online!`}
+  canonicalUrl={`${Astro.url.origin}/produto/${product.slug}`}
+  ogImage={product.images && product.images.length > 0 ? product.images[0].image_url : '/og-image.png'}
+>
   <Fragment slot="head">
-    {/* Adicionar meta tags para SEO */}
-    <meta name="description" content={product.short_description || `${product.name} - Compre agora online!`} />
-    {product.images && product.images.length > 0 && (
-      <meta property="og:image" content={product.images[0].image_url} />
-    )}
-    <link rel="canonical" href={`${Astro.url.origin}/produto/${product.slug}`} />
-
     {/* Schema.org JSON-LD para SEO */}
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org/",
@@ -221,26 +218,25 @@ if (!isShowingFallback) {
       }
     })} />
   </Fragment>
+  
   <div class="bg-white">
-    <CategoryMenu />
-
     <!-- Breadcrumbs -->
     <div class="container mx-auto px-4 py-2">
       <nav class="text-sm text-gray-500 mb-4">
         <ol class="flex items-center">
           <li>
-            <a href="/" class="hover:text-primary-600 transition-colors">Home</a>
+            <a href="/" class="hover:text-cyan500 transition-colors">Home</a>
           </li>
           <li class="flex items-center">
             <span class="mx-1">/</span>
-            <a href="/produtos" class="hover:text-primary-600 transition-colors">Produtos</a>
+            <a href="/produtos" class="hover:text-cyan500 transition-colors">Produtos</a>
           </li>
           {product.category_name && (
             <li class="flex items-center">
               <span class="mx-1">/</span>
               <a 
                 href={`/produtos?category=${product.category_cid}`} 
-                class="hover:text-primary-600 transition-colors"
+                class="hover:text-cyan500 transition-colors"
               >
                 {product.category_name}
               </a>
@@ -248,7 +244,7 @@ if (!isShowingFallback) {
           )}
           <li class="flex items-center">
             <span class="mx-1">/</span>
-            <span class="text-primary-600 font-medium">{product.name}</span>
+            <span class="text-cyan500 font-medium">{product.name}</span>
           </li>
         </ol>
       </nav>
@@ -318,7 +314,7 @@ if (!isShowingFallback) {
           <div class="price-container my-4">
             {product.compare_at_price && product.compare_at_price > product.price ? (
               <div class="flex items-center">
-                <span class="text-3xl font-bold text-primary-600 mr-2">
+                <span class="text-3xl font-bold text-cyan500 mr-2">
                   {formatCurrency(product.price)}
                 </span>
                 <span class="text-lg text-gray-500 line-through">
@@ -329,7 +325,7 @@ if (!isShowingFallback) {
                 </span>
               </div>
             ) : (
-              <span class="text-3xl font-bold text-primary-600">
+              <span class="text-3xl font-bold text-cyan500">
                 {formatCurrency(product.price)}
               </span>
             )}
@@ -417,7 +413,7 @@ if (!isShowingFallback) {
               <Button 
                 id="add-to-cart-btn"
                 variant="primary" 
-                class="px-8 py-3 text-base flex-1"
+                class="px-8 py-3 text-base flex-1 bg-cyan500 hover:bg-cyan600"
                 disabled={product.stock <= 0}
               >
                 {product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível'}
@@ -465,7 +461,7 @@ if (!isShowingFallback) {
       <div class="product-details-tabs mt-12">
         <div class="border-b border-gray-200">
           <nav class="-mb-px flex space-x-8">
-            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-primary-500 font-medium text-primary-600" data-tab="description">
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-cyan500 font-medium text-cyan500" data-tab="description">
               Descrição
             </button>
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="specifications">
@@ -481,7 +477,7 @@ if (!isShowingFallback) {
         <div class="tab-content py-6">
           <!-- Tab de Descrição -->
           <div id="description-tab" class="tab-pane">
-            <div class="prose prose-primary max-w-none">
+            <div class="prose prose-cyan500 max-w-none">
               <Fragment set:html={product.description} />
             </div>
           </div>
@@ -582,7 +578,7 @@ if (!isShowingFallback) {
       )}
     </div>
   </div>
-</Layout>
+</MarketplaceLayout>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -649,12 +645,12 @@ if (!isShowingFallback) {
         
         // Atualizar botões
         tabButtons.forEach(btn => {
-          btn.classList.remove('border-primary-500', 'text-primary-600');
+          btn.classList.remove('border-cyan500', 'text-cyan500');
           btn.classList.add('border-transparent', 'text-gray-500');
         });
         
         this.classList.remove('border-transparent', 'text-gray-500');
-        this.classList.add('border-primary-500', 'text-primary-600');
+        this.classList.add('border-cyan500', 'text-cyan500');
         
         // Atualizar conteúdo
         tabPanes.forEach(pane => {
@@ -679,11 +675,11 @@ if (!isShowingFallback) {
           
           // Remover seleção anterior do mesmo tipo
           document.querySelectorAll(`.variant-option[data-attribute-type="${attributeType}"]`).forEach(opt => {
-            opt.classList.remove('border-primary-500', 'bg-primary-50');
+            opt.classList.remove('border-cyan500', 'bg-cyan50');
           });
           
           // Adicionar seleção a este botão
-          this.classList.add('border-primary-500', 'bg-primary-50');
+          this.classList.add('border-cyan500', 'bg-cyan50');
           
           // Atualizar atributos selecionados
           selectedAttributes[attributeType] = this.dataset.attributeValue;
@@ -714,27 +710,32 @@ if (!isShowingFallback) {
         const quantity = parseInt(document.getElementById('quantity-input').value);
         const variantId = document.getElementById('selected-variant-id')?.value || null;
         
-        // Aqui você implementaria a lógica para adicionar ao carrinho
-        console.log('Adicionar ao carrinho:', {
-          productId: '{product.id}',
-          variantId,
-          quantity
-        });
-        
-        // Mostrar mensagem de sucesso
-        alert('Produto adicionado ao carrinho!');
+        // Integração com o store carrinho do Alpine.js
+        if (window.Alpine) {
+          window.Alpine.store('cart').addItem({
+            id: product.id,
+            variantId: variantId,
+            quantity: quantity,
+            price: product.price,
+            name: product.name,
+            image: document.getElementById('main-product-image').src
+          });
+        } else {
+          // Fallback se Alpine.js não estiver disponível
+          alert('Produto adicionado ao carrinho!');
+        }
       });
     }
     
     if (addToWishlistBtn) {
       addToWishlistBtn.addEventListener('click', function() {
-        // Aqui você implementaria a lógica para adicionar à lista de desejos
-        console.log('Adicionar à lista de desejos:', {
-          productId: '{product.id}'
-        });
-        
-        // Mostrar mensagem de sucesso
-        alert('Produto adicionado à lista de desejos!');
+        // Integração com o store wishlist do Alpine.js
+        if (window.Alpine) {
+          window.Alpine.store('wishlist').addItem(product.id);
+        } else {
+          // Fallback se Alpine.js não estiver disponível
+          alert('Produto adicionado à lista de desejos!');
+        }
       });
     }
   });
