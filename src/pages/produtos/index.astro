@@ -138,33 +138,31 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
 
 <MarketplaceLayout title={pageTitle}>
   <Fragment slot="navbar">
-    {/* Links estáticos */}
-    {categoryService.getMenuWithCategories().staticLinks.map(link => (
-      <li>
+    {/* Links distribuídos uniformemente */}
+    <li class="w-full flex justify-between">
+      {/* Todos os produtos + categorias ordenadas + links estáticos em uma única linha */}
+      <a href="/produtos" class="font-medium hover:underline whitespace-nowrap">Todos os Produtos</a>
+      
+      {activeCategories
+        .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+        .map(category => (
+          <a 
+            href={`/produtos?category=${category.cid}`} 
+            class="hover:underline font-normal whitespace-nowrap"
+          >
+            {category.name}
+          </a>
+      ))}
+      
+      {categoryService.getMenuWithCategories().staticLinks.map(link => (
         <a 
           href={link.url} 
-          class={`hover:underline ${link.highlight ? 'font-medium text-[#FFEB3B]' : 'font-normal'}`}
+          class={`hover:underline whitespace-nowrap ${link.highlight ? 'font-medium text-[#FFEB3B]' : 'font-normal'}`}
         >
           {link.name}
         </a>
-      </li>
-    ))}
-    
-    {/* Separador */}
-    <li class="text-gray-400">|</li>
-    
-    {/* Categorias */}
-    <li><a href="/produtos" class="font-medium">Todos os Produtos</a></li>
-    {activeCategories.map(category => (
-      <li>
-        <a 
-          href={`/produtos?category=${category.cid}`} 
-          class="hover:underline font-normal"
-        >
-          {category.name}
-        </a>
-      </li>
-    ))}
+      ))}
+    </li>
   </Fragment>
   <div class="min-h-screen bg-gray-100 py-12">
     <div class="container mx-auto px-1 md:px-4">
@@ -357,14 +355,14 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
           </div>
           
           <div class="w-full md:w-auto mt-3 md:mt-0 flex items-center gap-2">
-            <span class="text-sm text-gray-700 font-medium">Ordenar por:</span>
+            <span class="text-sm text-gray-500 font-medium">Ordenar por:</span>
             
             <!-- Dropdown customizado com estilo mantido mas simplificado -->
             <div class="dropdown-custom relative">
               <button 
                 type="button" 
                 id="sort-button"
-                class="text-sm min-w-[130px] appearance-none bg-white border border-[#DDDDDD] rounded-md px-3 py-2 pr-8 text-[#333333] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#DDDDDD] flex justify-between items-center"
+                class="text-sm min-w-[130px] appearance-none bg-white border border-[#DDDDDD] rounded-md px-3 py-2 pr-8 text-[#777777] font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#DDDDDD] flex justify-between items-center"
                 onclick="document.getElementById('sort-menu').classList.toggle('hidden')"
               >
                 {/* Texto do botão baseado na seleção atual */}
@@ -377,7 +375,7 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
                   {sort === 'featured' && 'Destaque'}
                   {!['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc', 'featured'].includes(sort) && 'Ordenar'}
                 </span>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#333333]">
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#777777]">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -390,37 +388,37 @@ const sortOptionLabel = sortOptions.find(option => option.value === sort)?.label
               >
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=newest&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'newest' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'newest' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   Mais recentes
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=price_asc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   Menor preço
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=price_desc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'price_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   Maior preço
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=name_asc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_asc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   A-Z
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=name_desc&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'name_desc' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   Z-A
                 </a>
                 <a 
                   href={`/produtos?${new URLSearchParams([...searchParams.entries()].filter(([k]) => k !== 'sort' && k !== 'page'))}&sort=featured&page=1`}
-                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'featured' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#333333]'}`}
+                  class={`block px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer ${sort === 'featured' ? 'bg-[#E0F7F4] text-[#40C1AC] font-medium' : 'text-[#777777]'}`}
                 >
                   Destaque
                 </a>

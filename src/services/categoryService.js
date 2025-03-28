@@ -4,54 +4,7 @@ import Database from 'better-sqlite3';
 // Criar conexão com o banco de dados SQLite
 const db = new Database("./marketplace.db", { readonly: true });
 
-// Links estáticos do menu
-const STATIC_MENU_LINKS = [
-  {
-    name: "Todos os Produtos",
-    url: "/produtos",
-    highlight: false
-  },
-  {
-    name: "Alimentação",
-    url: "/produtos/alimentacao",
-    highlight: false
-  },
-  {
-    name: "Berços",
-    url: "/produtos/bercos",
-    highlight: false
-  },
-  {
-    name: "Acessórios para berço",
-    url: "/produtos/acessorios-berco",
-    highlight: false
-  },
-  {
-    name: "Lençóis",
-    url: "/produtos/lencois",
-    highlight: false
-  },
-  {
-    name: "Brinquedos para Bebês",
-    url: "/produtos/brinquedos",
-    highlight: false
-  },
-  {
-    name: "Ofertas",
-    url: "/ofertas",
-    highlight: true
-  },
-  {
-    name: "Blog",
-    url: "/blog",
-    highlight: false
-  },
-  {
-    name: "Contato",
-    url: "/contato",
-    highlight: false
-  }
-];
+// LINKS ESTÁTICOS REMOVIDOS - Agora usamos apenas os dados do banco
 
 /**
  * Serviço de acesso a dados para categorias
@@ -71,7 +24,9 @@ class CategoryService {
     `);
     
     const categories = stmt.all();
-    console.log('Categorias carregadas do banco:', categories.map(c => `${c.name} (ordem: ${c.display_order})`));
+    console.log('=== CATEGORIAS CARREGADAS DO BANCO (com ordem correta) ===');
+    console.log(categories.map(c => `${c.name} (ordem: ${c.display_order})`).join('\n'));
+    console.log('===========================================================');
     return categories;
   }
   
@@ -99,14 +54,25 @@ class CategoryService {
   getCategoryTree() {
     const mainCategories = this.getMainCategories();
     
+    console.log('=== CATEGORIAS PRINCIPAIS ANTES DE PROCESSAR SUB-CATEGORIAS ===');
+    console.log(mainCategories.map(c => `${c.name} (ordem: ${c.display_order})`).join('\n'));
+    
     // Para cada categoria principal, buscar suas subcategorias
-    return mainCategories.map(category => {
+    const result = mainCategories.map(category => {
       const subcategories = this.getSubcategories(category.id);
       return {
         ...category,
         subcategories
       };
     });
+    
+    // Garantir que a ordenação está correta mesmo após processar as subcategorias
+    result.sort((a, b) => (a.display_order || 999) - (b.display_order || 999));
+    
+    console.log('=== CATEGORIAS APÓS PROCESSAR SUB-CATEGORIAS (VERIFICAR ORDEM) ===');
+    console.log(result.map(c => `${c.name} (ordem: ${c.display_order})`).join('\n'));
+    
+    return result;
   }
   
   /**
@@ -131,7 +97,17 @@ class CategoryService {
    */
   getMenuWithCategories() {
     // Obter categorias do banco, já ordenadas pelo campo display_order
-    const categoryTree = this.getCategoryTree();
+    let categoryTree = this.getCategoryTree();
+    
+    // Garantir que as categorias estejam ordenadas explicitamente por display_order
+    categoryTree = categoryTree.sort((a, b) => {
+      const orderA = a.display_order || 999;
+      const orderB = b.display_order || 999;
+      return orderA - orderB;
+    });
+    
+    console.log('=== MENU DE CATEGORIAS APÓS ORDENAÇÃO EXPLÍCITA ===');
+    console.log(categoryTree.map(c => `${c.name} (ordem: ${c.display_order})`).join('\n'));
     
     // Adicionar categoria "Todos os Produtos" como primeira opção
     const orderedCategories = [
@@ -140,10 +116,15 @@ class CategoryService {
         name: "Todos os Produtos",
         cid: "todos-produtos", 
         url: "/produtos",
-        subcategories: []
+        subcategories: [],
+        display_order: 0
       },
       ...categoryTree
     ];
+    
+    console.log('=== CATEGORIAS FINAIS EM ORDEM (com ordem explícita garantida) ===');
+    console.log(orderedCategories.map(c => `${c.name} (ordem: ${c.display_order || 0})`).join('\n'));
+    console.log('===========================================================');
     
     // Links fixos após as categorias
     const staticLinks = [
@@ -174,7 +155,9 @@ class CategoryService {
       ORDER BY c.display_order ASC, c.name ASC
     `);
     
-    return stmt.all();
+    const categories = stmt.all();
+    console.log('Categorias ativas ordenadas por display_order:', categories.map(c => `${c.name} (ordem: ${c.display_order})`));
+    return categories;
   }
 }
 

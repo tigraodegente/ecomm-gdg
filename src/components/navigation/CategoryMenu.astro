@@ -1,0 +1,178 @@
+---
+/**
+ * CategoryMenu.astro
+ * 
+ * Menu de navegação por categorias com suporte a cache de fragmentos.
+ * Implementa o padrão stale-while-revalidate para manter o menu atualizado
+ * sem impactar a performance.
+ */
+import categoryService from '../../services/categoryService';
+import CachedFragment from '../CachedFragment.astro';
+import { FRAGMENT_TYPES } from '../../lib/fragment-cache';
+
+interface Props {
+  /**
+   * Posição do menu (main, sidebar, mobile, etc.)
+   */
+  position?: string;
+  /**
+   * Se true, força a renderização ignorando o cache
+   */
+  forceRefresh?: boolean;
+}
+
+const {
+  position = 'main',
+  forceRefresh = true // Forçar atualização ignorando o cache
+} = Astro.props;
+
+// Configurar ID de fragmento e tipo para cache
+const fragmentId = `category-menu-${position}`;
+const fragmentType = FRAGMENT_TYPES.CATEGORY_MENU;
+
+// Buscar dados das categorias
+let menuData = categoryService.getMenuWithCategories();
+
+// Garantir que as categorias estão realmente ordenadas
+menuData.categories.sort((a, b) => {
+  const orderA = a.display_order !== undefined ? a.display_order : 999;
+  const orderB = b.display_order !== undefined ? b.display_order : 999;
+  return orderA - orderB;
+});
+
+// Log para verificar a ordem final
+console.log("MENU CATEGORIAS ORDEM FINAL no componente:", 
+  menuData.categories.map(c => `${c.name} (ordem: ${c.display_order !== undefined ? c.display_order : 'N/A'})`));
+---
+
+<CachedFragment
+  fragmentId={fragmentId}
+  type={fragmentType}
+  forceRefresh={forceRefresh}
+>
+  <nav class={`category-menu category-menu-${position}`}>
+    <div class="container mx-auto">
+      <ul class="flex flex-wrap space-x-2 md:space-x-4 py-2">
+        {menuData.categories
+          // Ordenar explicitamente por display_order para garantir a ordem correta
+          .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+          .map((category) => (
+            <li class="relative group">
+              <a
+                href={`/produtos/${category.cid}`}
+                class="text-gray-700 hover:text-primary-600 font-medium px-2 py-1"
+                data-category-id={category.cid}
+              >
+                {category.name}
+                {category.subcategories && category.subcategories.length > 0 && (
+                  <span class="ml-1">▼</span>
+                )}
+              </a>
+              
+              {category.subcategories && category.subcategories.length > 0 && (
+                <div class="absolute left-0 mt-1 w-48 bg-white shadow-lg rounded-md p-2 hidden group-hover:block z-10">
+                  <ul>
+                    {category.subcategories.map((subcategory) => (
+                      <li>
+                        <a
+                          href={`/produtos/${subcategory.cid}`}
+                          class="block px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                          data-subcategory-id={subcategory.cid}
+                        >
+                          {subcategory.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </li>
+          ))}
+      </ul>
+    </div>
+  </nav>
+</CachedFragment>
+
+<style>
+  .category-menu {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  /* Variantes de estilo por posição */
+  .category-menu-sidebar {
+    background-color: white;
+    border-bottom: none;
+    border-right: 1px solid #e9ecef;
+  }
+  
+  .category-menu-sidebar ul {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .category-menu-sidebar .group:hover div {
+    position: static;
+    box-shadow: none;
+    padding-left: 1rem;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+  
+  .category-menu-mobile {
+    background-color: white;
+    border-bottom: none;
+  }
+  
+  .category-menu-mobile ul {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .category-menu-mobile li {
+    width: 100%;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 0.5rem 0;
+  }
+  
+  .category-menu-mobile .group:hover div {
+    position: static;
+    box-shadow: none;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+</style>
+
+<script>
+  // Script para adicionar funcionalidades interativas ao menu
+  document.addEventListener('DOMContentLoaded', () => {
+    // Adicionar classe active ao item atual baseado na URL
+    const currentPath = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryId = urlParams.get('category');
+    
+    if (categoryId) {
+      // Marcar a categoria ativa baseada no parâmetro
+      const categoryLink = document.querySelector(`[data-category-id="${categoryId}"]`);
+      if (categoryLink) {
+        categoryLink.classList.add('active', 'text-primary-600');
+      }
+      
+      const subcategoryId = urlParams.get('subcategory');
+      if (subcategoryId) {
+        const subcategoryLink = document.querySelector(`[data-subcategory-id="${subcategoryId}"]`);
+        if (subcategoryLink) {
+          subcategoryLink.classList.add('active', 'bg-gray-100');
+        }
+      }
+    } else if (currentPath.includes('/produtos/')) {
+      // Tentar identificar categoria pela URL
+      const categoryLinks = document.querySelectorAll('.category-menu a');
+      categoryLinks.forEach(link => {
+        if (currentPath === link.getAttribute('href')) {
+          link.classList.add('active', 'text-primary-600');
+        }
+      });
+    }
+  });
+</script>
