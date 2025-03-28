@@ -7,8 +7,20 @@ import productService from '../../services/productService';
 // Obter o slug do produto da URL
 const { slug } = Astro.params;
 
+// Adicionar logs detalhados para diagnóstico
+console.log(`-----------------------------------------------------`);
+console.log(`URL completa: ${Astro.url.toString()}`);
+console.log(`Slug extraído dos parâmetros: "${slug}"`);
+console.log(`Tipo do parâmetro slug: ${typeof slug}`);
+console.log(`-----------------------------------------------------`);
+
 // Buscar o produto pelo slug (forçando busca por slug com bySlug=true)
-const product = productService.getProductById(slug, true);
+// Usamos true de maneira explícita para garantir que é um boolean
+const bySlug = true; 
+console.log(`Chamando getProductById com slug: "${slug}" e bySlug=${bySlug} (tipo: ${typeof bySlug})`);
+
+// Passar o parâmetro bySlug como um literal booleano
+const product = productService.getProductById(slug, bySlug);
 
 // Se o produto não existir, redirecionar para a página de produtos
 if (!product) {

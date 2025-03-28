@@ -9,7 +9,8 @@ import productService from "../../../services/productService";
 const { id } = Astro.params;
 
 // Buscar o produto pelo ID para obter o slug
-const product = productService.getProductById(id);
+// Certifique-se de usar false para bySlug, pois estamos buscando por ID
+const product = productService.getProductById(id, false);
 
 // Se o produto existir e tiver slug, redirecionar para a versão com slug
 // Caso contrário, redirecionar para a página de produtos
