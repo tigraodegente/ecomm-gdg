@@ -91,48 +91,21 @@ if (!isShowingFallback) {
 >
   <Fragment slot="head">
     <style>
-      /* Estilos específicos para garantir que os botões apareçam corretamente */
+      /* Botão Verde de Adicionar ao Carrinho */
       #add-to-cart-btn {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        min-height: 45px !important;
-        width: 100% !important;
-        position: relative !important;
-        z-index: 10 !important;
-        background-color: #00BFB3 !important; /* Cor cyan500 */
+        background-color: #00BFB3 !important;
         color: white !important;
-      }
-      
-      #add-to-wishlist-btn {
+        font-weight: 600 !important;
+        min-height: 48px !important;
         display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        min-height: 45px !important;
         width: 100% !important;
-        position: relative !important;
-        z-index: 10 !important;
       }
       
-      /* Layout para mobile (telas pequenas) */
-      @media (max-width: 639px) {
-        .actions-container .grid {
-          display: grid !important;
-          grid-template-columns: 1fr !important;
-          gap: 10px !important;
-        }
-        
-        .actions-container .col-span-12 {
-          grid-column: span 1 !important;
-        }
-      }
-      
-      /* Layout para desktop (telas médias e grandes) */
+      /* Ponto de quebra para layout responsivo */
       @media (min-width: 640px) {
         .actions-container .grid {
-          display: grid !important;
-          grid-template-columns: 5fr 1fr !important;
-          gap: 15px !important;
+          grid-template-columns: 5fr 1fr;
+          gap: 15px;
         }
       }
     </style>
@@ -383,23 +356,21 @@ if (!isShowingFallback) {
             <div class="actions-container block w-full">
               <div class="grid grid-cols-12 gap-4">
                 <!-- Botão de Adicionar ao Carrinho (10 colunas em desktop, 12 em mobile) -->
-                <div class="col-span-12 sm:col-span-10">
+                <div class="col-span-10 sm:col-span-10">
                   <button 
                     id="add-to-cart-btn"
-                    class="px-8 py-3 text-base bg-cyan500 hover:bg-cyan600 text-white font-medium rounded-md block w-full"
+                    class="px-8 py-3 text-base bg-cyan500 hover:bg-cyan600 text-white font-semibold rounded-md shadow-sm"
                     disabled={product.stock <= 0}
-                    style="display: block !important; min-height: 45px; width: 100% !important;"
                   >
                     {product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível'}
                   </button>
                 </div>
                 
                 <!-- Botão de Lista de Desejos (2 colunas em desktop, 12 em mobile) -->
-                <div class="col-span-12 sm:col-span-2">
+                <div class="col-span-2 sm:col-span-2">
                   <button 
                     id="add-to-wishlist-btn"
-                    class="px-3 py-3 text-base border border-gray-300 rounded-md hover:border-cyan500 block w-full"
-                    style="display: block !important; min-height: 45px;"
+                    class="px-3 py-3 text-base border border-gray-300 rounded-md hover:border-cyan500 w-full"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -709,21 +680,13 @@ if (!isShowingFallback) {
     const addToWishlistBtn = document.getElementById('add-to-wishlist-btn');
     
     if (addToCartBtn) {
-      // Log para debug
-      console.log('Botão de adicionar ao carrinho encontrado e configurado');
-      
       addToCartBtn.addEventListener('click', function(event) {
-        // Prevenir comportamento padrão do botão para garantir que nosso código execute
         event.preventDefault();
-        event.stopPropagation();
-        
-        // Log para debug - confirmar que o evento de clique está sendo capturado
-        console.log('Botão de adicionar ao carrinho clicado');
         
         const quantity = parseInt(document.getElementById('quantity-input').value) || 1;
         const variantId = document.getElementById('selected-variant-id')?.value || null;
         
-        // Dados do produto para o carrinho
+        // Criar objeto de produto para o carrinho
         const product = {
           id: productId,
           variantId: variantId,
@@ -734,32 +697,24 @@ if (!isShowingFallback) {
           image: document.getElementById('main-product-image').src
         };
         
-        console.log('Dados do produto:', product);
-        
-        // Integração com o store carrinho do Alpine.js
-        try {
-          if (window.Alpine && typeof window.Alpine.store === 'function' && window.Alpine.store('cart')) {
-            console.log('Alpine.js disponível, adicionando ao carrinho');
-            window.Alpine.store('cart').addItem(product);
-            
-            // Mostrar toast de confirmação para garantir feedback ao usuário
-            window.dispatchEvent(new CustomEvent('toast', { 
-              detail: { 
-                message: `${productName} adicionado ao carrinho`, 
-                type: 'success' 
-              }
-            }));
-          } else {
-            console.warn('Alpine.js não está disponível ou store não está definido');
-            alert('Produto adicionado ao carrinho!');
-          }
-        } catch (error) {
-          console.error('Erro ao adicionar ao carrinho:', error);
+        // Adicionar ao carrinho usando Alpine.js store
+        if (window.Alpine && typeof window.Alpine.store === 'function') {
+          window.Alpine.store('cart').addItem(product);
+          
+          // Atualizar contador no header explicitamente
+          const cartCount = window.Alpine.store('cart').items.reduce((total, item) => total + item.quantity, 0);
+          window.Alpine.store('cart').count = cartCount;
+          
+          // Redirecionar para a página de carrinho
+          setTimeout(() => {
+            window.location.href = '/carrinho';
+          }, 1000);
+        } else {
+          // Fallback
           alert('Produto adicionado ao carrinho!');
+          window.location.href = '/carrinho';
         }
       });
-    } else {
-      console.error('Botão de adicionar ao carrinho não encontrado!');
     }
     
     if (addToWishlistBtn) {
