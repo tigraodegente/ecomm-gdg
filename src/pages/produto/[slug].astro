@@ -89,6 +89,54 @@ if (!isShowingFallback) {
   canonicalUrl={`${Astro.url.origin}/produto/${product.slug}`}
   ogImage={product.images && product.images.length > 0 ? product.images[0].image_url : '/og-image.png'}
 >
+  <Fragment slot="head">
+    <style>
+      /* Estilos específicos para garantir que os botões apareçam corretamente */
+      #add-to-cart-btn {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 45px !important;
+        width: 100% !important;
+        position: relative !important;
+        z-index: 10 !important;
+        background-color: #00BFB3 !important; /* Cor cyan500 */
+        color: white !important;
+      }
+      
+      #add-to-wishlist-btn {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 45px !important;
+        width: 100% !important;
+        position: relative !important;
+        z-index: 10 !important;
+      }
+      
+      /* Layout para mobile (telas pequenas) */
+      @media (max-width: 639px) {
+        .actions-container .grid {
+          display: grid !important;
+          grid-template-columns: 1fr !important;
+          gap: 10px !important;
+        }
+        
+        .actions-container .col-span-12 {
+          grid-column: span 1 !important;
+        }
+      }
+      
+      /* Layout para desktop (telas médias e grandes) */
+      @media (min-width: 640px) {
+        .actions-container .grid {
+          display: grid !important;
+          grid-template-columns: 5fr 1fr !important;
+          gap: 15px !important;
+        }
+      }
+    </style>
+  </Fragment>
   <Fragment slot="navbar">
     {/* Links distribuídos uniformemente - IGUAL à página de produtos */}
     <li class="w-full flex justify-between">
@@ -332,23 +380,33 @@ if (!isShowingFallback) {
               </div>
             </div>
             
-            <div class="flex flex-col sm:flex-row gap-3">
-              <button 
-                id="add-to-cart-btn"
-                class="px-8 py-3 text-base flex-1 bg-cyan500 hover:bg-cyan600 text-white font-medium rounded-md"
-                disabled={product.stock <= 0}
-              >
-                {product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível'}
-              </button>
-              
-              <button 
-                id="add-to-wishlist-btn"
-                class="px-3 py-3 text-base border border-gray-300 rounded-md hover:border-cyan500"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
+            <div class="actions-container block w-full">
+              <div class="grid grid-cols-12 gap-4">
+                <!-- Botão de Adicionar ao Carrinho (10 colunas em desktop, 12 em mobile) -->
+                <div class="col-span-12 sm:col-span-10">
+                  <button 
+                    id="add-to-cart-btn"
+                    class="px-8 py-3 text-base bg-cyan500 hover:bg-cyan600 text-white font-medium rounded-md block w-full"
+                    disabled={product.stock <= 0}
+                    style="display: block !important; min-height: 45px; width: 100% !important;"
+                  >
+                    {product.stock > 0 ? 'Adicionar ao Carrinho' : 'Produto Indisponível'}
+                  </button>
+                </div>
+                
+                <!-- Botão de Lista de Desejos (2 colunas em desktop, 12 em mobile) -->
+                <div class="col-span-12 sm:col-span-2">
+                  <button 
+                    id="add-to-wishlist-btn"
+                    class="px-3 py-3 text-base border border-gray-300 rounded-md hover:border-cyan500 block w-full"
+                    style="display: block !important; min-height: 45px;"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -501,8 +559,32 @@ if (!isShowingFallback) {
   </div>
 </MarketplaceLayout>
 
-<script>
+<script is:inline>
+  // Script inline para garantir que o botão esteja visível assim que a página carrega
+  window.onload = function() {
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    if (addToCartBtn) {
+      addToCartBtn.style.display = 'block';
+      addToCartBtn.style.visibility = 'visible';
+      addToCartBtn.style.opacity = '1';
+      addToCartBtn.style.width = '100%';
+      addToCartBtn.style.minHeight = '45px';
+    }
+  };
+</script>
+
+<script define:vars={{ productId: product.id, productPrice: product.price, productName: product.name, productVendor: product.vendor_name || 'Loja Grão de Gente' }}>
   document.addEventListener('DOMContentLoaded', function() {
+    // Referência ao botão de adicionar ao carrinho
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    
+    // Forçar visibilidade
+    if (addToCartBtn) {
+      addToCartBtn.style.display = 'block';
+      addToCartBtn.style.visibility = 'visible';
+      addToCartBtn.style.opacity = '1';
+    }
+    
     // Seleção de Imagens
     const mainImage = document.getElementById('main-product-image');
     const thumbnails = document.querySelectorAll('.thumbnail-btn');
@@ -607,7 +689,7 @@ if (!isShowingFallback) {
           
           // Verificar se uma variante corresponde à seleção atual
           // Esta lógica depende do formato dos seus dados de variantes
-          const variantAttributes = JSON.parse(document.getElementById('variant-data').textContent);
+          const variantAttributes = JSON.parse(document.getElementById('variant-data')?.textContent || '{}');
           let matchedVariantId = null;
           
           // Aqui você implementaria a lógica para encontrar a variante correta
@@ -623,36 +705,68 @@ if (!isShowingFallback) {
     }
     
     // Botões de adição ao carrinho e lista de desejos
-    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    // Usar variável já definida no início do script
     const addToWishlistBtn = document.getElementById('add-to-wishlist-btn');
     
     if (addToCartBtn) {
-      addToCartBtn.addEventListener('click', function() {
-        const quantity = parseInt(document.getElementById('quantity-input').value);
+      // Log para debug
+      console.log('Botão de adicionar ao carrinho encontrado e configurado');
+      
+      addToCartBtn.addEventListener('click', function(event) {
+        // Prevenir comportamento padrão do botão para garantir que nosso código execute
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Log para debug - confirmar que o evento de clique está sendo capturado
+        console.log('Botão de adicionar ao carrinho clicado');
+        
+        const quantity = parseInt(document.getElementById('quantity-input').value) || 1;
         const variantId = document.getElementById('selected-variant-id')?.value || null;
         
+        // Dados do produto para o carrinho
+        const product = {
+          id: productId,
+          variantId: variantId,
+          quantity: quantity,
+          price: productPrice,
+          name: productName,
+          vendorName: productVendor,
+          image: document.getElementById('main-product-image').src
+        };
+        
+        console.log('Dados do produto:', product);
+        
         // Integração com o store carrinho do Alpine.js
-        if (window.Alpine) {
-          window.Alpine.store('cart').addItem({
-            id: product.id,
-            variantId: variantId,
-            quantity: quantity,
-            price: product.price,
-            name: product.name,
-            image: document.getElementById('main-product-image').src
-          });
-        } else {
-          // Fallback se Alpine.js não estiver disponível
+        try {
+          if (window.Alpine && typeof window.Alpine.store === 'function' && window.Alpine.store('cart')) {
+            console.log('Alpine.js disponível, adicionando ao carrinho');
+            window.Alpine.store('cart').addItem(product);
+            
+            // Mostrar toast de confirmação para garantir feedback ao usuário
+            window.dispatchEvent(new CustomEvent('toast', { 
+              detail: { 
+                message: `${productName} adicionado ao carrinho`, 
+                type: 'success' 
+              }
+            }));
+          } else {
+            console.warn('Alpine.js não está disponível ou store não está definido');
+            alert('Produto adicionado ao carrinho!');
+          }
+        } catch (error) {
+          console.error('Erro ao adicionar ao carrinho:', error);
           alert('Produto adicionado ao carrinho!');
         }
       });
+    } else {
+      console.error('Botão de adicionar ao carrinho não encontrado!');
     }
     
     if (addToWishlistBtn) {
       addToWishlistBtn.addEventListener('click', function() {
         // Integração com o store wishlist do Alpine.js
-        if (window.Alpine) {
-          window.Alpine.store('wishlist').addItem(product.id);
+        if (window.Alpine && window.Alpine.store('wishlist')) {
+          window.Alpine.store('wishlist').addItem(productId);
         } else {
           // Fallback se Alpine.js não estiver disponível
           alert('Produto adicionado à lista de desejos!');
